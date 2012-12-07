@@ -392,14 +392,14 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
      array("mailtool_name" => "Ranking reminder",
 	   "mailtool_priority" => 22,
 	   "mailtool_recipients" => "unrankpc",
-	   "subject" => "[%CONFSHORTNAME%] Ranking reminder for paper #%NUMBER% %TITLEHINT%",
+	   "subject" => "[%CONFSHORTNAME%] Reminder to rank your assigned papers",
 	   "body" => "Dear %NAME%,
 
-This is a reminder to rank paper #%NUMBER% for %CONFNAME% . %IF(REVIEWDEADLINE)% Rankings are requested by %REVIEWDEADLINE%. %ENDIF%
+This is a reminder to rank your assigned papers for %CONFNAME%. %IF(REVIEWDEADLINE)% Rankings are requested by %REVIEWDEADLINE%. %ENDIF%
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%)%
+             Site: %URL%/
+     Your reviews: %URL(search, q=re:me)%
+  Unranked papers: %UNRANKEDASSIGNMENTS%
 
 Use the link below to rank your asigned papers.
 
@@ -777,6 +777,8 @@ class Mailer {
 	    return $this->notes;
 	if ($what == "%NEWASSIGNMENTS%")
 	    return $this->getNewAssignments($this->contact);
+	if ($what == "%UNRANKEDASSIGNMENTS%")
+	    return $this->getUnrankedAssignments($this->contact);
 
 	// rest is only there if we have a real paper
 	if (!$this->row || defval($this->row, "paperId") <= 0) {
@@ -1004,6 +1006,22 @@ class Mailer {
 		and R.timeRequested>R.timeRequestNotified
 		and R.reviewSubmitted is null and R.reviewNeedsSubmit!=0
 		order by R.paperId", "while retrieving assignments");
+	$text = "";
+	while (($row = edb_row($result)))
+	    $text .= ($text ? "\n#" : "#") . $row[0] . " " . $row[1];
+	return $text;
+    }
+
+    function getUnrankedAssignments($contact) {
+	global $Conf;
+	$contactId = $contact->contactId;
+	$tag_rank = $contactId . "~" . $Conf->settingText("tag_rank");
+	$result = $Conf->qe("select Paper.paperId, Paper.title, group_concat(PaperTag.tag) tags
+		from Paper join PaperReview on (Paper.paperId=PaperReview.paperId and Paper.timeSubmitted>0 and PaperReview.contactId=$contactId)
+		left join PaperTag on (Paper.paperId=PaperTag.paperId)
+		group by Paper.paperId
+		having tags is null or find_in_set('$tag_rank',tags) = 0
+		order by Paper.paperId", "while retrieving assignments");
 	$text = "";
 	while (($row = edb_row($result)))
 	    $text .= ($text ? "\n#" : "#") . $row[0] . " " . $row[1];
