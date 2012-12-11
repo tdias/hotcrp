@@ -230,6 +230,9 @@ class PaperRank {
 	}
     }
 
+    // global rank calculation by computing the stationary distribution of a random walk
+    function randwalk() {
+    }
 
     function _calculatePrefs() {
 	$this->anypref = array_combine($this->papersel, array_fill(0, count($this->papersel), 0));
