@@ -314,7 +314,7 @@ function tagaction() {
     if (count($papers) && ($act == "a" || $act == "d" || $act == "s" || $act == "so" || $act == "ao" || $act == "sos" || $act == "sor" || $act == "aos" || $act == "da"))
 	setTags($papers, $tag, $act, $Me->privChair);
     else if (count($papers) && $act == "cr" && $Me->privChair
-	     && checkTag($tag, CHECKTAG_NOINDEX | CHECKTAG_NOPRIVATE | CHECKTAG_ERRORARRAY)) {
+	     && checkTag($tag, CHECKTAG_NOINDEX | CHECKTAG_NOPRIVATE | CHECKTAG_ERRORARRAY | CHECKTAG_CHAIR)) {
 	$source_tag = trim(defval($_REQUEST, "tagcr_source", ""));
 	$source_tag = ($source_tag == "" ? $tag : $source_tag);
 	if (checkTag($source_tag, CHECKTAG_NOINDEX | CHECKTAG_NOPRIVATE | CHECKTAG_ERRORARRAY)) {

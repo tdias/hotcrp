@@ -27,7 +27,7 @@ function checkTagError($tag, $flags) {
 	return "Tag numbers not allowed here.";
     else if ($tag[0] === "~" && $tag[1] === "~" && !($flags & CHECKTAG_CHAIR))
 	return "Tag \"$tag\" is exclusively for chairs.";
-    else if ($tag[0] === "~" && ($flags & CHECKTAG_NOPRIVATE))
+    else if ($tag[0] === "~" && $tag[1] !== "~" && ($flags & CHECKTAG_NOPRIVATE))
 	return "Twiddle tags not allowed here.";
     else if (($tag === "none" || $tag === "any") && !($flags & CHECKTAG_ALLOWRESERVED))
 	return "Tag \"$tag\" is reserved.";
