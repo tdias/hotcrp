@@ -885,7 +885,8 @@ class PaperSearch {
 	require_once("tags.inc");
 
 	// regular expressions for private tag, comparator, and list of paper numbers in search word
-	$regex_privateTag = "~[a-zA-Z!@_:.][-a-zA-Z0-9!@_:.\/]*";
+	$regex_privateTag = "~[a-zA-Z!@_:.][-a-zA-Z0-9!@_:.\/]*?";
+	$regex_offset = "[-+]\d+";
 	$regex_comparator = "[<>!=]=?";
 	$regex_number = "#?(\d+)";
 	$regex_range = "$regex_number-$regex_number";
@@ -895,7 +896,7 @@ class PaperSearch {
 	$regex_list = "$regex_numOrRange(?:$regex_separator$regex_numOrRange)*";
 
 	// match regular expression to search word; fail if no match
-	if (!preg_match("/\A\s*($regex_privateTag)($regex_comparator)\s*($regex_list)\s*\z/", $word, $m)) {
+	if (!preg_match("/\A\s*($regex_privateTag)($regex_offset)*($regex_comparator)\s*($regex_list)\s*\z/", $word, $m)) {
 	    $this->warn("The <code>$keyword</code> keyword expects a private tag, a comparison operator, and a list of paper numbers.");
 	    $qt[] = new SearchTerm("f");
 	    return;
@@ -903,8 +904,9 @@ class PaperSearch {
 
 	// extract private tag, comparator, and list of paper numbers
 	$privateTag = $m[1];
-	$comparator = self::_cleanCompar($m[2]);
-	$paperNumList = $m[3];
+	$offset = intval($m[2]);
+	$comparator = self::_cleanCompar($m[3]);
+	$paperNumList = $m[4];
 
 	$paperNums = array();
 	while (preg_match("/\A$regex_numOrRange(?:$regex_separator(.*))?\z/", $paperNumList, $m)) {
@@ -929,8 +931,10 @@ class PaperSearch {
 	$result = $Conf->qe($tagQuery, "while evaluating $keyword keyword");
 
 	// add a new search term for each reviewer tag and index value to compare against
-	while ($row = edb_row($result))
-	    $qt[] = new SearchTerm("tag", 0, array($row[0], $comparator . $row[1]));
+	while ($row = edb_row($result)) {
+	    $comparand = $row[1] - $offset;
+	    $qt[] = new SearchTerm("tag", 0, array($row[0], $comparator . $comparand));
+	}
     }
 
     function _searchOptions($word, &$qt, $error) {
