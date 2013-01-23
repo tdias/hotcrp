@@ -53,13 +53,12 @@ function ldapLoginAction() {
 
     // use LDAP information to prepopulate the database with names
     $sr = @ldap_search($ldapc, $dn, "(cn=*)",
-		       array("sn", "givenname", "cn", "mail", "telephonenumber",
-			     "fax"));
+		       array("sn", "givenname", "cn", "mail", "telephonenumber"));
     if ($sr) {
 	$e = @ldap_get_entries($ldapc, $sr);
 	$e = ($e["count"] == 1 ? $e[0] : array());
 	if (isset($e["cn"]) && $e["cn"]["count"] == 1)
-	    list($_REQUEST["firstName"], $_REQUEST["lastName"]) = splitName($e["cn"][0]);
+	    list($_REQUEST["firstName"], $_REQUEST["lastName"]) = Text::split_name($e["cn"][0]);
 	if (isset($e["sn"]) && $e["sn"]["count"] == 1)
 	    $_REQUEST["lastName"] = $e["sn"][0];
 	if (isset($e["givenname"]) && $e["givenname"]["count"] == 1)
@@ -68,8 +67,6 @@ function ldapLoginAction() {
 	    $_REQUEST["preferredEmail"] = $e["mail"][0];
 	if (isset($e["telephonenumber"]) && $e["telephonenumber"]["count"] == 1)
 	    $_REQUEST["voicePhoneNumber"] = $e["telephonenumber"][0];
-	if (isset($e["fax"]) && $e["fax"]["count"] == 1)
-	    $_REQUEST["faxPhoneNumber"] = $e["fax"][0];
     }
 
     ldap_close($ldapc);

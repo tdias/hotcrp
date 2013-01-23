@@ -30,7 +30,7 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode) {
 	if ($rr->contactId == $Me->contactId
 	    || (isset($prow->myReviewId) && $prow->myReviewId == $rr->reviewId))
 	    $foundMyReview++;
-	$canView = $Me->canViewReview($prow, $rr, $whyNot);
+	$canView = $Me->canViewReview($prow, $rr, null);
 
 	// skip unsubmitted reviews
 	if (!$canView && $hideUnviewable) {
@@ -82,28 +82,26 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode) {
 
 	// reviewer identity
 	$showtoken = $rr->reviewToken && $Me->canReview($prow, $rr);
-	if (!$Me->canViewReviewerIdentity($prow, $rr)) {
+	if (!$Me->canViewReviewerIdentity($prow, $rr, null)) {
 	    $t .= ($x ? "<td>$x</td>" : "<td class='empty'></td>");
 	    if ($mode == "assign")
 		$t .= "<td class='empty'></td>";
 	} else {
 	    if (!$showtoken || !preg_match('/^anonymous\d*$/', $rr->email))
-		$n = contactNameHtml($rr->firstName, $rr->lastName,
+		$n = Text::name_html($rr->firstName, $rr->lastName,
 				     $mode == "assign" ? null : $rr->email);
 	    else
 		$n = "[Token " . encodeToken((int) $rr->reviewToken) . "]";
 	    $t .= "<td>" . $n . ($x ? " $x" : "");
 	    if ($Me->privChair && $rr->email != $Me->email)
-		$t .= " <a href=\"" . selfHref(array("viewContact" => $rr->email)) . "\">" . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . contactHtml($rr->firstName, $rr->lastName)) . "</a>";
+		$t .= " <a href=\"" . selfHref(array("viewContact" => $rr->email)) . "\">" . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . Text::name_html($rr)) . "</a>";
 	    $t .= "</td>";
 	    if ($mode == "assign")
-		$t .= "<td>" . contactHtml(null, null, $rr->email) . "</td>";
+		$t .= "<td>" . Text::user_html(null, null, $rr->email) . "</td>";
 	    if (isset($rr->contactTags) && $rr->contactTags && $Me->isPC) {
-		if (!$colorizer) {
-		    require_once("tags.inc");
-		    $colorizer = new TagColorizer($Me);
-		}
-		if (($color = $colorizer->match_all($rr->contactTags)))
+		if (!$colorizer)
+		    $colorizer = new Tagger;
+		if (($color = $colorizer->color_classes($rr->contactTags)))
 		    $tclass = $color;
 	    }
 	}
@@ -114,7 +112,7 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode) {
 	else if (($conflictType > 0 && !$effAssistant) || $rr->reviewType != REVIEW_EXTERNAL)
 	    $t .= "<td class='empty'></td>";
 	else {
-	    $t .= "<td><small>Requested by " . contactHtml($rr->reqFirstName, $rr->reqLastName, $rr->reqEmail);
+	    $t .= "<td><small>Requested by " . Text::user_html($rr->reqFirstName, $rr->reqLastName, $rr->reqEmail);
 	    if ($rr->reviewModified <= 0
 		&& $rr->reviewType == REVIEW_EXTERNAL
 		&& ($rr->requestedBy == $Me->contactId || $effAssistant))
@@ -146,7 +144,7 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode) {
     // unfinished review notification
     $notetxt = "";
     if ($conflictType >= CONFLICT_AUTHOR && !$effAssistant && $notShown
-	&& $Me->canViewReview($prow, null)) {
+	&& $Me->canViewReview($prow, null, null)) {
 	$qualifier = (count($subrev) + count($nonsubrev) ? " additional" : "");
 	if ($notShown == 1)
 	    $t = "1$qualifier review remains outstanding.";
@@ -185,7 +183,7 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
     $myrr = null;
     if ($rrows)
 	foreach ($rrows as $rr) {
-	    if ($Me->canViewReview($prow, $rr, $whyNot))
+	    if ($Me->canViewReview($prow, $rr, null))
 		$nvisible++;
 	    if ($rr->contactId == $Me->contactId
 		|| (!$myrr && $Me->ownReview($rr)))
@@ -198,11 +196,11 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
 	$cids = array();
 	$cnames = array();
 	foreach ($crows as $cr)
-	    if ($Me->canViewComment($prow, $cr)) {
+	    if ($Me->canViewComment($prow, $cr, null)) {
 		$cids[] = $cr->commentId;
 		$n = "<a class='nowrap' href='#comment$cr->commentId'>";
-		if ($Me->canViewCommentIdentity($prow, $cr))
-		    $n .= abbreviateNameHtml($cr->firstName, $cr->lastName);
+		if ($Me->canViewCommentIdentity($prow, $cr, null))
+		    $n .= Text::abbrevname_html($cr);
 		else
 		    $n .= "anonymous";
 		if ($cr->forAuthors > 1 && $cr->forReviewers != 0)

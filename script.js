@@ -55,7 +55,7 @@ setLocalTime.initialize = function (servtime, servzone, hr24) {
     var now = new Date(), x;
     if (Math.abs(now.getTime() - servtime * 1000) >= 300000
 	&& (x = $$("clock_drift_container")))
-	x.innerHTML = "<div class='warning'>The HotCRP server's clock is more than 5 minutes off from your computer's clock.  If your computer's clock is correct, you should update the server's clock.</div>";
+	x.innerHTML = "<div class='warning'>The HotCRP server’s clock is more than 5 minutes off from your computer’s clock. If your computer’s clock is correct, you should update the server’s clock.</div>";
     servhr24 = hr24;
     // print local time if server time is in a different time zone
     showdifference = Math.abs(now.getTimezoneOffset() - servzone) >= 60;
@@ -166,19 +166,19 @@ return loadDeadlines;
 
 
 var hotcrp_onload = [];
-function hotcrpLoad(arg) {
+function hotcrp_load(arg) {
     if (!arg)
 	for (x = 0; x < hotcrp_onload.length; ++x)
 	    hotcrp_onload[x]();
     else if (typeof arg === "string")
-	hotcrp_onload.push(hotcrpLoad[arg]);
+	hotcrp_onload.push(hotcrp_load[arg]);
     else
 	hotcrp_onload.push(arg);
 }
-hotcrpLoad.time = function (servtime, servzone, hr24) {
+hotcrp_load.time = function (servtime, servzone, hr24) {
     setLocalTime.initialize(servtime, servzone, hr24);
 };
-hotcrpLoad.opencomment = function () {
+hotcrp_load.opencomment = function () {
     if (location.hash.match(/^\#?commentnew$/))
 	open_new_comment();
 };
@@ -246,8 +246,13 @@ function fold(which, dofold, foldtype) {
 	    selt.src = selt.src.replace(/val=.*/, 'val=' + (dofold ? 1 : 0) + '&sub=' + (foldtype || foldnumid) + '&u=' + foldsession_unique++);
 
 	// check for focus
-	if (!dofold && (selt = $$("fold" + which + foldnumid + "_d")))
+	if (!dofold && (selt = $$("fold" + which + foldnumid + "_d"))) {
+	    if (selt.setSelectionRange && selt.hotcrp_ever_focused == null) {
+		selt.setSelectionRange(selt.value.length, selt.value.length);
+		selt.hotcrp_ever_focused = true;
+	    }
 	    selt.focus();
+	}
 
     } else if (which) {
 	foldnumid = foldtype ? foldtype : "";
@@ -542,7 +547,7 @@ function staged_foreach(a, f, backwards) {
 	for (x = 0; i >= 0 && i < a.length && x < 50; i += step, ++x)
 	    f(a[i]);
 	if (i < a.length)
-	    setTimeout(arguments.callee, 0);
+	    setTimeout(stagef, 0);
     };
     stagef();
 }
@@ -590,15 +595,42 @@ return function (e, text) {
 
 
 // check marks for ajax saves
+function make_ajaxcheck_swinger(elt) {
+    return function () {
+	var h = elt.hotcrp_ajaxcheck;
+	var now = (new Date).getTime(), delta = now - h.start, opacity = 0;
+	if (delta < 2000)
+	    opacity = 0.5;
+	else if (delta <= 7000)
+	    opacity = 0.5 * Math.cos((delta - 2000) / 5000 * Math.PI);
+	if (opacity <= 0.03) {
+	    elt.style.outline = h.old_outline;
+	    clearInterval(h.interval);
+	    h.interval = null;
+	} else
+	    elt.style.outline = "4px solid rgba(0, 200, 0, " + opacity + ")";
+    };
+}
+
 function setajaxcheck(elt, rv) {
     if (typeof elt == "string")
 	elt = $$(elt);
     if (elt) {
-	var s = (rv.ok ? "Saved" : (rv.error ? rv.error : "Error")),
-	    c = elt.className.replace(/\s*ajaxcheck\w*\s*/, "");
+	var h = elt.hotcrp_ajaxcheck;
+	if (!h)
+	    h = elt.hotcrp_ajaxcheck = {old_outline: elt.style.outline};
+	if (h.interval) {
+	    clearInterval(h.interval);
+	    h.interval = null;
+	}
+
+	var s = (rv.ok ? "Saved" : (rv.error ? rv.error : "Error"));
 	elt.setAttribute("title", s);
-	elt.setAttribute("alt", rv.ok ? "Saved" : "Error");
-	elt.className = c + " ajaxcheck_" + (rv.ok ? "good" : "bad");
+	if (rv.ok) {
+	    h.start = (new Date).getTime();
+	    h.interval = setInterval(make_ajaxcheck_swinger(elt), 13);
+	} else
+	    elt.style.outline = "5px solid red";
     }
 }
 
@@ -615,21 +647,49 @@ function open_new_comment(sethash) {
     return false;
 }
 
-// quicklink shortcuts
-function add_quicklink_shortcuts(elt) {
-    if (!elt)
-	return;
+function cancel_comment() {
+    var x = $$("foldaddcomment");
+    x = x ? x.getElementsByTagName("textarea") : null;
+    if (x && x.length)
+	x[0].blur();
+    fold("addcomment", 1);
+}
 
-    function quicklink_shortcut_keypress(event) {
+// quicklink shortcuts
+function quicklink_shortcut(evt, code) {
+    // find the quicklink, reject if not found
+    var a = $$("quicklink_" + (code == 106 ? "prev" : "next")), f;
+    if (a && a.focus) {
+	// focus (for visual feedback), call callback
+	a.focus();
+	f = make_link_callback(a);
+	if (!Miniajax.isoutstanding("revprefform", f))
+	    f();
+	return true;
+    } else
+	return false;
+}
+
+function comment_shortcut() {
+    if ($$("foldaddcomment")) {
+	open_new_comment();
+	return true;
+    } else
+	return false;
+}
+
+function shortcut(top_elt) {
+    var self, keys = {};
+
+    function keypress(evt) {
 	var code, a, f, target, x, i, j;
 	// IE compatibility
-	event = event || window.event;
-	code = event.charCode || event.keyCode;
-	target = event.target || event.srcElement;
-	// reject modified keys, non-j/k, interesting targets
-	if (code == 0 || event.altKey || event.ctrlKey || event.metaKey
-	    || (code != 106 && code != 107)
-	    || (target && target.tagName && target != elt
+	evt = evt || window.event;
+	code = evt.charCode || evt.keyCode;
+	target = evt.target || evt.srcElement;
+	// reject modified keys, interesting targets
+	if (code == 0 || evt.altKey || evt.ctrlKey || evt.metaKey
+	    || (target && target.tagName && target != top_elt
 		&& (x = target.tagName.toUpperCase())
 		&& (x == "TEXTAREA"
 		    || x == "SELECT"
@@ -646,27 +706,141 @@ function add_quicklink_shortcuts(elt) {
 		    && a.className.match(/\baahc\b.*\balert\b/))
 		    return true;
 	    }
-	// find the quicklink, reject if not found
-	a = $$(code == 106 ? "quicklink_prev" : "quicklink_next");
-	if (!a || !a.focus)
+	// call function
+	if (!keys[code] || !keys[code](evt, code))
 	    return true;
-	// focus (for visual feedback), call callback
-	a.focus();
-	f = make_link_callback(a);
-	if (!Miniajax.isoutstanding("revprefform", f))
-	    f();
-	if (event.preventDefault)
-	    event.preventDefault();
+	// done
+	if (evt.preventDefault)
+	    evt.preventDefault();
 	else
-	    event.returnValue = false;
+	    evt.returnValue = false;
 	return false;
     }
 
-    if (elt.addEventListener)
-	elt.addEventListener("keypress", quicklink_shortcut_keypress, false);
-    else
-	elt.onkeypress = quicklink_shortcut_keypress;
+
+    function add(code, f) {
+	if (code != null)
+	    keys[code] = f;
+	else {
+	    add(106, quicklink_shortcut);
+	    add(107, quicklink_shortcut);
+	    if (top_elt == document)
+		add(99, comment_shortcut);
+	}
+	return self;
+    }
+
+    self = {add: add};
+    if (!top_elt)
+	top_elt = document;
+    else if (typeof top_elt === "string")
+	top_elt = $$(top_elt);
+    if (top_elt && !top_elt.hotcrp_shortcut) {
+	if (top_elt.addEventListener)
+	    top_elt.addEventListener("keypress", keypress, false);
+	else
+	    top_elt.onkeypress = keypress;
+	top_elt.hotcrp_shortcut = self;
+    }
+    return self;
 }
+
+
+// tags
+var alltagsreport_url;
+
+function taghelp_tset(elt) {
+    var m = elt.value.substring(0, elt.selectionStart).match(/.*?([^#\s]*)(?:#\d*)?$/);
+    return (m && m[1]) || "";
+}
+
+function taghelp_q(elt) {
+    var m = elt.value.substring(0, elt.selectionStart).match(/.*?(tag:\s*|r?order:\s*|#)([^#\s]*)(?:#\d*)?$/);
+    return m ? [m[2], m[1]] : null;
+}
+
+taghelp = (function () {
+var alltags = null;
+
+function load() {
+    if (alltags === null)
+	Miniajax.get(alltagsreport_url, function (v) {
+	    if (v.tags) {
+		alltags = v.tags;
+		alltags.sort();
+	    }
+	});
+    alltags = false;
+    return true;
+}
+
+function display(elt, report_elt, cleanf) {
+    var s, a, i, t, cols, colheight, n, pfx = "";
+    elt.hotcrp_tagpress = true;
+    if (!alltags)
+	return load();
+    if (!alltags.length || (elt.selectionEnd != elt.selectionStart))
+	return;
+    if ((s = cleanf(elt)) === null) {
+	report_elt.style.display = "none";
+	return;
+    }
+    if (typeof s !== "string") {
+	pfx = s[1];
+	s = s[0];
+    }
+    for (i = 0, a = []; i < alltags.length; ++i)
+	if (alltags[i].substring(0, s.length) == s) {
+	    if (s.length)
+		a.push(pfx + "<b>" + s + "</b>" + alltags[i].substring(s.length));
+	    else
+		a.push(pfx + alltags[i]);
+	}
+    if (a.length == 0) {
+	report_elt.style.display = "none";
+	return;
+    }
+    t = "<table class='taghelp'><tbody><tr>";
+    cols = (a.length < 6 ? 1 : 2);
+    colheight = Math.floor((a.length + cols - 1) / cols);
+    for (i = n = 0; i < cols; ++i, n += colheight)
+	t += "<td class='taghelp_td'>" + a.slice(n, Math.min(n + colheight, a.length)).join("<br/>") + "</td>";
+    t += "</tr></tbody></table>";
+    report_elt.style.display = "block";
+    report_elt.innerHTML = t;
+}
+
+return function (elt, report_elt, cleanf) {
+    function d() {
+	elt && report_elt && display(elt, report_elt, cleanf);
+    }
+    function b() {
+	report_elt && (report_elt.style.display = "none");
+    }
+    function kp(evt) {
+	evt = evt || window.event;
+	if (evt.charCode || evt.keyCode)
+	    setTimeout(d, 1);
+	return true;
+    }
+    if (typeof elt === "string")
+	elt = $$(elt);
+    if (typeof report_elt === "string")
+	report_elt = $$(report_elt);
+    if (elt && (elt.addEventListener || elt.attachEvent)) {
+	if (elt.addEventListener) {
+	    elt.addEventListener("keyup", kp, false);
+	    elt.addEventListener("blur", b, false);
+	} else {
+	    elt.attachEvent("keyup", kp);
+	    elt.attachEvent("blur", b);
+	}
+	elt.autocomplete = "off";
+    }
+};
+
+})();
+
 
 // review preferences
 addRevprefAjax = (function () {
@@ -686,7 +860,7 @@ function revpref_change() {
     form.revpref.value = this.value;
     Miniajax.submit("prefform", function (rv) {
 	    var e;
-	    setajaxcheck("revpref" + whichpaper + "ok", rv);
+	    setajaxcheck("revpref" + whichpaper, rv);
 	    if (rv.ok && rv.value != null && (e = $$("revpref" + whichpaper)))
 		e.value = rv.value;
 	});
@@ -730,7 +904,9 @@ function makeassrevajax(select, pcs, paperId) {
 	    form.p.value = paperId;
 	    form.rev_roundtag.value = (roundtag ? roundtag.value : "");
 	    form[pcs].value = select.value;
-	    Miniajax.submit("assrevform", function (rv) { setajaxcheck("assrev" + paperId + "ok", rv); });
+	    Miniajax.submit("assrevform", function (rv) {
+		setajaxcheck(select, rv);
+	    });
 	} else
 	    hiliter(select);
     };
@@ -757,7 +933,9 @@ function makeconflictajax(input, pcs, paperId) {
 	if (form && form.p && form[pcs] && immediate && immediate.checked) {
 	    form.p.value = paperId;
 	    form[pcs].value = (input.checked ? -1 : 0);
-	    Miniajax.submit("assrevform", function (rv) { setajaxcheck("assrev" + paperId + "ok", rv); });
+	    Miniajax.submit("assrevform", function (rv) {
+		setajaxcheck(input, rv);
+	    });
 	} else
 	    hiliter(input);
     };
@@ -770,10 +948,8 @@ function addConflictAjax() {
     var pcs = "pcs" + form.reviewer.value;
     var inputs = document.getElementsByTagName("input");
     staged_foreach(inputs, function (elt) {
-	if (elt.name == "pap[]") {
-	    var whichpaper = elt.value;
-	    elt.onclick = makeconflictajax(elt, pcs, whichpaper);
-	}
+	if (elt.name == "pap[]")
+	    elt.onclick = makeconflictajax(elt, pcs, elt.value);
     });
 }
 
@@ -979,12 +1155,9 @@ Miniajax.submit = function (formname, callback, timeout) {
 	return true;
     }
     var resultelt = $$(resultname + "result") || {};
-    var checkelt = $$(resultname + "check");
     if (!callback)
 	callback = function (rv) {
 	    resultelt.innerHTML = rv.response;
-	    if (checkelt)
-		setajaxcheck(checkelt, rv);
 	};
     if (!timeout)
 	timeout = 4000;
@@ -992,7 +1165,7 @@ Miniajax.submit = function (formname, callback, timeout) {
     // set request
     var timer = setTimeout(function () {
 			       req.abort();
-			       resultelt.innerHTML = "<span class='error'>Network timeout.  Please try again.</span>";
+			       resultelt.innerHTML = "<span class='error'>Network timeout. Please try again.</span>";
 			       form.onsubmit = "";
 			       fold(form, 0, 7);
 			   }, timeout);
@@ -1009,7 +1182,7 @@ Miniajax.submit = function (formname, callback, timeout) {
 	    if (rv.ok)
 		hiliter(form, true);
 	} else {
-	    resultelt.innerHTML = "<span class='error'>Network error.  Please try again.</span>";
+	    resultelt.innerHTML = "<span class='error'>Network error. Please try again.</span>";
 	    form.onsubmit = "";
 	    fold(form, 0, 7);
 	}
@@ -1055,7 +1228,7 @@ Miniajax.get = function (url, callback, timeout) {
 };
 Miniajax.getjsonp = function (url, callback, timeout) {
     // Written with reference to jquery
-    var head, script, timer, cbname = "Miniajax_jsonp" + jsonp;
+    var head, script, timer, cbname = "mjp" + jsonp;
     function readystatechange(_, isAbort) {
 	var err;
 	try {
@@ -1118,66 +1291,76 @@ function check_version(url) {
 
 
 // ajax loading of paper information
-var plinfo_title = {
+var plinfo = (function () {
+var aufull = {}, title = {
     abstract: "Abstract", tags: "Tags", reviewers: "Reviewers",
     shepherd: "Shepherd", lead: "Discussion lead", topics: "Topics",
     pcconf: "PC conflicts", collab: "Collaborators", authors: "Authors",
     aufull: "Authors"
 };
-var plinfo_needload = {}, plinfo_aufull = {}, plinfo_notitle = {};
-function make_plloadform_callback(which, type, dofold) {
+
+function set(elt, text, which, type) {
+    var x;
+    if (text == null || text == "")
+	elt.innerHTML = "";
+    else {
+	if (elt.className == "")
+	    elt.className = "fx" + foldmap[which][type];
+	if ((x = title[type]) && (!plinfo.notitle[type] || text == "Loading"))
+	    text = "<h6>" + x + ":</h6> " + text;
+	elt.innerHTML = text;
+    }
+}
+
+function make_callback(dofold, type, which) {
     var xtype = ({au: 1, anonau: 1, aufull: 1}[type] ? "authors" : type);
     return function (rv) {
 	var i, x, elt, eltx, h6 = "";
 	if ((x = rv[xtype + ".title"]))
-	    plinfo_title[type] = x;
-	if ((x = plinfo_title[type]) && !plinfo_notitle[type])
+	    title[type] = x;
+	if ((x = title[type]) && !plinfo.notitle[type])
 	    h6 = "<h6>" + x + ":</h6> ";
 	for (i in rv)
-	    if (i.substr(0, xtype.length) == xtype && (elt = $$(i))) {
-		if (rv[i] == "")
-		    elt.innerHTML = "";
-		else
-		    elt.innerHTML = h6 + rv[i];
-	    }
-	plinfo_needload[xtype] = false;
+	    if (i.substr(0, xtype.length) == xtype && (elt = $$(i)))
+		set(elt, rv[i], which, type);
+	plinfo.needload[xtype] = false;
 	fold(which, dofold, xtype);
 	if (type == "aufull")
-	    plinfo_aufull[!!dofold] = rv;
+	    aufull[!!dofold] = rv;
     };
 }
-function foldplinfo(dofold, type, which) {
-    var elt, i, divs, h6, callback;
 
-    // fold
-    if (!which)
-	which = "pl";
+function show_loading(type, which) {
+    return function () {
+	var i, x, elt, divs, h6;
+	if (!plinfo.needload[type] || !(elt = $$("fold" + which)))
+	    return;
+	divs = elt.getElementsByTagName("div");
+	for (i = 0; i < divs.length; i++)
+	    if (divs[i].id.substr(0, type.length) == type)
+		set(divs[i], "Loading", which, type);
+    };
+}
+
+function plinfo(type, dofold, which) {
+    var elt;
+    which = which || "pl";
     if (dofold.checked !== undefined)
 	dofold = !dofold.checked;
+
+    // fold
     fold(which, dofold, type);
     if (type == "aufull" && !dofold && (elt = $$("showau")) && !elt.checked)
 	elt.click();
-    if (window.foldplinfo_extra)
-	foldplinfo_extra(type, dofold);
-    if (plinfo_title[type])
-	h6 = "<h6>" + plinfo_title[type] + ":</h6> ";
-    else
-	h6 = "";
+    if (plinfo.extra)
+	plinfo.extra(type, dofold);
 
     // may need to load information by ajax
-    if (type == "aufull" && plinfo_aufull[!!dofold])
-	make_plloadform_callback(which, type, dofold)(plinfo_aufull[!!dofold]);
-    else if ((!dofold || type == "aufull") && plinfo_needload[type]) {
+    if (type == "aufull" && aufull[!!dofold])
+	make_callback(dofold, type, which)(aufull[!!dofold]);
+    else if ((!dofold || type == "aufull") && plinfo.needload[type]) {
 	// set up "loading" display
-	if ((elt = $$("fold" + which))) {
-	    divs = elt.getElementsByTagName("div");
-	    for (i = 0; i < divs.length; i++)
-		if (divs[i].id.substr(0, type.length) == type) {
-		    if (divs[i].className == "")
-			divs[i].className = "fx" + foldmap[which][type];
-		    divs[i].innerHTML = h6 + " Loading";
-		}
-	}
+	setTimeout(750, show_loading(type, which));
 
 	// initiate load
 	if (type == "aufull") {
@@ -1186,11 +1369,17 @@ function foldplinfo(dofold, type, which) {
 	} else
 	    e_value("plloadform_get", type);
 	Miniajax.submit(["plloadform", type + "loadform"],
-			make_plloadform_callback(which, type, dofold));
+			make_callback(dofold, type, which));
     }
 
     return false;
 }
+
+plinfo.needload = {};
+plinfo.notitle = {};
+return plinfo;
+})();
+
 
 function savedisplayoptions() {
     $$("scoresortsave").value = $$("scoresort").value;
@@ -1251,6 +1440,21 @@ function docmtvis(hilite) {
     fold("cmtvis", dofold, 2);
     if (hilite)
 	hiliter(hilite);
+}
+
+function set_response_wc(taid, wcid, wordlimit) {
+    function wc(event) {
+	var wc = (this.value.match(/\S+/g) || []).length, e = $$(wcid), wct;
+	e.className = "words" + (wordlimit < wc ? " wordsover" :
+				 (wordlimit * 0.9 < wc ? " wordsclose" : ""));
+	if (wordlimit < wc)
+	    e.innerHTML = (wc - wordlimit) + " word" + (wc - wordlimit == 1 ? "" : "s") + " over";
+	else
+	    e.innerHTML = (wordlimit - wc) + " word" + (wordlimit - wc == 1 ? "" : "s") + " left";
+    }
+    var e = $$(taid);
+    if (e && e.addEventListener)
+	e.addEventListener("input", wc, false);
 }
 
 

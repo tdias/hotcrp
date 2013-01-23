@@ -24,7 +24,7 @@ if (isset($_REQUEST["downloadForm"])) {
 
 // upload review form action
 if (isset($_REQUEST["uploadForm"])
-    && fileUploaded($_FILES["uploadedFile"], $Conf)
+    && fileUploaded($_FILES["uploadedFile"])
     && check_post()) {
     $tf = $rf->beginTextForm($_FILES['uploadedFile']['tmp_name'], $_FILES['uploadedFile']['name']);
     while (($req = $rf->parseTextForm($tf))) {
@@ -68,10 +68,11 @@ function saveTagIndexes($tag, &$settings, &$titles, &$linenos, &$errors) {
     if (!$tag)
 	defappend($Error["tags"], "No tag defined");
     else if (count($settings)) {
-	setTags(array_keys($settings), $tag, "d", $Me->privChair);
+        $tagger = new Tagger;
+	$tagger->save(array_keys($settings), $tag, "d");
 	foreach ($settings as $pid => $value)
 	    if ($value !== null)
-		setTags($pid, $tag . "#" . $value, "a", $Me->privChair);
+		$tagger->save($pid, $tag . "#" . $value, "a");
     }
 
     $settings = $titles = $linenos = array();
@@ -79,8 +80,7 @@ function saveTagIndexes($tag, &$settings, &$titles, &$linenos, &$errors) {
 
 function setTagIndexes() {
     global $Conf, $Me, $Error;
-    require_once("Code/tags.inc");
-    if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["file"], $Conf)) {
+    if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["file"])) {
 	if (($text = file_get_contents($_FILES["file"]["tmp_name"])) === false) {
 	    $Conf->errorMsg("Internal error: cannot read file.");
 	    return;
@@ -99,9 +99,11 @@ function setTagIndexes() {
     $settings = $titles = $linenos = $errors = array();
     foreach (explode("\n", rtrim(cleannl($text))) as $l) {
 	if (substr($l, 0, 4) == "Tag:" || substr($l, 0, 6) == "# Tag:") {
-	    if (!$tag)
-		$tag = checkTag(trim(substr($l, ($l[0] == "#" ? 6 : 4))),
-				CHECKTAG_QUIET | CHECKTAG_NOINDEX);
+	    if (!$tag) {
+                $tagger = new Tagger;
+		$tag = $tagger->check(trim(substr($l, ($l[0] == "#" ? 6 : 4))),
+                                      Tagger::NOVALUE);
+            }
 	    ++$lineno;
 	    continue;
 	} else if ($l == "" || $l[0] == "#") {
@@ -126,7 +128,7 @@ function setTagIndexes() {
 	} else if ($RealMe->privChair && preg_match('/\A\s*<\s*([^<>]*?(|<[^<>]*>))\s*>\s*\z/', $l, $m)) {
 	    if (count($settings) && $Me)
 		saveTagIndexes($tag, $settings, $titles, $linenos, $errors);
-	    list($firstName, $lastName, $email) = splitName(simplifyWhitespace($m[1]), true);
+	    list($firstName, $lastName, $email) = Text::split_name($m[1], true);
 	    if (($cid = matchContact(pcMembers(), $firstName, $lastName, $email)) < 0) {
 		if ($cid == -2)
 		    $errors[$lineno] = htmlspecialchars(trim("$firstName $lastName <$email>")) . " matches no PC member";

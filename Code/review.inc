@@ -355,7 +355,7 @@ class ReviewForm {
 	if (isset($req["reviewerEmail"]) && $rrow
 	    && $rrow->email != $req["reviewerEmail"]
 	    && (!isset($req["reviewerName"]) || $req["reviewerName"] != trim("$rrow->firstName $rrow->lastName"))) {
-	    self::tfError($tf, true, "This review form claims to be written by " . htmlspecialchars($req["reviewerEmail"]) . " rather than the review&rsquo;s owner, " . contactHtml($rrow) . ".  If you want to upload it anyway, remove the &ldquo;<code>==+==&nbsp;Reviewer</code>&rdquo; line from the form and try again.", "reviewerEmail");
+	    self::tfError($tf, true, "This review form claims to be written by " . htmlspecialchars($req["reviewerEmail"]) . " rather than the review&rsquo;s owner, " . Text::user_html($rrow) . ".  If you want to upload it anyway, remove the &ldquo;<code>==+==&nbsp;Reviewer</code>&rdquo; line from the form and try again.", "reviewerEmail");
 	    return 0;
 	}
 	if (isset($outofrange)) {
@@ -528,8 +528,6 @@ class ReviewForm {
 	    // need an up-to-date review row to send email successfully
 	    $fake_rrow = (object) array("contactId" => $contactId, "reviewBlind" => $reviewBlind);
 
-	    require_once("mailtemplate.inc");
-
 	    $tmpl = ($rrow && $rrow->reviewSubmitted ? "@reviewupdate" : "@reviewsubmit");
 	    $submitter = $Me;
 	    if ($contactId != $submitter->contactId) {
@@ -618,13 +616,13 @@ class ReviewForm {
 	    $x .= "==+== Version " . $rrow->reviewEditVersion . "\n";
 	if (!$myReview && $prow)
 	    $x .= wordWrapIndent($prow->title, "==-== Paper: ", "==-==        ") . "\n";
-	if ($contact->canViewReviewerIdentity($prow, $rrow)) {
+	if ($contact->canViewReviewerIdentity($prow, $rrow, null)) {
 	    if ($rrow && isset($rrow->reviewFirstName))
-		$x .= "==+== Reviewer: " . contactText($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail) . "\n";
+		$x .= "==+== Reviewer: " . Text::user_text($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail) . "\n";
 	    else if ($rrow && isset($rrow->lastName))
-		$x .= "==+== Reviewer: " . contactText($rrow) . "\n";
+		$x .= "==+== Reviewer: " . Text::user_text($rrow) . "\n";
 	    else if ($myReview)
-		$x .= "==+== Reviewer: " . contactText($contact) . "\n";
+		$x .= "==+== Reviewer: " . Text::user_text($contact) . "\n";
 	}
 	if ($rrow && $rrow->reviewModified)
 	    $x .= "==-== Updated " . $Conf->printableTime($rrow->reviewModified) . "\n";
@@ -740,11 +738,11 @@ $blind\n";
 	}
 	$x .= "---------------------------------------------------------------------------\n";
 	$x .= $this->_prettyPaperTitle($prow, $l);
-	if ($rrow && $contact->canViewReviewerIdentity($prow, $rrow, true)) {
+	if ($rrow && $contact->canViewReviewerIdentity($prow, $rrow, false)) {
 	    if (isset($rrow->reviewFirstName))
-		$n = contactText($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail);
+		$n = Text::user_text($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail);
 	    else if (isset($rrow->lastName))
-		$n = contactText($rrow);
+		$n = Text::user_text($rrow);
 	    else
 		continue;
 	    $x .= wordWrapIndent($n, "Reviewer: ", $l) . "\n";
@@ -794,13 +792,13 @@ $blind\n";
 	global $Conf;
 
 	$x = "===========================================================================\n";
-	$n = ($crow->forAuthors > 1 ? "Author's Response" : "Comment");
-	if ($contact->canViewCommentIdentity($prow, $crow, true)) {
+	$n = ($crow->forAuthors > 1 ? "Authors' Response" : "Comment");
+	if ($contact->canViewCommentIdentity($prow, $crow, false)) {
 	    $n .= " by ";
 	    if (isset($crow->reviewFirstName))
-		$n .= contactText($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
+		$n .= Text::user_text($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
 	    else
-		$n .= contactText($crow);
+		$n .= Text::user_text($crow);
 	}
 	$x .= str_pad($n, (int) (37.5 + strlen($n) / 2), " ", STR_PAD_LEFT) . "\n";
 	$x .= $this->_prettyPaperTitle($prow, $l);
@@ -1139,7 +1137,7 @@ $blind\n";
     }
 
     function webNumericScoresRow($rrow, $prow, $contact, &$anyScores) {
-	$view = $contact->canViewReview($prow, $rrow);
+	$view = $contact->canViewReview($prow, $rrow, null);
 	$revNullViewScore = $contact->viewReviewFieldsScore($prow, null);
 	$revViewScore = $contact->viewReviewFieldsScore($prow, $rrow);
 	$x = "";
@@ -1296,9 +1294,9 @@ $blind\n";
 	$open = $sep = " <span class='revinfo'>";
 	$xsep = " <span class='barsep'>&nbsp;|&nbsp;</span> ";
 	$showtoken = $rrow && $rrow->reviewToken && $Me->canReview($prow, $rrow);
-	if ($rrow && $Me->canViewReviewerIdentity($prow, $rrow)
+	if ($rrow && $Me->canViewReviewerIdentity($prow, $rrow, null)
 	    && (!$showtoken || !preg_match('/^anonymous\d*$/', $rrow->email))) {
-	    echo $sep, ($rrow->reviewBlind ? "[" : ""), "by ", contactHtml($rrow), ($rrow->reviewBlind ? "]" : "");
+	    echo $sep, ($rrow->reviewBlind ? "[" : ""), "by ", Text::user_html($rrow), ($rrow->reviewBlind ? "]" : "");
 	    $sep = $xsep;
 	}
 	if ($showtoken) {
@@ -1387,7 +1385,7 @@ $blind\n";
 	    $buttons = array();
 	    if (!$submitted) {
 		$buttons[] = tagg_submit("submit", "Submit review", array("class" => "bb"));
-		$buttons[] = tagg_submit("savedraft", "Save draft");
+		$buttons[] = tagg_submit("savedraft", "Save as draft");
 	    } else
 		$buttons[] = tagg_submit("submit", "Save changes", array("class" => "bb"));
 	    echo tagg_actions($buttons, array("style" => "margin-top:0"));
@@ -1411,10 +1409,11 @@ $blind\n";
 	    $buttons = array();
 	    if (!$submitted) {
 		$buttons[] = tagg_submit("submit", "Submit review", array("class" => "bb"));
-		$buttons[] = tagg_submit("savedraft", "Save draft");
+		$buttons[] = tagg_submit("savedraft", "Save as draft");
 	    } else
 		$buttons[] = tagg_submit("submit", "Save changes", array("class" => "bb"));
 	    if ($rrow && $Me->privChair) {
+                $buttons[] = "";
 		if ($submitted)
 		    $buttons[] = array(tagg_submit("unsubmit", "Unsubmit review"), "(admin only)");
 		$buttons[] = array("<button type='button' class='b' onclick=\"popup(this, 'd', 0)\">Delete review</button>", "(admin only)");
@@ -1472,8 +1471,8 @@ $blind\n";
 	if (strlen($rrow->shortTitle) != strlen($rrow->title))
 	    $t .= "...";
 	$t .= "</a>";
-	if ($contact->canViewReviewerIdentity($rrow, $rrow, true))
-	    $t .= $barsep . "<span class='hint'>review by</span> " . contactHtml($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail);
+	if ($contact->canViewReviewerIdentity($rrow, $rrow, false))
+	    $t .= $barsep . "<span class='hint'>review by</span> " . Text::user_html($rrow->reviewFirstName, $rrow->reviewLastName, $rrow->reviewEmail);
 	$t .= $barsep . "<span class='hint'>submitted</span> " . $Conf->parseableTime($rrow->reviewSubmitted, false);
 	$t .= "</small><br /><a class='q'" . substr($a, 3);
 

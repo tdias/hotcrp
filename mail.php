@@ -216,7 +216,7 @@ function checkMailPrologue($send) {
 
 function checkMail($send) {
     global $Conf, $Me, $Error, $subjectPrefix, $recip,
-	$checkReviewNeedsSubmit, $mailHeaders;
+	$checkReviewNeedsSubmit;
     $q = contactQuery($_REQUEST["recipients"]);
     if (!$q)
 	return $Conf->errorMsg("Bad recipients value");
@@ -251,13 +251,13 @@ function checkMail($send) {
 	$nrows_left--;
 	if ($nrows_left % 5 == 0)
 	    $nrows_print = true;
-	$contact = Contact::makeMinicontact($row);
+	$contact = Contact::make($row);
 	$rest["hideReviews"] = $checkReviewNeedsSubmit && $row->reviewNeedsSubmit;
 	$rest["error"] = false;
 	$preparation = Mailer::prepareToSend($template, $row, $contact, $Me, $rest); // see also $show_preparation below
 	if ($rest["error"] !== false) {
 	    $Error[$rest["error"]] = true;
-	    $emsg = "This " . $mailHeaders[$rest["error"]] . " field isn't a valid email list: <blockquote><tt>" . htmlspecialchars($rest[$rest["error"]]) . "</tt></blockquote>  Make sure email address are separated by commas.  When mixing names and email addresses, try putting names in \"quotes\" and email addresses in &lt;angle brackets&gt;.";
+	    $emsg = "This " . Mailer::$mailHeaders[$rest["error"]] . " field isn't a valid email list: <blockquote><tt>" . htmlspecialchars($rest[$rest["error"]]) . "</tt></blockquote>  Make sure email address are separated by commas.  When mixing names and email addresses, try putting names in \"quotes\" and email addresses in &lt;angle brackets&gt;.";
 	    if (!isset($preperrors[$emsg]))
 		$Conf->errorMsg($emsg);
 	    $preperrors[$emsg] = true;
@@ -461,18 +461,19 @@ else if (defval($_REQUEST, "send") && check_post())
 if (isset($_REQUEST["monreq"])) {
     require_once("Code/paperlist.inc");
     $plist = new PaperList(new PaperSearch($Me, array("t" => "reqrevs", "q" => "")), array("list" => true));
+    $plist->showHeader = PaperList::HEADER_ALL;
     $ptext = $plist->text("reqrevs", $Me);
     if ($plist->count == 0)
 	$Conf->infoMsg("You have not requested any external reviews.  <a href='", hoturl("index"), "'>Return home</a>");
     else {
 	echo "<h2>Requested reviews</h2>\n\n", $ptext, "<div class='info'>";
-	if ($plist->needSubmitReview > 0)
+	if ($plist->any->need_review)
 	    echo "Some of your requested external reviewers have not completed their reviews.  To send them an email reminder, check the text below and then select &ldquo;Prepare mail.&rdquo;  You'll get a chance to review the emails and select specific reviewers to remind.";
 	else
 	    echo "All of your requested external reviewers have completed their reviews.  <a href='", hoturl("index"), "'>Return home</a>";
 	echo "</div>\n";
     }
-    if ($plist->needSubmitReview == 0) {
+    if (!$plist->any->need_review) {
 	$Conf->footer();
 	exit;
     }
@@ -530,7 +531,7 @@ echo "Search&nbsp; <input id='q' class='textlite",
 $Conf->footerScript("mktemptext('q','(All)')");
 
 if ($Me->privChair) {
-    foreach ($mailHeaders as $n => $t)
+    foreach (Mailer::$mailHeaders as $n => $t)
 	if ($n != "bcc") {
 	    $ec = (isset($Error[$n]) ? " error" : "");
 	    echo "  <tr><td class='mhnp$ec'>$t:</td><td class='mhdp$ec'>",

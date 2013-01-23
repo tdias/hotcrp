@@ -78,7 +78,7 @@ loadRows();
 if (isset($_REQUEST["post"]) && $_REQUEST["post"] && !count($_POST))
     $Conf->errorMsg("It looks like you tried to upload a gigantic file, larger than I can accept.  The file was ignored.");
 else if (isset($_REQUEST["post"]) && isset($_REQUEST["default"])) {
-    if (fileUploaded($_FILES["uploadedFile"], $Conf))
+    if (fileUploaded($_FILES["uploadedFile"]))
 	$_REQUEST["uploadForm"] = 1;
     else
 	$_REQUEST["update"] = 1;
@@ -92,7 +92,7 @@ else if (isset($_REQUEST["savedraft"])) {
 
 // upload review form action
 if (isset($_REQUEST["uploadForm"])
-    && fileUploaded($_FILES['uploadedFile'], $Conf)
+    && fileUploaded($_FILES['uploadedFile'])
     && check_post()) {
     // parse form, store reviews
     $tf = $rf->beginTextForm($_FILES['uploadedFile']['tmp_name'], $_FILES['uploadedFile']['name']);
@@ -150,7 +150,7 @@ if (isset($_REQUEST["unsubmit"]) && $paperTable->editrrow
 // review rating action
 if (isset($_REQUEST["rating"]) && $paperTable->rrow && check_post()) {
     if (!$Me->canRateReview($prow, $paperTable->rrow)
-	|| !$Me->canViewReview($prow, $paperTable->rrow))
+	|| !$Me->canViewReview($prow, $paperTable->rrow, null))
 	$Conf->errorMsg("You can’t rate that review.");
     else if ($Me->contactId == $paperTable->rrow->contactId)
 	$Conf->errorMsg("You can’t rate your own review.");
@@ -247,11 +247,11 @@ function downloadForm($editable) {
     $text = "";
     foreach ($downrrows as $rr)
 	if ($rr->reviewSubmitted
-	    && $Me->canViewReview($prow, $rr, $whyNot))
+	    && $Me->canViewReview($prow, $rr, null, $whyNot))
 	    $text .= downloadView($prow, $rr, $editable);
     foreach ($downrrows as $rr)
 	if (!$rr->reviewSubmitted
-	    && $Me->canViewReview($prow, $rr, $whyNot)
+	    && $Me->canViewReview($prow, $rr, null, $whyNot)
 	    && ($explicit || $rr->reviewModified))
 	    $text .= downloadView($prow, $rr, $editable);
     if (count($downrrows) == 0)
@@ -259,7 +259,7 @@ function downloadForm($editable) {
     if (!$explicit) {
 	$paperTable->resolveComments();
 	foreach ($paperTable->crows as $cr)
-	    if ($Me->canViewComment($prow, $cr, $whyNot, true))
+	    if ($Me->canViewComment($prow, $cr, false))
 		$text .= $rf->prettyTextComment($prow, $cr, $Me) . "\n";
     }
     if (!$text)
@@ -314,7 +314,6 @@ function refuseReview() {
     $Conf->qe("unlock tables");
 
     // send confirmation email
-    require_once("Code/mailtemplate.inc");
     $Requester = new Contact();
     $Requester->lookupById((int) $rrow->reqContactId);
     $reqprow = $Conf->paperRow($prow->paperId, $rrow->reqContactId);
@@ -369,39 +368,33 @@ if (isset($_REQUEST["accept"])) {
 
 // paper actions
 if (isset($_REQUEST["setdecision"]) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setDecision($prow);
     loadRows();
 }
 if (isset($_REQUEST["setrevpref"]) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setReviewPreference($prow);
     loadRows();
 }
 if (isset($_REQUEST["setrank"]) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setRank($prow);
     loadRows();
 }
 if (isset($_REQUEST["setlead"]) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setLeadOrShepherd($prow, "lead");
     loadRows();
 }
 if (isset($_REQUEST["setshepherd"]) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setLeadOrShepherd($prow, "shepherd");
     loadRows();
 }
 if ((isset($_REQUEST["settags"]) || isset($_REQUEST["settingtags"])) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setTags($prow);
     loadRows();
 }
 
 
 // can we view/edit reviews?
-$viewAny = $Me->canViewReview($prow, null, $whyNotView);
+$viewAny = $Me->canViewReview($prow, null, null, $whyNotView);
 $editAny = $Me->canReview($prow, null, $whyNotEdit);
 
 
@@ -434,7 +427,7 @@ $paperTable->resolveComments();
 
 if (!$viewAny && !$editAny
     && (!$paperTable->rrow
-	|| !$Me->canViewReview($prow, $paperTable->rrow, $whyNot)))
+	|| !$Me->canViewReview($prow, $paperTable->rrow, null)))
     $paperTable->paptabEndWithReviewMessage();
 else if ($paperTable->mode == "r" && !$paperTable->rrow)
     $paperTable->paptabEndWithReviews();

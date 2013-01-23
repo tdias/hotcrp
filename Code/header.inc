@@ -3,7 +3,7 @@
 // HotCRP is Copyright (c) 2006-2012 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
-define("HOTCRP_VERSION", "2.52");
+define("HOTCRP_VERSION", "2.55");
 
 // All review types must be 1 digit
 define("REVIEW_PRIMARY", 4);
@@ -55,9 +55,12 @@ define("BLIND_ALWAYS", 2);	/* ordering is important for rev/cmt */
 define("BLIND_OPTIONAL", 1);
 define("BLIND_NEVER", 0);
 
-define("DOCUMENT_SUBMISSION", 0);
-define("DOCUMENT_FINAL", -1);
-define("DOCUMENT_COMMENT", -2);
+define("DTYPE_SUBMISSION", 0);
+define("DTYPE_FINAL", -1);
+define("DTYPE_COMMENT", -2);
+
+define("MIMETYPEID_TXT", 1);
+define("MIMETYPEID_PDF", 2);
 
 define("OPTIONTYPE_CHECKBOX", 0);
 define("OPTIONTYPE_SELECTOR", 1); /* see also script.js:doopttype */
@@ -84,6 +87,9 @@ $reviewScoreNames = array("overAllMerit", "technicalMerit", "novelty",
 			  "fixability", "interestToCommunity", "longevity",
 			  "likelyPresentation", "suitableForShort");
 
+global $OK;
+$OK = 1;
+
 global $allowedSessionVars;
 $allowedSessionVars = array("foldassigna", "foldpaperp", "foldpaperb",
 			    "foldpapert", "foldpscollab", "foldhomeactivity",
@@ -93,23 +99,6 @@ global $authorConflictTypes;
 $authorConflictTypes = array(0 => "No conflict", 3 => "Advisor/student",
 			     2 => "Recent collaborator", 4 => "Institutional",
 			     5 => "Personal", 6 => "Other");
-
-global $mimetypeMap;
-$mimetypeMap = array("pdf" => "application/pdf",
-		     "application/pdf" => "pdf",
-		     "ps" => "application/postscript",
-		     "application/postscript" => "ps",
-		     "ppt" => "application/vnd.ms-powerpoint",
-		     "application/vnd.ms-powerpoint" => "ppt",
-		     "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-		     "application/vnd.openxmlformats-officedocument.presentationml.presentation" => "pptx",
-		     "video/mp4" => "mp4",
-		     "mp4" => "video/mp4",
-		     "video/x-msvideo" => "avi",
-		     "avi" => "video/x-msvideo");
-
-global $OK;
-$OK = 1;
 
 
 // set up conference path variables
@@ -159,6 +148,32 @@ setPathVariables();
 require_once("$ConfSitePATH/Code/helpers.inc");
 require_once("$ConfSitePATH/Code/conference.inc");
 require_once("$ConfSitePATH/Code/contact.inc");
+
+function __autoload($class_name) {
+    global $ConfSitePATH;
+    if ($class_name == "ReviewForm")
+	require_once("$ConfSitePATH/Code/review.inc");
+    else if ($class_name == "PaperActions")
+        require_once("$ConfSitePATH/Code/paperactions.php");
+    else if ($class_name == "Text")
+        require_once("$ConfSitePATH/Code/text.php");
+    else if ($class_name == "Tagger")
+        require_once("$ConfSitePATH/Code/tagger.php");
+    else if ($class_name == "Mimetype")
+        require_once("$ConfSitePATH/Code/mimetype.php");
+    else if ($class_name == "DocumentHelper")
+        require_once("$ConfSitePATH/Code/documenthelper.php");
+    else if ($class_name == "HotCRPDocument")
+        require_once("$ConfSitePATH/Code/hotcrpdocument.php");
+    else if ($class_name == "Mailer")
+        require_once("$ConfSitePATH/Code/mailer.php");
+    else if ($class_name == "UnicodeHelper")
+        require_once("$ConfSitePATH/Code/unicodehelper.php");
+    else if ($class_name == "Qobject")
+        require_once("$ConfSitePATH/Code/qobject.php");
+    else if ($class_name == "PaperColumn")
+        require_once("$ConfSitePATH/Code/papercolumn.php");
+}
 
 // If you have the PEAR::Mail libraries installed globally,
 // there's no need to change the include path.
@@ -234,13 +249,6 @@ if (!isset($Opt["paperSite"]) || $Opt["paperSite"] == "")
 // Create the conference
 global $Conf;
 $Conf = new Conference();
-
-// Now load review code (which requires that $Conf exist)
-function __autoload($class_name) {
-    global $ConfSitePATH;
-    if ($class_name == "ReviewForm")
-	require_once("$ConfSitePATH/Code/review.inc");
-}
 
 // Set server timezone
 if (isset($Opt["timezone"]) && function_exists("date_default_timezone_set"))

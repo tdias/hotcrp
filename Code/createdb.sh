@@ -6,6 +6,8 @@
 ## Create the database. The assumption is that database
 ## name and user name and password are all the same
 
+export LC_ALL=C LC_CTYPE=C LC_COLLATE=C
+
 help () {
     echo "Code/createdb.sh performs MySQL database setup for HotCRP."
     echo
@@ -23,11 +25,63 @@ echo_n () {
 '
 }
 
-export PROG=$0
-export FLAGS=""
-export FLAGS_NOP=""
-export ECHOFLAGS=""
+getdbopt () {
+    perl -e 'undef $/; $t = <STDIN>;
+$t =~ s|/\*.*?\*/||gs;
+$t =~ s|//.*$||gm;
+
+sub unslash ($) {
+   my($a) = @_;
+   my($b) = "";
+   while ($a ne "") {
+      if ($a =~ m|\A\\|) {
+         if ($a =~ m|\A\\([0-7]{1,3})(.*)\z|s) {
+	    $b .= chr(oct($1));
+	    $a = $2;
+	 } elsif ($a =~ m |\A\\([nrftvb])(.*)\z|s) {
+	    $b .= eval("\"\\$1\"");
+	    $a = $2;
+	 } else {
+	    $b .= substr($a, 1, 1);
+	    $a = substr($a, 2);
+	 }
+      } else {
+	 $b .= substr($a, 0, 1);
+         $a = substr($a, 1);
+      }
+   }
+   $b;
+}
+
+while ($t =~ m&\$Opt\[['"'"'"](.*?)['"'"'"]\]\s*=\s*\"(([^\"\\]|\\.)*)\"&g) {
+   $Opt{$1} = unslash($2);
+}
+while ($t =~ m&\$Opt\[['"'"'"](.*?)['"'"'"]\]\s*=\s*'"'"'([^'"'"']*)'"'"'&g) {
+   $Opt{$1} = $2;
+}
+while ($t =~ m&\$Opt\[['"'"'"](.*?)['"'"'"]\]\s*=\s*([\d.]+)&g) {
+   $Opt{$1} = $2;
+}
+
+sub fixshell ($) {
+    my($a) = @_;
+    $a =~ s|'"'"'|'"'"'"'"'"'"'"'"'|g;
+    $a;
+}
+
+$Opt{"dbUser"} = $Opt{"dbName"} if (!exists($Opt{"dbUser"}));
+$Opt{"dbPassword"} = $Opt{"dbName"} if (!exists($Opt{"dbPassword"}));
+print "'"'"'", fixshell($Opt{"'$1'"}), "'"'"'";
+' < "${PROGDIR}${options_file}"
+}
+
+PROG=$0
+FLAGS=""
+FLAGS_NOP=""
+ECHOFLAGS=""
 DBNAME=""
+distoptions_file=distoptions.inc
+options_file=options.inc
 needpassword=false
 force=false
 while [ $# -gt 0 ]; do
@@ -63,9 +117,9 @@ done
 
 if $needpassword; then
     echo_n "Enter MySQL password: "
-    stty -echo
+    stty -echo; trap "stty echo; exit 1" INT
     read PASSWORD
-    stty echo
+    stty echo; trap - INT
     echo
     FLAGS="$FLAGS -p'$PASSWORD'"; ECHOFLAGS="$ECHOFLAGS -p'<REDACTED>'"
 fi
@@ -118,16 +172,27 @@ $DBNAME
 __EOF__
 }
 
+default_dbname=
+x="`getdbopt dbName 2>/dev/null`"
+x="`eval "echo $x"`"
+if test -n "$x"; then
+    bad="`eval "echo $x" | tr -d a-zA-Z0-9_.-`"
+    if test -z "$bad"; then default_dbname="`echo $x`"; fi
+fi
+
 while true; do
-    echo_n "Enter database name (NO SPACES): "
+    echo_n "Enter database name (NO SPACES)"
     if [ -z "$DBNAME" ]; then
+	test -n "$default_dbname" && echo_n " [default $default_dbname]"
+	echo_n ": "
 	read -r DBNAME
     else
-	echo "$DBNAME"
+	echo ": $DBNAME"
     fi
 
-    x=`echo_dbname | tr -d a-zA-Z0-9_.-`
-    c=`echo_dbname | wc -c`
+    test -z "$DBNAME" -a -n "$default_dbname" && DBNAME="$default_dbname"
+    x="`echo_dbname | tr -d a-zA-Z0-9_.-`"
+    c="`echo_dbname | wc -c`"
     if test -z "$DBNAME"; then
 	echo 1>&2
 	echo "You must enter a database name." 1>&2
@@ -150,17 +215,47 @@ $DBPASS
 __EOF__
 }
 
+generate_random_ints () {
+    random="`head -c 32 /dev/urandom 2>/dev/null | tr -d '\000'`"
+    test -z "$random" && random="`head -c 32 /dev/random 2>/dev/null | tr -d '\000'`"
+    test -z "$random" && random="`openssl rand 32 2>/dev/null | tr -d '\000'`"
+    echo "$random" | awk '
+BEGIN { for (i = 0; i < 256; ++i) { ord[sprintf("%c", i)] = i; } }
+{ for (i = 1; i <= length($0); ++i) { printf("%d\n", ord[substr($0, i, 1)]); } }'
+    # generate some very low-quality random bytes in case all the
+    # higher-quality mechanisms fail
+    awk 'BEGIN { srand(); for (i = 0; i < 256; ++i) { printf("%d\n", rand() * 256); } }' < /dev/null
+}
+
+generate_password () {
+    awk 'BEGIN {
+    npwchars = split("a e i o u y a e i o u y a e i o u y a e i o u y a e i o u y b c d g h j k l m n p r s t u v w tr cr br fr th dr ch ph wr st sp sw pr sl cl 2 3 4 5 6 7 8 9 - @ _ + =", pwchars, " ");
+    pw = ""; nvow = 0;
+}
+{   x = ($0 % npwchars); if (x < 30) ++nvow;
+    pw = pw pwchars[x + 1];
+    if (length(pw) >= 12 + nvow / 3) exit;
+}
+END { printf("%s\n", pw); }'
+}
+
+default_dbpass=
+x="`getdbopt dbPassword 2>/dev/null`"
+x="`eval "echo $x"`"
+test -n "$x" -a "$DBNAME" = "$default_dbname" && default_dbpass="$x"
+test -z "$default_dbpass" && default_dbpass=`generate_random_ints | generate_password`
 while true; do
-    echo_n "Enter password for mysql user $DBNAME [default $DBNAME]: "
-    stty -echo
+    echo_n "Enter password for mysql user $DBNAME [default $default_dbpass]: "
+    stty -echo; trap "stty echo; exit 1" INT
     read -r DBPASS
-    stty echo
-    if [ -z "`echo_dbpass`" ]; then DBPASS=$DBNAME; fi
+    stty echo; trap - INT
+    if [ -z "`echo_dbpass`" ]; then DBPASS=$default_dbpass; fi
     x=`echo_dbpass | tr -d -c '\000'"'"`
     if test -z "$x" >/dev/null; then break; fi
     echo 1>&2
     echo "The database password can't contain single quotes or null characters." 1>&2
 done
+echo
 
 
 sql_dbpass () {
@@ -173,8 +268,8 @@ php_dbpass () {
 
 
 echo
-echo "Creating database."
 if [ -z "$FLAGS" ]; then
+    echo "Creating database."
     echo "This should work if you are root and haven't changed the default mysql"
     echo "administrative password.  If you have changed the password, you will need to"
     echo "run '$PROG -p' or '$PROG -pPASSWD' (no space)."
@@ -192,14 +287,13 @@ if [ "$dbexists" = 0 -o "$userexists" = 0 ]; then
     echo
     test "$dbexists" = 0 && echo "A database named '$DBNAME' already exists!"
     test "$userexists" = 0 && echo "A user named '$DBNAME' already exists!"
-    echo "Do you want to delete and recreate the database and/or user?"
     while true; do
-	echo_n "Delete and recreate [Y], continue [n], or quit [q]? "
+	echo_n "Delete and recreate database and user? [Y/n] "
 	read createdbuser
 	expr "$createdbuser" : "[ynqYNQ].*" >/dev/null && break
 	test -z "$createdbuser" && break
     done
-    expr "$createdbuser" : "[qQ].*" >/dev/null && echo "Exiting..." && exit 0
+    expr "$createdbuser" : "[nNqQ].*" >/dev/null && echo "Exiting" && exit 0
     expr "$createdbuser" : "[nN].*" >/dev/null || createdbuser=y
 
     if [ "$createdbuser" = y -a "$dbexists" = 0 ]; then
@@ -314,8 +408,9 @@ echo
 
 if [ "$populatedb" = y ]; then
     echo "Populating database."
+    ECHOFLAGS_SCHEMA="-u $DBNAME -p'<REDACTED>' $FLAGS_NOP"
     FLAGS_SCHEMA="-u $DBNAME -p'`echo_dbpass`' $FLAGS_NOP"
-    echo $MYSQL "$FLAGS_SCHEMA" $DBNAME "<" ${PROGDIR}schema.sql
+    echo "+ $MYSQL $ECHOFLAGS_SCHEMA $DBNAME < ${PROGDIR}schema.sql"
     eval $MYSQL "$FLAGS_SCHEMA" $DBNAME < ${PROGDIR}schema.sql || exit 1
 fi
 
@@ -323,29 +418,30 @@ fi
 ## Create options.inc
 ##
 
-create_options_inc () {
+create_options () {
     awk 'BEGIN { p = 1 }
 /^\$Opt\[.dbName.\]/ { p = 0 }
-{ if (p) print }' < ${PROGDIR}distoptions.inc
+{ if (p) print }' < "${PROGDIR}${distoptions_file}"
     cat <<__EOF__
 \$Opt["dbName"] = "$DBNAME";
 \$Opt["dbPassword"] = "`php_dbpass`";
 __EOF__
     awk 'BEGIN { p = 0 }
 /^\$Opt\[.shortName.\]/ { p = 1 }
-{ if (p) print }' < ${PROGDIR}distoptions.inc
+{ if (p) print }' < "${PROGDIR}${distoptions_file}"
 }
 
-if [ -r "${PROGDIR}options.inc" ]; then
+if [ -r "${PROGDIR}${options_file}" ]; then
     echo
-    echo "*** Your Code/options.inc file already exists."
+    echo "*** Your Code/${options_file} file already exists."
     echo "*** Edit it to use the database name, username, and password you chose."
     echo
-elif [ -r "${PROGDIR}distoptions.inc" ]; then
-    echo "Creating Code/options.inc..."
-    create_options_inc > ${PROGDIR}options.inc
+elif [ -r "${PROGDIR}${distoptions_file}" ]; then
+    echo "Creating Code/${options_file}..."
+    create_options > "${PROGDIR}${options_file}"
     if [ -n "$SUDO_USER" ]; then
-	echo chown $SUDO_USER ${PROGDIR}options.inc
-	chown $SUDO_USER ${PROGDIR}options.inc
+	echo chown $SUDO_USER "${PROGDIR}${options_file}"
+	chown $SUDO_USER "${PROGDIR}${options_file}"
     fi
+    chmod o-rwx "${PROGDIR}${options_file}"
 fi

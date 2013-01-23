@@ -23,6 +23,32 @@ function arrayappend(&$var, $value) {
 	$var = array($value);
 }
 
+function &array_ensure(&$arr, $key, $val) {
+    if (!isset($arr[$key]))
+        $arr[$key] = $val;
+    return $arr[$key];
+}
+
+function str_starts_with($haystack, $needle) {
+    $nl = strlen($needle);
+    return $nl <= strlen($haystack) && substr($haystack, 0, $nl) === $needle;
+}
+
+function str_ends_with($haystack, $needle) {
+    $p = strlen($haystack) - strlen($needle);
+    return $p >= 0 && substr($haystack, $p) === $needle;
+}
+
+function set_error_html($x, $error_html = null) {
+    if (!$error_html) {
+        $error_html = $x;
+        $x = (object) array();
+    }
+    $x->error = true;
+    $x->error_html = $error_html;
+    return $x;
+}
+
 
 // database helpers
 
@@ -93,6 +119,13 @@ function csvq($text, $quote_empty = false) {
 	return '"' . str_replace('"', '""', $text) . '"';
 }
 
+function mime_token_quote($word) {
+    if (preg_match('_\A[^][\x00-\x20\x80-\xFF()<>@,;:\\"/?=]+\z_', $word))
+        return $word;
+    else
+        return '"' . preg_replace('_([\x00-\x1F\\"])_', '\$1', $word) . '"';
+}
+
 function cvtint($value, $default = -1) {
     $v = trim($value);
     if (is_numeric($v)) {
@@ -154,10 +187,24 @@ if (function_exists("iconv")) {
     function windows_1252_to_utf8($str) {
 	return iconv("Windows-1252", "UTF-8//IGNORE", $str);
     }
+    function mac_os_roman_to_utf8($str) {
+        return iconv("Mac", "UTF-8//IGNORE", $str);
+    }
 } else {
     function windows_1252_to_utf8($str) {
 	return $str;		// give up
     }
+    function mac_os_roman_to_utf8($str) {
+        return $str;		// give up
+    }
+}
+
+function convert_to_utf8($str) {
+    if (substr_count(substr($str, 0, 5000), "\r")
+        > 1.5 * substr_count(substr($str, 0, 5000), "\n"))
+        return mac_os_roman_to_utf8($str);
+    else
+        return windows_1252_to_utf8($str);
 }
 
 if (function_exists("iconv")) {
@@ -358,11 +405,14 @@ function hoturl($page, $options = null) {
     global $ConfSiteBase, $ConfSiteSuffix, $Opt;
     $t = $ConfSiteBase . $page . $ConfSiteSuffix;
     // see also redirectSelf
-    if ($options && preg_match('/\A(|.*?(?:\&|\&amp;))p=(\d+|%\w+%)(.*)\z/', $options, $m)
-	&& !defval($Opt, "disableSlashURLs")
-	&& preg_match('/\A(?:paper|review|comment|contactauthors)\z/', $page)) {
-	$t .= "/" . $m[2];
-	$options = $m[1] . $m[3];
+    if ($options && !defval($Opt, "disableSlashURLs")) {
+        if ((preg_match('/\A(?:paper|review|comment|contactauthors)\z/', $page)
+             && preg_match('/\A(|.*?(?:\&|\&amp;))p=(\d+|%\w+%)(.*)\z/', $options, $m))
+            || ($page == "profile"
+                && preg_match('/\A(|.*?(?:\&|\&amp;))u=([^&]+)(.*)\z/', $options, $m))) {
+            $t .= "/" . $m[2];
+            $options = $m[1] . $m[3];
+        }
     }
     if ($options && preg_match('/\A\&(?:amp;)?(.*)\z/', $options, $m))
 	$options = $m[1];
@@ -444,8 +494,9 @@ function check_post() {
     return isset($_REQUEST["post"]) && $_REQUEST["post"] == post_value();
 }
 
-function fileUploaded(&$var, $conf) {
-    if (!isset($var) || ($var['error'] != UPLOAD_ERR_OK && !$conf))
+function fileUploaded(&$var) {
+    global $Conf;
+    if (!isset($var) || ($var['error'] != UPLOAD_ERR_OK && !$Conf))
 	return false;
     switch ($var['error']) {
     case UPLOAD_ERR_OK:
@@ -454,45 +505,79 @@ function fileUploaded(&$var, $conf) {
 	return false;
     case UPLOAD_ERR_INI_SIZE:
     case UPLOAD_ERR_FORM_SIZE:
-	$conf->errorMsg("You tried to upload a file that’s too big for our system to accept.  The maximum size is " . ini_get("upload_max_filesize") . "B.");
+	$Conf->errorMsg("You tried to upload a file that’s too big for our system to accept.  The maximum size is " . ini_get("upload_max_filesize") . "B.");
 	return false;
     case UPLOAD_ERR_PARTIAL:
-	$conf->errorMsg("You appear to have interrupted the upload process; I am not storing that file.");
+	$Conf->errorMsg("You appear to have interrupted the upload process; I am not storing that file.");
 	return false;
     default:
-	$conf->errorMsg("Internal upload error " . $var['error'] . "!");
+	$Conf->errorMsg("Internal upload error " . $var['error'] . "!");
 	return false;
     }
 }
 
 function selfHref($extra = array(), $self = null, $htmlspecialchars = true) {
-    global $CurrentList, $ConfSiteSuffix;
-    $x = ($self ? $self : $_SERVER["PHP_SELF"]);
-    if ($ConfSiteSuffix == "" && strlen($x) > 4) {
-	if (substr($x, strlen($x) - 4, 4) == ".php")
-	    $x = substr($x, 0, strlen($x) - 4);
-	else if (($pos = strpos($x, ".php/")) !== false)
-	    $x = substr($x, 0, $pos) . substr($x, $pos + 4);
+    global $CurrentList, $ConfSiteSuffix, $Opt;
+
+    // set $self and $query
+    if (!$self)
+        $self = $_SERVER["PHP_SELF"];
+    $path = $query = "";
+    if (($p = strpos($self, "?")) !== false) {
+        $query = substr($self, $p);
+        $self = substr($self, 0, $p);
     }
-    $sep = (strpos($self, "?") === false ? "?" : "&");
+
+    // set path suffix
+    if (isset($_SERVER["PATH_INFO"]) && $_SERVER["PATH_INFO"] !== ""
+        && str_ends_with($self, $_SERVER["PATH_INFO"])) {
+        $p = strlen($self) - strlen($_SERVER["PATH_INFO"]);
+        $path = substr($self, $p);
+        $self = substr($self, 0, $p);
+    }
+
+    // clean parameters from pathinfo URLs
+    if ($path && !defval($Opt, "disableSlashURLs")) {
+        if (preg_match('/(?:paper|review|comment|contactauthors)\.php\z/',
+                       $self)
+            && isset($_REQUEST["p"]) && $_REQUEST["p"] == substr($path, 1)
+            && !array_key_exists("p", $extra))
+            $extra["p"] = null;
+        else if (str_ends_with($self, "profile.php")
+                 && isset($_REQUEST["u"]) && $_REQUEST["u"] == substr($path, 1)
+                 && !array_key_exists("u", $extra))
+            $extra["u"] = null;
+    }
+
+    // remove ".php"
+    if ($ConfSiteSuffix === "" && str_ends_with($self, ".php"))
+        $self = substr($self, 0, strlen($self) - 4);
+
+    // reconstruct
+    $self = $self . $path . $query;
+
+    // add parameters
+    $sep = ($query ? "&" : "?");
     foreach (array("paperId" => "p", "pap" => "p", "reviewId" => "r", "commentId" => "c") as $k => $v)
 	if (isset($_REQUEST[$k]) && !isset($_REQUEST[$v]))
 	    $_REQUEST[$v] = $_REQUEST[$k];
-    foreach (array("p", "r", "c", "m", "mode", "forceShow", "validator", "ls", "list", "t", "q", "qa", "qo", "qx", "qt", "tab", "atab", "group", "sort", "monreq", "noedit", "contact", "reviewer") as $what)
+    foreach (array("p", "r", "c", "m", "u", "mode", "forceShow", "validator", "ls", "list", "t", "q", "qa", "qo", "qx", "qt", "tab", "atab", "group", "sort", "monreq", "noedit", "contact", "reviewer") as $what)
 	if (isset($_REQUEST[$what]) && !array_key_exists($what, $extra)) {
-	    $x .= "$sep$what=" . urlencode($_REQUEST[$what]);
+	    $self .= "$sep$what=" . urlencode($_REQUEST[$what]);
 	    $sep = "&";
 	}
     foreach ($extra as $key => $value)
 	if ($key != "anchor" && $value !== null) {
-	    $x .= "$sep$key=" . urlencode($value);
+	    $self .= "$sep$key=" . urlencode($value);
 	    $sep = "&";
 	}
-    if (isset($CurrentList) && $CurrentList > 0 && !isset($_REQUEST["ls"]) && !isset($extra["ls"]))
-	$x .= $sep . "ls=" . $CurrentList;
+    if (isset($CurrentList) && $CurrentList > 0
+        && !isset($_REQUEST["ls"]) && !array_key_exists("ls", $extra))
+	$self .= $sep . "ls=" . $CurrentList;
     if (isset($extra["anchor"]))
-	$x .= "#" . $extra["anchor"];
-    return $htmlspecialchars ? htmlspecialchars($x) : $x;
+	$self .= "#" . $extra["anchor"];
+
+    return $htmlspecialchars ? htmlspecialchars($self) : $self;
 }
 
 function requestAbsoluteURI($trim) {
@@ -517,19 +602,12 @@ function requestAbsoluteURI($trim) {
 }
 
 function redirectSelf($extra = array()) {
-    global $Conf, $Opt;
+    global $Conf;
     if (!($absuri = requestAbsoluteURI(true)))
 	return false;
     $want = preg_replace('/\A.*?(?:\?|\z)/', "", selfHref($extra, null, false));
     if ($want != "")
 	$absuri .= "?" . $want;
-    // see also hoturl
-    if (!defval($Opt, "disableSlashURLs")
-	&& preg_match(',\A([^?]*/(?:paper|review|comment|contactauthors)(?:\.php)?)(?:/\d+)?\?p=(\d+)((?:&|\z).*)\z,', $absuri, $m)) {
-	$absuri = $m[1] . "/" . $m[2];
-	if ($m[3])
-	    $absuri .= "?" . substr($m[3], 1);
-    }
     $Conf->go($absuri);
 }
 
@@ -606,38 +684,33 @@ function reviewStatus($row, $when = 0, $long = 0, $conf = null) {
     return $x;
 }
 
-function documentDownload($data, $dlimg_class = "dlimg", $text = null) {
+function documentDownload($doc, $dlimg_class = "dlimg", $text = null) {
     global $Conf;
-    $mimetype = defval($data, "mimetype", "");
-    $documentType = defval($data, "documentType", DOCUMENT_SUBMISSION);
-    $p = $Conf->makeDownloadPath($data->paperId, $mimetype, $documentType);
-    $finalsuffix = ($documentType < 0 ? "f" : "");
+    $p = $Conf->makeDownloadPath($doc);
+    $finalsuffix = ($doc->documentType == DTYPE_FINAL ? "f" : "");
     $sp = "&nbsp;";
     $imgsize = ($dlimg_class[0] == "s" ? "" : "24");
-    if ($mimetype == "application/postscript")
+    if ($doc->mimetype == "application/postscript")
 	$x = "<a href=\"$p\" class='q nowrap'>" . $Conf->cacheableImage("postscript${finalsuffix}${imgsize}.png", "[PS]", null, $dlimg_class);
-    else if ($mimetype == "application/pdf")
+    else if ($doc->mimetype == "application/pdf")
 	$x = "<a href=\"$p\" class='q nowrap'>" . $Conf->cacheableImage("pdf${finalsuffix}${imgsize}.png", "[PDF]", null, $dlimg_class);
-    else {
-	$x = "<a href=\"$p\" class='nowrap'>";
-	$sp = "";
-	$text = $text ? $text : "Download";
-    }
+    else
+	$x = "<a href=\"$p\" class='q nowrap'>" . $Conf->cacheableImage("generic${finalsuffix}${imgsize}.png", "[Download]", null, $dlimg_class);
     if ($text)
 	$x .= $sp . $text;
-    if (defval($data, "size", 0) > 0)
+    if (isset($doc->size) && $doc->size > 0)
 	$x .= "&nbsp;<span class='dlsize'>" . ($text ? "(" : "")
-	    . round($data->size/1024) . "kB"
+	    . round($doc->size/1024) . "kB"
 	    . ($text ? ")" : "") . "</span>";
     return $x . "</a>";
 }
 
-function paperDocumentData($prow, $documentType = DOCUMENT_SUBMISSION, $paperStorageId = 0) {
+function paperDocumentData($prow, $documentType = DTYPE_SUBMISSION, $paperStorageId = 0) {
     global $Conf, $Opt;
-    assert($paperStorageId || $documentType == DOCUMENT_SUBMISSION || $documentType == DOCUMENT_FINAL);
-    if ($documentType == DOCUMENT_FINAL && $prow->finalPaperStorageId <= 0)
-	$documentType = DOCUMENT_SUBMISSION;
-    if ($paperStorageId == 0 && $documentType == DOCUMENT_FINAL)
+    assert($paperStorageId || $documentType == DTYPE_SUBMISSION || $documentType == DTYPE_FINAL);
+    if ($documentType == DTYPE_FINAL && $prow->finalPaperStorageId <= 0)
+	$documentType = DTYPE_SUBMISSION;
+    if ($paperStorageId == 0 && $documentType == DTYPE_FINAL)
 	$paperStorageId = $prow->finalPaperStorageId;
     else if ($paperStorageId == 0)
 	$paperStorageId = $prow->paperStorageId;
@@ -649,20 +722,21 @@ function paperDocumentData($prow, $documentType = DOCUMENT_SUBMISSION, $paperSto
 			  "mimetype" => defval($prow, "mimetype", ""),
 			  "size" => defval($prow, "size", 0),
 			  "timestamp" => defval($prow, "timestamp", 0),
-			  "sha1" => defval($prow, "sha1", ""));
+			  "sha1" => defval($prow, "sha1", "")
+                          );
     if ($prow->finalPaperStorageId > 0) {
 	$doc->paperStorageId = $prow->finalPaperStorageId;
-	$doc->documentType = DOCUMENT_FINAL;
+	$doc->documentType = DTYPE_FINAL;
     } else {
 	$doc->paperStorageId = $prow->paperStorageId;
-	$doc->documentType = DOCUMENT_SUBMISSION;
+	$doc->documentType = DTYPE_SUBMISSION;
     }
 
     // load document object from database if pre-loaded version doesn't work
     if ($paperStorageId > 0
 	&& ($doc->documentType != $documentType
 	    || $paperStorageId != $doc->paperStorageId)) {
-	$qa = ($Conf->sversion >= 28 ? "sha1, documentType" : "'' as sha1, $documentType as documentType");
+	$qa = ($Conf->sversion >= 28 ? "sha1, documentType" : "'' sha1, $documentType documentType");
 	$result = $Conf->qe("select paperStorageId, paperId, length(paper) as size, mimetype, timestamp, $qa from PaperStorage where paperStorageId=$paperStorageId", "while reading documents");
 	$doc = edb_orow($result);
     }
@@ -670,49 +744,16 @@ function paperDocumentData($prow, $documentType = DOCUMENT_SUBMISSION, $paperSto
     return $doc;
 }
 
-function documentMimetypes($documentType, $opt = null, $supplied = null) {
-    global $Opt, $mimetypeMap;
-    require_once("paperoption.inc");
-    if ($documentType <= 0)
-	$optionType = null;
-    else if (!$opt && !($opt = paperOptions($documentType)))
-	return null;
-    else
-	$optionType = $opt->type;
-    $names = $mimetypes = array();
-    if (PaperOption::type_takes_pdf($optionType)) {
-	$names[] = "PDF";
-	$mimetypes[] = $mimetypeMap["pdf"];
-    }
-    if ($optionType === null && !defval($Opt, "disablePS")) {
-	$names[] = "PostScript file";
-	$mimetypes[] = $mimetypeMap["ps"];
-    }
-    if ($optionType == PaperOption::T_SLIDES
-	|| $optionType == PaperOption::T_FINALSLIDES) {
-	$names[] = "PowerPoint file";
-	$mimetypes[] = $mimetypeMap["ppt"];
-	$mimetypes[] = $mimetypeMap["pptx"];
-    }
-    if ($optionType == PaperOption::T_VIDEO
-	|| $optionType == PaperOption::T_FINALVIDEO) {
-	$names[] = "video file (MP4 or AVI)";
-	$mimetypes[] = $mimetypeMap["mp4"];
-	$mimetypes[] = $mimetypeMap["avi"];
-    }
-    return array($mimetypes, $names);
-}
-
 function paperDownload($prow, $final = false) {
     global $Conf, $Me;
     // don't let PC download papers in progress
     if ($prow->timeSubmitted <= 0 && !$Me->canDownloadPaper($prow))
 	return "";
-    $data = paperDocumentData($prow, $final ? -1 : 0);
-    return $data ? documentDownload($data) : "";
+    $doc = paperDocumentData($prow, $final ? DTYPE_FINAL : DTYPE_SUBMISSION);
+    return $doc ? documentDownload($doc) : "";
 }
 
-function requestDocumentType($req, $default = DOCUMENT_SUBMISSION) {
+function requestDocumentType($req, $default = DTYPE_SUBMISSION) {
     if (is_string($req))
 	$req = array("dt" => $req);
     if (($dt = defval($req, "dt"))) {
@@ -720,9 +761,9 @@ function requestDocumentType($req, $default = DOCUMENT_SUBMISSION) {
 	    return (int) $dt;
 	$dt = strtolower($dt);
 	if ($dt == "paper")
-	    return DOCUMENT_SUBMISSION;
+	    return DTYPE_SUBMISSION;
 	if ($dt == "final")
-	    return DOCUMENT_FINAL;
+	    return DTYPE_FINAL;
 	if (substr($dt, 0, 4) == "opt-")
 	    $dt = substr($dt, 4);
 	foreach (paperOptions() as $o)
@@ -730,18 +771,8 @@ function requestDocumentType($req, $default = DOCUMENT_SUBMISSION) {
 		return $o->optionId;
     }
     if (defval($req, "final", 0) != 0)
-	return DOCUMENT_FINAL;
+	return DTYPE_FINAL;
     return $default;
-}
-
-function documentTypeName($documentType) {
-    if ($documentType == DOCUMENT_SUBMISSION)
-	return "paper";
-    if ($documentType == DOCUMENT_FINAL)
-	return "final";
-    if (($o = paperOptions($documentType)) && $o->isDocument)
-	return $o->optionAbbrev;
-    return null;
 }
 
 function topicTable($prow, $active = 0) {
@@ -792,7 +823,7 @@ function authorTable($aus, $viewAs = null) {
     if (!is_array($aus))
 	$aus = explode("\n", $aus);
     foreach ($aus as $aux) {
-	$au = trim(is_array($aux) ? contactHtml($aux) : $aux);
+	$au = trim(is_array($aux) ? Text::user_html($aux) : $aux);
 	if ($au != '') {
 	    if (strlen($au) > 30)
 		$out .= "<span class='autblentry_long'>";
@@ -800,34 +831,11 @@ function authorTable($aus, $viewAs = null) {
 		$out .= "<span class='autblentry'>";
 	    $out .= $au;
 	    if ($viewAs !== null && is_array($aux) && count($aux) >= 2 && $viewAs->email != $aux[2] && $viewAs->privChair)
-		$out .= " <a href=\"" . selfHref(array("viewContact" => $aux[2])) . "\">" . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . (is_array($aux) ? contactNameHtml($aux) : $aux)) . "</a>";
+		$out .= " <a href=\"" . selfHref(array("viewContact" => $aux[2])) . "\">" . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . (is_array($aux) ? Text::name_html($aux) : $aux)) . "</a>";
 	    $out .= "</span> ";
 	}
     }
     return $out;
-}
-
-function abbreviateNameHtml($f, $l, $email = "") {
-    $front = $rest = "";
-    if ($l != "")
-	$rest = $l;
-    else if ($f != "")
-	$rest = $f;
-    else
-	$rest = $email ? $email : "???";
-    if ($f != "" && $l != "") {
-	if (ctype_alpha($f[0]))
-	    $front = $f[0];
-	else if (preg_match("/^(\\pL)/us", $f, $m))
-	    $front = $m[1];
-	// Don't add a period if first name is a single letter
-	if ($front != "" && $front != $f && substr($f, 0, strlen($front) + 1) != $front . " ")
-	    $front .= ".";
-    }
-    if ($front == "")
-	return htmlspecialchars($rest);
-    else
-	return htmlspecialchars($front) . "&nbsp;" . htmlspecialchars($rest);
 }
 
 function highlightMatch($match, $text, &$n = null) {
@@ -866,75 +874,6 @@ function preferenceSpan($preference, $topicInterestScore = 0) {
     return $t . "</span>";
 }
 
-function _cleanContactText(&$f, &$l, &$e) {
-    if (is_array($f)) {
-	if ($e === null && count($f) > 2)
-	    $e = $f[2];
-	$l = $f[1];
-	$f = $f[0];
-    } else if (is_object($f)) {
-	if ($e === null && isset($f->email))
-	    $e = $f->email;
-	if (isset($f->lastName) || isset($f->firstName)) {
-	    $l = defval($f, "lastName", "");
-	    $f = defval($f, "firstName", "");
-	} else
-	    list($f, $l) = splitName(defval($f, "fullName", ""));
-    }
-}
-
-function contactText($firstName, $lastName = null, $email = null) {
-    _cleanContactText($firstName, $lastName, $email);
-    if ($firstName || $lastName) {
-	$x = trim("$firstName $lastName");
-	if ($email)
-	    $x .= " <$email>";
-    } else
-	$x = $email;
-    return $x;
-}
-
-function contactNameText($firstName, $lastName = null, $email = null) {
-    _cleanContactText($firstName, $lastName, $email);
-    if ($firstName || $lastName)
-	$x = trim("$firstName $lastName");
-    else
-	$x = $email;
-    return $x;
-}
-
-function contactHtml($firstName, $lastName = null, $email = null) {
-    _cleanContactText($firstName, $lastName, $email);
-    if ($email)
-	$email = htmlspecialchars($email);
-    if ($firstName || $lastName) {
-	$x = htmlspecialchars(trim("$firstName $lastName"));
-	if ($email)
-	    $x .= " &lt;<a href=\"mailto:$email\">$email</a>&gt;";
-    } else if ($email)
-	$x = "&lt;<a href=\"mailto:$email\">$email</a>&gt;";
-    else
-	$x = "[No name]";
-    return $x;
-}
-
-function contactNameHtml($firstName, $lastName = null, $email = null) {
-    return htmlspecialchars(contactNameText($firstName, $lastName, $email));
-}
-
-function contactEmailTo($firstName, $lastName = null, $email = null) {
-    _cleanContactText($firstName, $lastName, $email);
-    if (!$email)
-	$email = "none";
-    if ($firstName || $lastName) {
-	$x = trim("$firstName $lastName");
-	if (preg_match('/[\000-\037()[\]<>@,;:\\".]/', $x))
-	    $x = "\"" . addcslashes($x, '"\\') . "\"";
-	return $email ? "$x <$email>" : "$x <none>";
-    } else
-	return $email ? $email : "<none>";
-}
-
 function allocateListNumber($listid) {
     if (!isset($_SESSION["l"]))
 	$_SESSION["l"] = array();
@@ -952,7 +891,7 @@ function allocateListNumber($listid) {
 
 function _tryNewList($opt, $listtype) {
     global $Conf, $ConfSiteSuffix, $Me;
-    if ($listtype == "a" && $Me->privChair) {
+    if ($listtype == "u" && $Me->privChair) {
 	$searchtype = (defval($opt, "t") === "all" ? "all" : "pc");
 	$q = "select email from ContactInfo";
 	if ($searchtype == "pc")
@@ -962,8 +901,8 @@ function _tryNewList($opt, $listtype) {
 	while (($row = edb_row($result)))
 	    $a[] = $row[0];
 	$a["description"] = ($searchtype == "pc" ? "Program committee" : "Users");
-	$a["listid"] = "a:" . $searchtype . "::";
-	$a["url"] = "contacts$ConfSiteSuffix?t=" . $searchtype;
+	$a["listid"] = "u:" . $searchtype . "::";
+	$a["url"] = "users$ConfSiteSuffix?t=" . $searchtype;
 	return $a;
     } else {
 	require_once("search.inc");
@@ -974,11 +913,11 @@ function _tryNewList($opt, $listtype) {
 
 function _one_quicklink($id, $baseUrl, $urlrest, $listtype, $isprev) {
     global $Conf;
-    if ($listtype == "a") {
-	$result = $Conf->qx("select email from ContactInfo where contactId=$id");
+    if ($listtype == "u") {
+	$result = $Conf->qx("select email from ContactInfo where email='" . sqlq($id) . "'");
 	$row = edb_row($result);
-	$paperText = ($row ? htmlspecialchars($row[0]) : "#$id");
-	$urlrest = "contact=" . $id . $urlrest;
+	$paperText = htmlspecialchars($row ? $row[0] : $id);
+	$urlrest = "u=" . urlencode($id) . $urlrest;
     } else {
 	$paperText = "#$id";
 	$urlrest = "p=" . $id . $urlrest;
@@ -1179,6 +1118,8 @@ function genericWatch($prow, $watchtype, $callback) {
 		R.reviewSubmitted as myReviewSubmitted,
 		R.reviewNeedsSubmit as myReviewNeedsSubmit,
 		conflictType, watch, preferredEmail";
+    if ($Conf->sversion >= 47)
+        $q .= ", disabled";
 
     $q .= "\nfrom ContactInfo C
 		left join PaperConflict Conf on (Conf.paperId=$prow->paperId and Conf.contactId=C.contactId)
@@ -1233,7 +1174,7 @@ function genericWatch($prow, $watchtype, $callback) {
     }
 
     foreach ($watchers as $row) {
-	$minic = Contact::makeMinicontact($row);
+	$minic = Contact::make($row);
 	setReviewInfo($prow, $row);
 	$callback($prow, $minic);
     }
@@ -1305,7 +1246,7 @@ function wordWrapIndent($text, $info, $indent = 18, $totWidth = 75, $rjinfo = tr
 	$indentlen = strlen($indent);
 
     $out = "";
-    while (ctype_space($text[0])) {
+    while ($text != "" && ctype_space($text[0])) {
 	$out .= $text[0];
 	$text = substr($text, 1);
     }
@@ -1334,6 +1275,8 @@ function htmlWrapText($text) {
 		/* nada */;
 	    $l = str_repeat("\xC2\xA0", $x) . substr($l, $x);
 	}
+	$l = preg_replace('@((?:https?|ftp)://\S+[^\s").,:;])([").,:;]*(?:\s|\z))@',
+			  '<a href="$1">$1</a>$2', $l);
 	$lines[$i] = $l . "<br />\n";
     }
     return join("", $lines);
@@ -1547,9 +1490,9 @@ function actionBar($mode = "", $prow = null) {
     else if ($mode == "contactauthors")
 	$goBase = "contactauthors";
     else if ($mode == "account") {
-	$listtype = "a";
+	$listtype = "u";
 	if ($Me->privChair)
-	    $goBase = "account";
+	    $goBase = "profile";
 	else
 	    $prow = null;
     } else if ($mode == "" && $Me->isPC && $Conf->setting("rev_open"))
@@ -1560,7 +1503,7 @@ function actionBar($mode = "", $prow = null) {
     $listarg = $forceShow;
     $quicklinks_txt = "";
     if ($prow) {
-	$id = ($listtype === "a" ? $prow->contactId : $prow->paperId);
+	$id = ($listtype === "u" ? $prow->email : $prow->paperId);
 	$quicklinks_txt = quicklinks($id, $goBase, $xmode, $listtype);
 	if (isset($CurrentList) && $CurrentList > 0)
 	    $listarg .= "&amp;ls=$CurrentList";
@@ -1749,7 +1692,7 @@ function downloadCSV($info, $header, $filename, $description, $opt = array()) {
     else
 	$headertext = "";
     header("Content-Description: " . $Opt["shortName"] . " $description, PHP generated data");
-    header("Content-Disposition: " . (defval($opt, "inline") ? "inline" : "attachment") . "; filename=" . $Opt["downloadPrefix"] . $filename . ($iscsv ? ".csv" : ".txt"));
+    header("Content-Disposition: " . (defval($opt, "inline") ? "inline" : "attachment") . "; filename=" . mime_token_quote($Opt["downloadPrefix"] . $filename . ($iscsv ? ".csv" : ".txt")));
     if ($iscsv)
 	header("Content-Type: text/csv; charset=utf-8; header=" . ($headertext ? "present" : "absent"));
     else
@@ -1804,17 +1747,15 @@ function pcMembers() {
     global $Conf;
     if (!isset($_SESSION["pcmembers"]) || !is_array($_SESSION["pcmembers"])
 	|| count($_SESSION["pcmembers"]) != 2
-	|| $Conf->setting('pc') <= 0
-	|| $_SESSION["pcmembers"][0] < $Conf->setting('pc')
+	|| $Conf->setting("pc") <= 0
+	|| $_SESSION["pcmembers"][0] < $Conf->setting("pc")
 	|| !is_array($_SESSION["pcmembers"][1])
 	|| count($_SESSION["pcmembers"][1]) == 0) {
 	$pc = array();
-	$qa = ($Conf->sversion >= 35 ? ", contactTags" : "");
-	$result = $Conf->q("select firstName, lastName, affiliation, email, ContactInfo.contactId as contactId, coalesce(ChairAssistant.contactId, 0) as isAssistant, coalesce(Chair.contactId, 0) as isChair$qa from ContactInfo join PCMember using (contactId) left join ChairAssistant on (PCMember.contactId=ChairAssistant.contactId) left join Chair on (PCMember.contactId=Chair.contactId)");
-	while (($row = edb_orow($result))) {
-	    $row->sorter = trim($row->firstName . " " . $row->lastName . " " . $row->email);
-	    $pc[$row->contactId] = $row;
-	}
+	$qa = ($Conf->sversion >= 35 ? ", contactTags" : "") . ($Conf->sversion >= 47 ? ", disabled" : "");
+	$result = $Conf->q("select firstName, lastName, affiliation, email, u.contactId contactId, roles$qa from ContactInfo u join PCMember using (contactId)");
+	while (($row = edb_orow($result)))
+	    $pc[$row->contactId] = Contact::make($row);
 	uasort($pc, "_sort_pcMember");
 	$_SESSION["pcmembers"] = array($Conf->setting('pc'), $pc);
     }
@@ -1825,15 +1766,15 @@ function pcMembersAndAdmins() {
     global $Conf;
     if (!isset($_SESSION["pcmembersa"]) || !is_array($_SESSION["pcmembersa"])
 	|| count($_SESSION["pcmembersa"]) != 2
-	|| $Conf->setting('pc') <= 0
-	|| $_SESSION["pcmembersa"][0] < $Conf->setting('pc')
+	|| $Conf->setting("pc") <= 0
+	|| $_SESSION["pcmembersa"][0] < $Conf->setting("pc")
 	|| !is_array($_SESSION["pcmembersa"][1])
 	|| count($_SESSION["pcmembersa"][1]) == 0) {
 	$pc = array();
-	$qa = ($Conf->sversion >= 35 ? ", contactTags" : "");
-	$result = $Conf->q("select firstName, lastName, email, ContactInfo.contactId as contactId, coalesce(ChairAssistant.contactId, 0) as isAssistant, coalesce(Chair.contactId, 0) as isChair$qa from ContactInfo left join PCMember using (contactId) left join ChairAssistant on (ContactInfo.contactId=ChairAssistant.contactId) left join Chair on (ContactInfo.contactId=Chair.contactId) where PCMember.contactId is not null or ChairAssistant.contactId is not null order by lastName, firstName");
+	$qa = ($Conf->sversion >= 35 ? ", contactTags" : "") . ($Conf->sversion >= 47 ? ", disabled" : "");
+	$result = $Conf->q("select firstName, lastName, email, affiliation, u.contactId contactId, roles$qa from ContactInfo u left join PCMember p using (contactId) left join ChairAssistant ca on (ca.contactId=u.contactId) where p.contactId is not null or ca.contactId is not null order by lastName, firstName");
 	while (($row = edb_orow($result)))
-	    $pc[$row->contactId] = $row;
+	    $pc[$row->contactId] = Contact::make($row);
 	$_SESSION["pcmembersa"] = array($Conf->setting('pc'), $pc);
     }
     return $_SESSION["pcmembersa"][1];
@@ -2015,41 +1956,24 @@ function unparseScoreAverage($avg, $levelChar) {
 	return sprintf("%0.2f", $avg);
 }
 
-function updatePaperListDisplayOptions($x) {
-    global $paperListFolds;
-    require_once("paperlist.inc");
-    $foldmap = array();
-    foreach ($paperListFolds as $name => $fdef)
-	$foldmap[$fdef->foldnum] = $name;
-
-    if ($x) {
-	$a = str_split($x);
-	$x = " ";
-	for ($i = 0; $i < count($a); ++$i) {
-	    $score = ord($a[$i]);
-	    if (isset($foldmap[$score]))
-		$x .= $foldmap[$score] . " ";
-	}
-    }
-    return $x;
-}
-
 function displayOptionsSet($sessionvar, $var = null, $val = null) {
     global $Conf;
     if (isset($_SESSION[$sessionvar]))
 	$x = $_SESSION[$sessionvar];
     else if ($sessionvar == "pldisplay")
-	$x = $Conf->settingText("pldisplay_default", " overAllMerit ");
+	$x = $Conf->settingText("pldisplay_default", "");
     else if ($sessionvar == "ppldisplay")
-	$x = $Conf->settingText("ppldisplay_default", " tags ");
+	$x = $Conf->settingText("ppldisplay_default", "");
     else
 	$x = "";
-    if ($x == null || $x == "")
-	$x = " ";
-
-    // translate old form (character list) into new form (space-separated)
-    if (strpos($x, " ") === false)
-	$x = updatePaperListDisplayOptions($x);
+    if ($x == null || strpos($x, " ") === false) {
+        if ($sessionvar == "pldisplay")
+            $x = " overAllMerit ";
+        else if ($sessionvar == "ppldisplay")
+            $x = " tags ";
+        else
+            $x = " ";
+    }
 
     // set $var to $val in list
     if ($var) {
@@ -2062,35 +1986,6 @@ function displayOptionsSet($sessionvar, $var = null, $val = null) {
     return ($_SESSION[$sessionvar] = $x);
 }
 
-
-function splitName($name, $withEmail = false) {
-    if ($withEmail) {
-	if (preg_match('%^\s*\"?(.*?)\"?\s*<([^<>]+)>\s*$%', $name, $m)
-	    || preg_match('%^\s*\"(.*)\"\s+(\S+)\s*$%', $name, $m))
-	    return array_merge(splitName($m[1]), array($m[2]));
-	else if (!preg_match('%^\s*(.*?)\s+(\S+)\s*$%', $name, $m))
-	    return array("", "", trim($name));
-	else if (strpos($m[1], "@") !== false && strpos($m[2], "@") === false)
-	    return array_merge(splitName($m[2]), array($m[1]));
-	else
-	    return array_merge(splitName($m[1]), array($m[2]));
-    }
-    if (($p1 = strrpos($name, ",")) !== false) {
-	$first = trim(substr($name, $p1 + 1));
-	if (!preg_match('@^(Esq\.?|Ph\.?D\.?|M\.?[SD]\.?|Esquire|Junior|Senior|Jr.?|Sr.?|I+)$@i', $first))
-	    return array($first, trim(substr($name, 0, $p1)));
-    }
-    if (preg_match('@[^\s,]+(\s+Jr\.?|\s+Sr\.?|\s+i+|\s+Ph\.?D\.?|\s+M\.?[SD]\.?)?(,.*)?\s*$@i', $name, $m)) {
-	$first = trim(substr($name, 0, strlen($name) - strlen($m[0])));
-	$last = trim($m[0]);
-	if (preg_match('@^(\S.*?)\s+(v[oa]n|d[eu])$@i', $first, $m)) {
-	    $first = $m[1];
-	    $last = $m[2] . " " . $last;
-	}
-	return array($first, $last);
-    } else
-	return array("", trim($name));
-}
 
 function cleanAuthor($row) {
     if (isset($row->authorTable))
@@ -2119,7 +2014,7 @@ function cleanAuthor($row) {
 			$aff = '';
 		    }
 		}
-		$a = splitName($line);
+		$a = Text::split_name($line);
 		$a[2] = $email;
 		$a[3] = $aff;
 		$row->authorTable[] = $a;
@@ -2256,7 +2151,6 @@ function tagg_select($name, $opt, $selected = null, $extra = null) {
 }
 
 function tagg_cbox($type, $bottom, $classextra="") {
-    $c = ($bottom ? "l" : "u");
     if ($bottom)
 	return "	<tr><td class='${type}cll'></td><td></td><td class='${type}clr'></td></tr>\n</table>";
     else
@@ -2313,8 +2207,12 @@ function tagg_button($name, $text, $js = null) {
     if (!isset($js["class"]))
 	$js["class"] = "b";
     $type = isset($js["type"]) ? $js["type"] : "button";
-    return "<input type=\"$type\" name=\"$name\" value=\"$text\""
-	. tagg_extra($js) . " />";
+    if (isset($js["value"]))
+        return "<button type=\"type\" name=\"$name\" value=\"" . $js["value"]
+            . "\"" . tagg_extra($js) . ">" . $text . "</button>";
+    else
+        return "<input type=\"$type\" name=\"$name\" value=\"$text\""
+            . tagg_extra($js) . " />";
 }
 
 function tagg_submit($name, $text, $js = null) {
@@ -2323,7 +2221,7 @@ function tagg_submit($name, $text, $js = null) {
     return tagg_button($name, $text, $js);
 }
 
-function tagg_actions($actions, $js = null) {
+function tagg_actions($actions, $js = null, $extra = "") {
     $t = "<div class=\"aa\"" . tagg_extra($js) . ">";
     if (count($actions) > 1 || is_array($actions[0])) {
 	$t .= "<table class=\"pt_buttons\"><tr>";
@@ -2351,5 +2249,5 @@ function tagg_actions($actions, $js = null) {
 	$t .= "</table>";
     } else
 	$t .= $actions[0];
-    return $t . "</div>\n";
+    return $t . $extra . "</div>\n";
 }

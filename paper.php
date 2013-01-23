@@ -81,17 +81,14 @@ if (!$newPaper) {
 
 // paper actions
 if (isset($_REQUEST["setrevpref"]) && $prow && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setReviewPreference($prow);
     loadRows();
 }
 if (isset($_REQUEST["setrank"]) && $prow && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setRank($prow);
     loadRows();
 }
 if (isset($_REQUEST["rankctx"]) && $prow && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::rankContext($prow);
     loadRows();
 }
@@ -141,7 +138,6 @@ if (isset($_REQUEST["withdraw"]) && !$newPaper && check_post()) {
 	loadRows();
 
 	// email contact authors themselves
-	require_once("Code/mailtemplate.inc");
 	if (!$Me->privChair || defval($_REQUEST, "doemail") > 0)
 	    Mailer::sendContactAuthors(($prow->conflictType >= CONFLICT_AUTHOR ? "@authorwithdraw" : "@adminwithdraw"),
 				       $prow, null, array("reason" => $reason, "infoNames" => 1));
@@ -152,11 +148,10 @@ if (isset($_REQUEST["withdraw"]) && !$newPaper && check_post()) {
 	    Mailer::sendReviewers("@withdrawreviewer", $prow, null, array("reason" => $reason));
 
 	// remove voting tags so people don't have phantom votes
-	require_once("Code/tags.inc");
-	$vt = voteTags();
-	if (count($vt) > 0) {
+        $tagger = new Tagger;
+	if ($tagger->has_vote()) {
 	    $q = array();
-	    foreach ($vt as $t => $v)
+	    foreach ($tagger->vote_tags() as $t => $v)
 		$q[] = "tag='" . sqlq($t) . "' or tag like '%~" . sqlq_for_like($t) . "'";
 	    $Conf->qe("delete from PaperTag where paperId=$prow->paperId and (" . join(" or ", $q) . ")", "while cleaning up voting tags");
 	}
@@ -199,7 +194,7 @@ function setRequestAuthorTable() {
 	$b = simplifyWhitespace(defval($_REQUEST, "auemail$i", ""));
 	$c = simplifyWhitespace(defval($_REQUEST, "auaff$i", ""));
 	if ($a != "" || $b != "" || $c != "") {
-	    $a = splitName($a);
+	    $a = Text::split_name($a);
 	    $a[2] = $b;
 	    $a[3] = $c;
 	    $_REQUEST["authorTable"][] = $a;
@@ -226,7 +221,7 @@ function requestSameAsPaper($prow) {
     foreach (array("title", "abstract", "authorTable", "collaborators") as $x)
 	if ($_REQUEST[$x] != $prow->$x)
 	    return false;
-    if (fileUploaded($_FILES["paperUpload"], $Conf))
+    if (fileUploaded($_FILES["paperUpload"]))
 	return false;
     $result = $Conf->q("select TopicArea.topicId, PaperTopic.paperId from TopicArea left join PaperTopic on PaperTopic.paperId=$prow->paperId and PaperTopic.topicId=TopicArea.topicId");
     while (($row = edb_row($result))) {
@@ -250,7 +245,7 @@ function requestSameAsPaper($prow) {
 	    } else if ($t == PaperOption::T_PDF || $t == PaperOption::T_FINALPDF
 		       || $t == PaperOption::T_SLIDES || $t == PaperOption::T_FINALSLIDES
 		       || $t == PaperOption::T_VIDEO || $t == PaperOption::T_FINALVIDEO) {
-		if (fileUploaded($_FILES["opt$row[0]"], $Conf)
+		if (fileUploaded($_FILES["opt$row[0]"])
 		    || defval($_REQUEST, "remove_opt$row[0]"))
 		    return false;
 	    }
@@ -268,18 +263,17 @@ function uploadOption($o) {
     global $newPaper, $prow, $Conf, $Me, $Error;
     $doc = $Conf->storeDocument("opt$o->optionId", $newPaper ? -1 : $prow->paperId,
 				$o->optionId);
-    if ($doc)
-	$_REQUEST["opt$o->optionId"] = $doc->paperStorageId;
-    else
+    if (isset($doc->error_html)) {
+        $Conf->errorMsg($doc->error_html);
 	$Error["opt$o->optionId"] = 1;
+    } else
+	$_REQUEST["opt$o->optionId"] = $doc->paperStorageId;
 }
 
 // send watch messages
 function final_submit_watch_callback($prow, $minic) {
-    if ($minic->canViewPaper($prow)) {
-	require_once("Code/mailtemplate.inc");
+    if ($minic->canViewPaper($prow))
 	Mailer::send("@finalsubmitnotify", $prow, $minic);
-    }
 }
 
 function updatePaper($Me, $isSubmit, $isSubmitFinal) {
@@ -291,7 +285,7 @@ function updatePaper($Me, $isSubmit, $isSubmitFinal) {
     // XXX lock tables
 
     // clear 'isSubmit' if no paper has been uploaded
-    if (!fileUploaded($_FILES["paperUpload"], $Conf)
+    if (!fileUploaded($_FILES["paperUpload"])
 	&& ($newPaper || $prow->size == 0)
 	&& !defval($Opt, "noPapers"))
 	$isSubmit = false;
@@ -342,7 +336,7 @@ function updatePaper($Me, $isSubmit, $isSubmitFinal) {
 	else if ($opt->isDocument) {
 	    unset($_REQUEST[$oname]);
 	    if (!$opt->isFinal || $isSubmitFinal) {
-		if (fileUploaded($_FILES[$oname], $Conf))
+		if (fileUploaded($_FILES[$oname]))
 		    uploadOption($opt);
 		else if (!defval($_REQUEST, "remove_opt" . $opt->optionId))
 		    $no_delete_options[] = $opt->optionId;
@@ -376,13 +370,13 @@ function updatePaper($Me, $isSubmit, $isSubmitFinal) {
 	}
 	if ($emsg != "")
 	    $emsg .= "Fix the highlighted " . pluralx($fields, "field") . " and try again.";
-	if (fileUploaded($_FILES["paperUpload"], $Conf) && $newPaper)
+	if (fileUploaded($_FILES["paperUpload"]) && $newPaper)
 	    $emsg .= "  <strong>Please note that the paper you tried to upload was ignored.</strong>";
 	if ($emsg != "")
 	    $Conf->errorMsg($emsg);
 	// It is kinder to the user to attempt to upload files even on error.
 	if (!$newPaper) {
-	    if (fileUploaded($_FILES["paperUpload"], $Conf))
+	    if (fileUploaded($_FILES["paperUpload"]))
 		uploadPaper($isSubmitFinal);
 	    foreach (paperOptions() as $o)
 		if ($o->isDocument && isset($_REQUEST["opt$o->optionId"]))
@@ -510,7 +504,7 @@ function updatePaper($Me, $isSubmit, $isSubmitFinal) {
     }
 
     // upload paper if appropriate
-    $paperUploaded = fileUploaded($_FILES["paperUpload"], $Conf);
+    $paperUploaded = fileUploaded($_FILES["paperUpload"]);
     if ($paperUploaded) {
 	if ($newPaper)
 	    loadRows();
@@ -594,7 +588,6 @@ function updatePaper($Me, $isSubmit, $isSubmitFinal) {
 
     // mail confirmation to all contact authors
     if (!$Me->privChair || defval($_REQUEST, "doemail") > 0) {
-	require_once("Code/mailtemplate.inc");
 	$options = array("infoNames" => 1);
 	if ($Me->privChair && $prow->conflictType < CONFLICT_AUTHOR)
 	    $options["adminupdate"] = true;
@@ -658,10 +651,8 @@ if (isset($_REQUEST["delete"]) && check_post()) {
 	$Conf->errorMsg("Only the program chairs can permanently delete papers. Authors can withdraw papers, which is effectively the same.");
     else {
 	// mail first, before contact info goes away
-	if (!$Me->privChair || defval($_REQUEST, "doemail") > 0) {
-	    require_once("Code/mailtemplate.inc");
+	if (!$Me->privChair || defval($_REQUEST, "doemail") > 0)
 	    Mailer::sendContactAuthors("@deletepaper", $prow, null, array("reason" => defval($_REQUEST, "emailNote", ""), "infoNames" => 1));
-	}
 	// XXX email self?
 
 	$error = false;
@@ -686,14 +677,11 @@ if (isset($_REQUEST["delete"]) && check_post()) {
 
 // paper actions
 if ((isset($_REQUEST["settags"]) || isset($_REQUEST["settingtags"])) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setTags($prow);
     loadRows();
 }
-if (isset($_REQUEST["tagreport"]) && check_post()) {
-    require_once("Code/paperactions.inc");
+if (isset($_REQUEST["tagreport"]) && check_post())
     PaperActions::tagReport($prow);
-}
 
 
 // correct modes

@@ -53,10 +53,10 @@ function doFirstUser($msg) {
     global $Conf, $Opt, $Me;
     $msg .= "  As the first user, you have been automatically signed in and assigned system administrator privilege.";
     if (!isset($Opt["ldapLogin"]) && !isset($Opt["httpAuthLogin"]))
-	$msg .= "  Your password is &ldquo;<tt>" . htmlspecialchars($Me->password) . "</tt>&rdquo;.  All later users will have to sign in normally.";
+	$msg .= "  Your password is “<tt>" . htmlspecialchars($Me->password) . "</tt>”.  All later users will have to sign in normally.";
     $while = "while granting system administrator privilege";
-    $Conf->qe("insert into ChairAssistant (contactId) values (" . $Me->contactId . ")", $while);
-    $Conf->qe("update ContactInfo set roles=" . (Contact::ROLE_ADMIN) . " where contactId=" . $Me->contactId, $while);
+    $Conf->qe("insert into ChairAssistant (contactId) values (" . $Me->cid . ")", $while);
+    $Conf->qe("update ContactInfo set roles=" . (Contact::ROLE_ADMIN) . " where contactId=" . $Me->cid, $while);
     $Conf->qe("delete from Settings where name='setupPhase'", "while leaving setup phase");
     $Conf->log("Granted system administrator privilege to first user", $Me);
     $Conf->confirmMsg($msg);
@@ -76,10 +76,10 @@ function doCreateAccount() {
 	return $Conf->errorMsg("&ldquo;" . htmlspecialchars($_REQUEST["email"]) . "&rdquo; is not a valid email address.");
     } else if (!$Me->validContact()) {
 	if (!$Me->initialize($_REQUEST["email"]))
-	    return $Conf->errorMsg($Conf->dbErrorText(true, "while adding your account"));
+	    return $Conf->errorMsg($Conf->db_error_html(true, "while adding your account"));
     }
 
-    $Me->sendAccountInfo($Conf, true, true);
+    $Me->sendAccountInfo(true, true);
     $Conf->log("Account created", $Me);
     $msg = "Successfully created an account for " . htmlspecialchars($_REQUEST["email"]) . ".";
 
@@ -88,13 +88,13 @@ function doCreateAccount() {
 	return doFirstUser($msg);
 
     if ($Conf->allowEmailTo($Me->email))
-	$msg .= "  A password has been emailed to you.  Return here when you receive it to complete the registration process.  If you don't receive the email, check your spam folders and verify that you entered the correct address.";
+	$msg .= "  A password has been emailed to you.  Return here when you receive it to complete the registration process.  If you don’t receive the email, check your spam folders and verify that you entered the correct address.";
     else {
 	if ($Opt['sendEmail'])
 	    $msg .= "  The email address you provided seems invalid.";
 	else
 	    $msg .= "  The conference system is not set up to mail passwords at this time.";
-	$msg .= "  Although an account was created for you, you need the site administrator's help to retrieve your password.  The site administrator is " . htmlspecialchars($Opt["contactName"] . " <" . $Opt["contactEmail"] . ">") . ".";
+	$msg .= "  Although an account was created for you, you need the site administrator’s help to retrieve your password.  The site administrator is " . htmlspecialchars($Opt["contactName"] . " <" . $Opt["contactEmail"] . ">") . ".";
     }
     if (isset($_REQUEST["password"]) && $_REQUEST["password"] != "")
 	$msg .= "  Note that the password you supplied on the login screen was ignored.";
@@ -170,7 +170,7 @@ function doLogin() {
     if (!$Me->validContact()) {
 	if (isset($Opt["ldapLogin"]) || isset($Opt["httpAuthLogin"])) {
 	    if (!$Me->initialize($_REQUEST["email"], true))
-		return $Conf->errorMsg($Conf->dbErrorText(true, "while adding your account"));
+		return $Conf->errorMsg($Conf->db_error_html(true, "while adding your account"));
 	    if (defval($Conf->settings, "setupPhase", false))
 		return doFirstUser($msg);
 	} else {
@@ -179,8 +179,12 @@ function doLogin() {
 	}
     }
 
+    if (($Me->password == "" && !isset($Opt["ldapLogin"]) && !isset($Opt["httpAuthLogin"]))
+        || $Me->disabled)
+        return $Conf->errorMsg("Your account is disabled. Contact the site administrator for more information.");
+
     if ($_REQUEST["action"] == "forgot") {
-	$worked = $Me->sendAccountInfo($Conf, false, true);
+	$worked = $Me->sendAccountInfo(false, true);
 	$Conf->log("Sent password", $Me);
 	if ($worked)
 	    $Conf->confirmMsg("Your password has been emailed to " . $_REQUEST["email"] . ".  When you receive that email, return here to sign in.");
@@ -199,7 +203,7 @@ function doLogin() {
 	return $Conf->errorMsg("That password doesn’t match.  If you’ve forgotten your password, enter your email address and use the “I forgot my password, email it to me” option.");
     }
 
-    $Conf->qe("update ContactInfo set visits=visits+1, lastLogin=" . time() . " where contactId=" . $Me->contactId, "while recording login statistics");
+    $Conf->qe("update ContactInfo set visits=visits+1, lastLogin=" . time() . " where contactId=" . $Me->cid, "while recording login statistics");
 
     if (isset($_REQUEST["go"]))
 	$where = $_REQUEST["go"];
@@ -251,7 +255,7 @@ if (!$Me->valid() || isset($_REQUEST["signin"]))
 if ($Me->validContact() && isset($Me->fresh) && $Me->fresh === true) {
     $needti = false;
     if (($Me->roles & Contact::ROLE_PC) && !$Me->isReviewer) {
-	$result = $Conf->q("select count(ta.topicId), count(ti.topicId) from TopicArea ta left join TopicInterest ti on (ti.contactId=$Me->contactId and ti.topicId=ta.topicId)");
+	$result = $Conf->q("select count(ta.topicId), count(ti.topicId) from TopicArea ta left join TopicInterest ti on (ti.contactId=$Me->cid and ti.topicId=ta.topicId)");
 	$needti = ($row = edb_row($result)) && $row[0] && !$row[1];
     }
     if (!($Me->firstName || $Me->lastName)
@@ -259,7 +263,7 @@ if ($Me->validContact() && isset($Me->fresh) && $Me->fresh === true) {
 	|| (($Me->roles & Contact::ROLE_PC) && !$Me->collaborators)
 	|| $needti) {
 	$Me->fresh = "redirect";
-	$Me->go(hoturl("account", "redirect=1"));
+	$Me->go(hoturl("profile", "redirect=1"));
     } else
 	unset($Me->fresh);
 }
@@ -374,7 +378,7 @@ if ($Me->privChair) {
   <h4>Administration</h4>
   <ul>
     <li><a href='", hoturl("settings"), "'>Settings</a></li>
-    <li><a href='", hoturl("contacts", "t=all"), "'>Users</a></li>
+    <li><a href='", hoturl("users", "t=all"), "'>Users</a></li>
     <li><a href='", hoturl("autoassign"), "'>Assign reviews</a></li>
     <li><a href='", hoturl("mail"), "'>Send mail</a></li>
     <li><a href='", hoturl("log"), "'>Action log</a></li>
@@ -394,7 +398,7 @@ if ($Conf->setting('sub_reg') || $Conf->setting('sub_update') || $Conf->setting(
     || ($Me->amReviewer() && $Conf->setting('rev_open') && $Conf->setting('extrev_hard'))) {
     echo "    <li><a href='", hoturl("deadlines"), "'>Deadlines</a></li>\n";
 }
-echo "    <li><a href='", hoturl("contacts", "t=pc"), "'>Program committee</a></li>\n";
+echo "    <li><a href='", hoturl("users", "t=pc"), "'>Program committee</a></li>\n";
 if (isset($Opt['conferenceSite']) && $Opt['conferenceSite'] != $Opt['paperSite'])
     echo "    <li><a href='", $Opt['conferenceSite'], "'>Conference site</a></li>\n";
 if ($Conf->timeAuthorViewDecision()) {
@@ -540,7 +544,7 @@ if ($Me->amReviewer() && ($Me->privChair || $papersub)) {
     $myrow = null;
     while (($row = edb_row($result))) {
 	$row[3] = scoreCounts($row[3], $maxOverAllMerit);
-	if ($row[0] == $Me->contactId)
+	if ($row[0] == $Me->cid)
 	    $myrow = $row;
 	if ($row[4]) {
 	    $npc++;
@@ -566,7 +570,7 @@ if ($Me->amReviewer() && ($Me->privChair || $papersub)) {
 	    echo " with an average ", htmlspecialchars($rf->shortName["overAllMerit"]), " score of ", unparseScoreAverage($sumpcScore / $npcScore, $rf->reviewFields["overAllMerit"]);
 	echo ".";
 	if ($Me->isPC || $Me->privChair)
-	    echo "&nbsp; <small>(<a href='", hoturl("contacts", "t=pc&amp;score%5B%5D=0"), "'>Details</a>)</small>";
+	    echo "&nbsp; <small>(<a href='", hoturl("users", "t=pc&amp;score%5B%5D=0"), "'>Details</a>)</small>";
 	echo "<br />\n";
     }
     if ($Me->isPC && $Conf->setting("tag_rank")) {
@@ -644,9 +648,9 @@ if ($Me->amReviewer() && ($Me->privChair || $papersub)) {
     }
 
     if ($myrow && $Conf->setting("rev_ratings") != REV_RATINGS_NONE) {
-	$badratings = PaperSearch::unusableRatings($Me->privChair, $Me->contactId);
+	$badratings = PaperSearch::unusableRatings($Me->privChair, $Me->cid);
 	$qx = (count($badratings) ? " and not (PaperReview.reviewId in (" . join(",", $badratings) . "))" : "");
-	/*$result = $Conf->qe("select rating, count(distinct PaperReview.reviewId) from PaperReview join ReviewRating on (PaperReview.contactId=$Me->contactId and PaperReview.reviewId=ReviewRating.reviewId$qx) group by rating order by rating desc", "while checking ratings");
+	/*$result = $Conf->qe("select rating, count(distinct PaperReview.reviewId) from PaperReview join ReviewRating on (PaperReview.contactId=$Me->cid and PaperReview.reviewId=ReviewRating.reviewId$qx) group by rating order by rating desc", "while checking ratings");
 	if (edb_nrows($result)) {
 	    $a = array();
 	    while (($row = edb_row($result)))
@@ -661,7 +665,7 @@ if ($Me->amReviewer() && ($Me->privChair || $papersub)) {
 		echo ".</div>\n";
 	    }
 	}*/
-	$result = $Conf->qe("select rating, count(PaperReview.reviewId) from PaperReview join ReviewRating on (PaperReview.contactId=$Me->contactId and PaperReview.reviewId=ReviewRating.reviewId$qx) group by rating order by rating desc", "while checking ratings");
+	$result = $Conf->qe("select rating, count(PaperReview.reviewId) from PaperReview join ReviewRating on (PaperReview.contactId=$Me->cid and PaperReview.reviewId=ReviewRating.reviewId$qx) group by rating order by rating desc", "while checking ratings");
 	if (edb_nrows($result)) {
 	    $a = array();
 	    while (($row = edb_row($result)))
@@ -679,6 +683,7 @@ if ($Me->amReviewer() && ($Me->privChair || $papersub)) {
 
     if ($Me->isReviewer) {
 	$plist = new PaperList(new PaperSearch($Me, array("q" => "re:me")), array("list" => true));
+        $plist->showHeader = PaperList::HEADER_TITLES;
 	$ptext = $plist->text("reviewerHome", $Me);
 	if ($plist->count > 0)
 	    echo "<div class='fx'><div class='g'></div>", $ptext, "</div>";
@@ -736,14 +741,13 @@ if ($Me->isAuthor || $Conf->timeStartPaper() > 0 || $Me->privChair
     $plist = null;
     if ($Me->isAuthor) {
 	$plist = new PaperList(new PaperSearch($Me, array("t" => "a")), array("list" => true));
-	$plist->showHeader = 0;
 	$ptext = $plist->text("authorHome", $Me);
 	if ($plist->count > 0)
 	    echo "<div class='g'></div>\n", $ptext;
     }
 
     $deadlines = array();
-    if ($plist && $plist->needFinalize > 0) {
+    if ($plist && $plist->any->need_submit) {
 	if (!$Conf->timeFinalizePaper()) {
 	    // Be careful not to refer to a future deadline; perhaps an admin
 	    // just turned off submissions.
@@ -768,9 +772,9 @@ if ($Me->isAuthor || $Conf->timeStartPaper() > 0 || $Me->privChair
 	else
 	    $deadlines[] = "The site is not open for submissions at the moment.";
     }
-    if ($plist && $Conf->timeSubmitFinalPaper() && $plist->accepted > 0) {
+    if ($plist && $Conf->timeSubmitFinalPaper() && $plist->any->accepted) {
 	$time = $Conf->printableTimeSetting("final_soft");
-	if ($Conf->deadlinesAfter("final_soft") && $plist->needFinalCopy > 0)
+	if ($Conf->deadlinesAfter("final_soft") && $plist->any->need_final)
 	    $deadlines[] = "<strong class='overdue'>Final versions are overdue.</strong>  They were requested by $time.";
 	else if ($time != "N/A")
 	    $deadlines[] = "Submit final versions of your accepted papers by $time.";

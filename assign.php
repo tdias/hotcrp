@@ -6,7 +6,6 @@
 require_once("Code/header.inc");
 require_once("Code/papertable.inc");
 require_once("Code/reviewtable.inc");
-require_once("Code/tags.inc");
 $Me->goIfInvalid();
 if (isset($_REQUEST['forceShow']) && $_REQUEST['forceShow'] && $Me->privChair)
     $linkExtra = "&amp;forceShow=1";
@@ -96,7 +95,7 @@ function retractRequest($reviewId, $lock = true, $confirm = true) {
 	return $Conf->errorMsg("Weird! Retracted review is for a different paper.");
     else if ($row->reviewModified > 0)
 	return $Conf->errorMsg("You can’t retract that review request since the reviewer has already started their review.");
-    else if (!$Me->privChair && $Me->contactId != $row->requestedBy)
+    else if (!$Me->privChair && $Me->cid != $row->requestedBy)
 	return $Conf->errorMsg("You can’t retract that review request since you didn’t make the request in the first place.");
     if (defval($row, "reviewToken", 0) != 0)
 	$Conf->settings["rev_tokens"] = -1;
@@ -106,14 +105,13 @@ function retractRequest($reviewId, $lock = true, $confirm = true) {
 
     // send confirmation email, if the review site is open
     if ($Conf->timeReviewOpen()) {
-	require_once("Code/mailtemplate.inc");
-	$Requester = Contact::makeMinicontact($row);
-	Mailer::send("@retractrequest", loadReviewInfo($prow, $Requester, true), $Requester, $Me, array("cc" => contactEmailTo($Me)));
+	$Requester = Contact::make($row);
+	Mailer::send("@retractrequest", loadReviewInfo($prow, $Requester, true), $Requester, $Me, array("cc" => Text::user_email_to($Me)));
     }
 
     // confirmation message
     if ($confirm)
-	$Conf->confirmMsg("Removed request that " . contactHtml($row) . " review paper #$prow->paperId.");
+	$Conf->confirmMsg("Removed request that " . Text::user_html($row) . " review paper #$prow->paperId.");
 }
 
 if (isset($_REQUEST["retract"])
@@ -207,7 +205,7 @@ function requestReviewChecks($themHtml, $reqId) {
     if (!$result)
 	return false;
     else if (($row = edb_orow($result)))
-	return $Conf->errorMsg(contactHtml($row) . " has already requested a review from $themHtml.");
+	return $Conf->errorMsg(Text::user_html($row) . " has already requested a review from $themHtml.");
 
     // check for outstanding refusal to review
     $result = $Conf->qe("select paperId, '<conflict>' from PaperConflict where paperId=$prow->paperId and contactId=$reqId union select paperId, reason from PaperReviewRefused where paperId=$prow->paperId and contactId=$reqId", $while);
@@ -247,7 +245,7 @@ function requestReview($email) {
     // NB caller unlocks tables on error
 
     // check for outstanding review request
-    if (!($result = requestReviewChecks(contactHtml($Them), $reqId)))
+    if (!($result = requestReviewChecks(Text::user_html($Them), $reqId)))
 	return $result;
 
     // at this point, we think we've succeeded.
@@ -274,7 +272,6 @@ function requestReview($email) {
     $Conf->qe("update PaperReview set reviewNeedsSubmit=-1 where paperId=$prow->paperId and reviewType=" . REVIEW_SECONDARY . " and contactId=$Requester->contactId and reviewSubmitted is null and reviewNeedsSubmit=1", $while);
 
     // send confirmation email
-    require_once("Code/mailtemplate.inc");
     Mailer::send("@requestreview", loadReviewInfo($prow, $Them, true), $Them, $Requester, array("reason" => $reason));
 
     // confirmation message
@@ -303,11 +300,10 @@ function proposeReview($email) {
 
     // check for outstanding review request
     $result = $Conf->qe("insert into ReviewRequest (paperId, name, email, requestedBy, reason)
-	values ($prow->paperId, '" . sqlq($name) . "', '" . sqlq($email) . "', $Me->contactId, '" . sqlq(trim($_REQUEST["reason"])) . "') on duplicate key update paperId=paperId", $while);
+	values ($prow->paperId, '" . sqlq($name) . "', '" . sqlq($email) . "', $Me->cid, '" . sqlq(trim($_REQUEST["reason"])) . "') on duplicate key update paperId=paperId", $while);
 
     // send confirmation email
-    require_once("Code/mailtemplate.inc");
-    Mailer::sendAdmin("@proposereview", $prow, $Me, array("permissionContact" => $Me, "cc" => contactEmailTo($Me), "contact3" => (object) array("fullName" => $name, "email" => $email), "reason" => $reason));
+    Mailer::sendAdmin("@proposereview", $prow, $Me, array("permissionContact" => $Me, "cc" => Text::user_email_to($Me), "contact3" => (object) array("fullName" => $name, "email" => $email), "reason" => $reason));
 
     // confirmation message
     $Conf->confirmMsg("Proposed that " . htmlspecialchars("$name <$email>") . " review paper #$prow->paperId.  The chair must approve this proposal for it to take effect.");
@@ -359,7 +355,7 @@ function createAnonymousReview() {
     } else {
 	$result = $Conf->qe("insert into ContactInfo
 		(firstName, lastName, email, affiliation, password, creationTime)
-		values ('Jane Q.', 'Public', '" . sqlq($contactemail) . "', 'Unaffiliated', '" . sqlq(Contact::generatePassword(20)) . "', $now)", $while);
+		values ('Jane Q.', 'Public', '" . sqlq($contactemail) . "', 'Unaffiliated', '" . sqlq(Contact::random_password(20)) . "', $now)", $while);
 	if (!$result)
 	    return $result;
 	$reqId = $Conf->lastInsertId($while);
@@ -373,7 +369,7 @@ function createAnonymousReview() {
 	$qb .= ", $now, $now";	/* no way to notify, so count as notified already */
     }
     $Conf->qe("insert into PaperReview (paperId, contactId, reviewType, requestedBy, reviewToken$qa)
-		values ($prow->paperId, $reqId, " . REVIEW_EXTERNAL . ", $Me->contactId, $token$qb)", $while);
+		values ($prow->paperId, $reqId, " . REVIEW_EXTERNAL . ", $Me->cid, $token$qb)", $while);
     $Conf->confirmMsg("Created a new anonymous review for paper #$prow->paperId.  The review token is " . encodeToken((int) $token) . ".");
 
     $Conf->qx("unlock tables");
@@ -430,7 +426,6 @@ if (isset($_REQUEST["deny"]) && $Me->privChair && check_post()
 	    $Conf->qe("insert into PaperReviewRefused (paperId, contactId, requestedBy, reason) values ($prow->paperId, $reqId, $Requester->contactId, 'request denied by chair')", $while);
 
 	// send anticonfirmation email
-	require_once("Code/mailtemplate.inc");
 	Mailer::send("@denyreviewrequest", loadReviewInfo($prow, $Requester, true), $Requester, (object) array("fullName" => trim(defval($_REQUEST, "name", "")), "email" => $email));
 
 	$Conf->confirmMsg("Proposed reviewer denied.");
@@ -457,7 +452,6 @@ if (isset($_REQUEST["addpc"]) && $Me->privChair && check_post()) {
 
 // paper actions
 if ((isset($_REQUEST["settags"]) || isset($_REQUEST["settingtags"])) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setTags($prow);
     loadRows();
 }
@@ -528,7 +522,7 @@ if ($Me->actChair($prow)) {
     echo ".</div><div class='papv' style='padding-left:0'>";
 
     echo "<table class='pctb'><tr><td class='pctbcolleft'><table>\n";
-    $colorizer = new TagColorizer($Me);
+    $colorizer = new Tagger;
 
     $n = intval((count($pcx) + 2) / 3);
     for ($i = 0; $i < count($pcx); $i++) {
@@ -537,12 +531,12 @@ if ($Me->actChair($prow)) {
 	$p = $pcx[$i];
 
 	// first, name and assignment
-	$color = $colorizer->match_all($p->contactTags);
+	$color = $colorizer->color_classes($p->contactTags);
 	$color = ($color ? " class='${color}'" : "");
 	echo "      <tr$color>";
 	if ($p->conflictType >= CONFLICT_AUTHOR) {
 	    echo "<td id='ass$p->contactId' class='pctbname-2 pctbl'>",
-		str_replace(' ', "&nbsp;", contactNameHtml($p)),
+		str_replace(' ', "&nbsp;", Text::name_html($p)),
 		"</td><td class='pctbass'>",
 		"<img class='ass-2' alt='(Author)' title='Author' src='", hoturl_image("images/_.gif"), "' />",
 		"</td>";
@@ -555,7 +549,7 @@ if ($Me->actChair($prow)) {
 		$cid = ($p->refused ? -3 : 0);
 	    $title = ($cid == -3 ? "' title='Review previously declined" : "");
 	    echo "<td id='ass$p->contactId' class='pctbname$cid pctbl'>";
-	    echo str_replace(' ', "&nbsp;", contactNameHtml($p));
+	    echo str_replace(' ', "&nbsp;", Text::name_html($p));
 	    if ($p->conflictType == 0
 		&& ($p->preference || $p->topicInterestScore))
 		echo preferenceSpan($p->preference, $p->topicInterestScore);
@@ -628,7 +622,7 @@ if ($Conf->setting("extrev_chairreq") && $Me->privChair) {
 		"<a class='button_small' href=\"",
 		hoturl_post("assign", "p=$prow->paperId&amp;name=" . urlencode($row->name) . "&amp;email=" . urlencode($row->email) . "&amp;deny=1"),
 		"\">Deny</a></td></tr>\n",
-		"<tr><td colspan='3'><small>Requester: ", contactHtml($row->reqFirstName, $row->reqLastName), "</small></td></tr>\n";
+		"<tr><td colspan='3'><small>Requester: ", Text::user_html($row->reqFirstName, $row->reqLastName), "</small></td></tr>\n";
 	}
 	echo "</table></div>\n\n",
 	    "</td><td></td></tr>\n";

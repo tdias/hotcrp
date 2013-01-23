@@ -1,5 +1,4 @@
-export VERSION=2.52
-perl -pi -e 's/HotCRP: Conference Review Package 2\.\d+/HotCRP: Conference Review Package '$VERSION'/' README
+export VERSION=2.55
 
 # check that schema.sql and updateschema.inc agree on schema version
 updatenum=`grep 'settings.*allowPaperOption.*=' Code/updateschema.inc | tail -n 1 | sed 's/.*= *//;s/;.*//'`
@@ -45,7 +44,7 @@ mkdistdir <<EOF
 .htaccess
 LICENSE
 NEWS
-README
+README.md
 account.php
 assign.php
 autoassign.php
@@ -65,6 +64,7 @@ manualassign.php
 mergeaccounts.php
 offline.php
 paper.php
+profile.php
 review.php
 reviewprefs.php
 scorehelp.php
@@ -74,6 +74,7 @@ sessionvar.php
 settings.php
 style.css
 supersleight.js
+users.php
 
 Code/.htaccess
 Code/backupdb.sh
@@ -89,16 +90,21 @@ Code/contactlist.inc
 Code/countries.inc
 Code/createdb.sh
 Code/distoptions.inc
+Code/documenthelper.php
 Code/header.inc
 Code/helpers.inc
+Code/hotcrpdocument.php
 Code/ldaplogin.inc
+Code/mailer.php
 Code/mailtemplate.inc
-Code/mimetypes.inc
-Code/paperactions.inc
+Code/mimetype.php
+Code/paperactions.php
+Code/papercolumn.php
 Code/paperexpr.inc
 Code/paperlist.inc
 Code/paperoption.inc
 Code/papertable.inc
+Code/qobject.php
 Code/rank.inc
 Code/restoredb.sh
 Code/review.inc
@@ -108,7 +114,9 @@ Code/reviewtemplate.inc
 Code/sample.pdf
 Code/schema.sql
 Code/search.inc
-Code/tags.inc
+Code/tagger.php
+Code/text.php
+Code/unicodehelper.php
 Code/updateschema.inc
 Code/updateschema.sql
 
@@ -149,6 +157,10 @@ images/extagsnone.png
 images/extagssearch.png
 images/extagsset.png
 images/extagvotehover.png
+images/generic.png
+images/genericf.png
+images/generic24.png
+images/genericf24.png
 images/headgrad.png
 images/homegrad.png
 images/info45.png

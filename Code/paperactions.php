@@ -1,6 +1,6 @@
 <?php
-// paperactions.inc -- HotCRP helpers for common paper actions
-// HotCRP is Copyright (c) 2008-2011 Eddie Kohler and Regents of the UC
+// paperactions.php -- HotCRP helpers for common paper actions
+// HotCRP is Copyright (c) 2008-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
 class PaperActions {
@@ -24,7 +24,7 @@ class PaperActions {
 		$Error["decision"] = true;
 	    }
 	} else
-	    $Conf->errorMsg("You can&rsquo;t set the decision for paper #$prow->paperId." . ($Me->privChair ? "  (<a href=\"" . selfHref(array("forceShow" => 1)) . "\">Override conflict</a>)" : ""));
+	    $Conf->errorMsg("You can’t set the decision for paper #$prow->paperId." . ($Me->privChair ? "  (<a href=\"" . selfHref(array("forceShow" => 1)) . "\">Override conflict</a>)" : ""));
 	if ($ajax)
 	    $Conf->ajaxExit(array("ok" => $OK && !defval($Error, "decision")));
     }
@@ -45,7 +45,7 @@ class PaperActions {
 		$Error["revpref"] = true;
 	} else {
 	    $v = null;
-	    $Conf->errorMsg($ajax ? "Preferences must be small positive or negative integers." : "Preferences must be small integers.  0 means don&rsquo;t care; positive numbers mean you want to review a paper, negative numbers mean you don&rsquo;t.  The greater the absolute value, the stronger your feelings.");
+	    $Conf->errorMsg($ajax ? "Preferences must be small positive or negative integers." : "Preferences must be small integers.  0 means don’t care; positive numbers mean you want to review a paper, negative numbers mean you don’t.  The greater the absolute value, the stronger your feelings.");
 	    $Error["revpref"] = true;
 	}
 	if ($ajax)
@@ -58,7 +58,7 @@ class PaperActions {
 	$ajax = defval($_REQUEST, "ajax", false);
 	$tag = $Conf->settingText("tag_rank", "");
 	if (!$Me->canSetRank($prow)) {
-	    $Conf->errorMsg("You don&rsquo;t have permission to rank this paper.");
+	    $Conf->errorMsg("You don’t have permission to rank this paper.");
 	    $Error["rank"] = true;
 	} else if (isset($_REQUEST["rank"])) {
 	    $rank = trim($_REQUEST["rank"]);
@@ -68,7 +68,7 @@ class PaperActions {
 		$rank = cvtint($rank, false);
 	    $while = "while saving rank";
 	    if ($rank === false) {
-		$Conf->errorMsg("Rank must be an integer or &ldquo;none&rdquo;.");
+		$Conf->errorMsg("Rank must be an integer or “none”.");
 		$Error["rank"] = true;
 	    } else {
 		$mytag = $Me->contactId . "~" . $tag;
@@ -94,7 +94,7 @@ class PaperActions {
 	$ajax = defval($_REQUEST, "ajax", false);
 	$tag = $Conf->settingText("tag_rank", "");
 	if (!$Me->canSetRank($prow)) {
-	    $Conf->errorMsg("You don&rsquo;t have permission to rank this paper.");
+	    $Conf->errorMsg("You don’t have permission to rank this paper.");
 	    $Error["rank"] = true;
 	} else {
 	    $result = $Conf->qe("select Paper.paperId, title, tagIndex from Paper join PaperTag on (PaperTag.paperId=Paper.paperId and PaperTag.tag='" . sqlq($Me->contactId . "~" . $tag) . "') order by tagIndex, Paper.paperId", "while loading paper ranks");
@@ -121,7 +121,7 @@ class PaperActions {
         global $Conf, $Me, $Error, $OK;
 	$ajax = defval($_REQUEST, "ajax", false);
 	if (!$Me->actChair($prow)) {
-	    $Conf->errorMsg("You don&rsquo;t have permission to set the $type.");
+	    $Conf->errorMsg("You don’t have permission to set the $type.");
 	    $Error[$type] = true;
 	} else if (isset($_REQUEST[$type])
 		   && ($_REQUEST[$type] === "0"
@@ -140,7 +140,7 @@ class PaperActions {
 	    if ($OK && $ajax)
 		$Conf->confirmMsg("Saved");
 	} else {
-	    $Conf->errorMsg("Bad $type setting &ldquo;" . htmlspecialchars(defval($_REQUEST, $type, "")) . "&rdquo;.");
+	    $Conf->errorMsg("Bad $type setting “" . htmlspecialchars(defval($_REQUEST, $type, "")) . "”.");
 	    $Error[$type] = true;
 	}
 	if ($ajax && $ajaxexit)
@@ -153,15 +153,15 @@ class PaperActions {
 	    return;
 	$ajax = defval($_REQUEST, "ajax", false);
         if ($Me->canSetTags($prow, $forceShow)) {
-	    require_once("Code/tags.inc");
+            $tagger = new Tagger;
 	    if (isset($_REQUEST["tags"]))
-		setTags($prow->paperId, $_REQUEST["tags"], "p", $Me->privChair);
+		$tagger->save($prow->paperId, $_REQUEST["tags"], "p");
 	    if (isset($_REQUEST["addtags"]))
-		setTags($prow->paperId, $_REQUEST["addtags"], "a", $Me->privChair);
+		$tagger->save($prow->paperId, $_REQUEST["addtags"], "a");
 	    if (isset($_REQUEST["deltags"]))
-		setTags($prow->paperId, $_REQUEST["deltags"], "d", $Me->privChair);
+		$tagger->save($prow->paperId, $_REQUEST["deltags"], "d");
 	} else
-	    $Error["tags"] = "You can&rsquo;t set tags for paper #$prow->paperId." . ($Me->privChair ? "  (<a href=\"" . selfHref(array("forceShow" => 1)) . "\">Override conflict</a>)" : "");
+	    $Error["tags"] = "You can’t set tags for paper #$prow->paperId." . ($Me->privChair ? "  (<a href=\"" . selfHref(array("forceShow" => 1)) . "\">Override conflict</a>)" : "");
 	if ($ajax)
 	    $Conf->ajaxExit(array("ok" => $OK && !defval($Error, "tags")));
 	if (isset($Error) && isset($Error["tags"])) {
@@ -177,9 +177,8 @@ class PaperActions {
 	$ajax = defval($_REQUEST, "ajax", false);
 	$r = "";
 	if ($Me->canViewTags($prow, $forceShow)) {
-	    require_once("Code/tags.inc");
-	    $vt = voteTags();
-	    if (count($vt) > 0) {
+            $tagger = new Tagger();
+	    if (($vt = $tagger->vote_tags())) {
 		$q = "";
 		$mytagprefix = $Me->contactId . "~";
 		foreach ($vt as $tag => $v)
@@ -195,7 +194,7 @@ class PaperActions {
 		    $r = "Unallocated <a href='" . hoturl("help", "t=votetags") . "'>votes</a>: $r";
 	    }
 	} else {
-	    $Conf->errorMsg("You can&rsquo;t view tags for paper #$prow->paperId.");
+	    $Conf->errorMsg("You can’t view tags for paper #$prow->paperId.");
 	    $Error["tags"] = true;
 	}
 	if ($return)
@@ -204,6 +203,34 @@ class PaperActions {
 	    $Conf->confirmMsg($r);
 	if ($ajax)
 	    $Conf->ajaxExit(array("ok" => $OK && !defval($Error, "tags")), true);
+    }
+
+    static function all_tags($papersel = null) {
+	global $Conf, $Me, $Error, $OK, $forceShow;
+        if (!$Me->isPC)
+            $Conf->ajaxExit(array("ok" => false));
+	$ajax = defval($_REQUEST, "ajax", false);
+        $q = "select distinct tag from PaperTag t";
+        $where = array();
+        if (!$Me->privChair) {
+            $q .= " left join PaperConflict pc on (pc.paperId=t.paperId and pc.contactId=$Me->contactId)";
+            $where[] = "coalesce(pc.conflictType,0)<=0";
+        }
+        if ($papersel)
+            $where[] = "t.paperId in (" . join(",", mkarray($papersel)) . ")";
+        if (count($where))
+            $q .= " where " . join(" and ", $where);
+        $tags = array();
+        $result = $Conf->qe($q, "while reading tags");
+        while (($row = edb_row($result))) {
+            $twiddle = strpos($row[0], "~");
+            if ($twiddle === false
+                || ($twiddle == 0 && $row[0][1] == "~"))
+                $tags[] = $row[0];
+            else if ($twiddle > 0 && substr($row[0], 0, $twiddle) == $Me->contactId)
+                $tags[] = substr($row[0], $twiddle);
+        }
+        $Conf->ajaxExit(array("ok" => true, "tags" => $tags));
     }
 
 }

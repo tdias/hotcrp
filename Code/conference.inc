@@ -121,7 +121,7 @@ class Conference {
 		if ($r != "")
 		    $this->settings["rounds"][] = $r;
 	}
-	if ($this->settings["allowPaperOption"] < 46) {
+	if ($this->settings["allowPaperOption"] < 48) {
 	    require_once("updateschema.inc");
 	    $oldOK = $OK;
 	    updateSchema($this);
@@ -247,9 +247,9 @@ class Conference {
 	}
 	$ok = true;
 	if (count($inserts))
-	    $ok = $ok && ($this->qe("insert into Settings (name, value) values " . join($inserts, ",") . " on duplicate key update value=values(value)") !== false);
+	    $ok = $ok && ($this->qe("insert into Settings (name, value) values " . join(",", $inserts) . " on duplicate key update value=values(value)") !== false);
 	if (count($removes))
-	    $ok = $ok && ($this->qe("delete from Settings where name in (" . join($removes, ",") . ")") !== false);
+	    $ok = $ok && ($this->qe("delete from Settings where name in (" . join(",", $removes) . ")") !== false);
 	return $ok;
     }
 
@@ -265,7 +265,7 @@ class Conference {
 	return $result;
     }
 
-    function dbErrorText($getdb = true, $while = "", $suggestRetry = true) {
+    function db_error_html($getdb = true, $while = "", $suggestRetry = true) {
 	global $Opt;
 	$text = "<p>Database error";
 	if ($while)
@@ -281,7 +281,7 @@ class Conference {
 	global $OK;
 	$result = mysql_query($query, $this->dblink);
 	if ($result === false) {
-	    $this->errorMsg($this->dbErrorText(true, $while . " (" . htmlspecialchars($query) . ")", $suggestRetry));
+	    $this->errorMsg($this->db_error_html(true, $while . " (" . htmlspecialchars($query) . ")", $suggestRetry));
 	    $OK = false;
 	}
 	return $result;
@@ -291,7 +291,7 @@ class Conference {
 	global $OK;
 	$result = mysql_insert_id($this->dblink);
 	if (!$result && $while !== false) {
-	    $this->errorMsg($this->dbErrorText($result === false, $while, $suggestRetry));
+	    $this->errorMsg($this->db_error_html($result === false, $while, $suggestRetry));
 	    $OK = false;
 	}
 	return $result;
@@ -335,7 +335,7 @@ class Conference {
 	    } else if (!isset($_REQUEST["${p}name"]))
 		/* nada */;
 	    else {
-		$matches = splitName($_REQUEST["${p}name"]);
+		$matches = Text::split_name($_REQUEST["${p}name"]);
 		$newguy->firstName = $matches[0];
 		$newguy->lastName = $matches[1];
 	    }
@@ -345,8 +345,6 @@ class Conference {
 		$newguy->affiliation = $_REQUEST["${p}affiliation"];
 	    if (isset($_REQUEST["${p}voicePhoneNumber"]))
 		$newguy->voicePhoneNumber = $_REQUEST["${p}voicePhoneNumber"];
-	    if (isset($_REQUEST["${p}faxPhoneNumber"]))
-		$newguy->faxPhoneNumber = $_REQUEST["${p}faxPhoneNumber"];
 
 	    // actually update database
 	    $result = $newguy->updateDB("while creating account for " . htmlspecialchars($email));
@@ -357,7 +355,7 @@ class Conference {
 	    if ($Me->privChair)
 		$this->infoMsg("Created account for " . htmlspecialchars($email) . ".");
 	    if ($sendInfo)
-		$newguy->sendAccountInfo($this, true, false);
+		$newguy->sendAccountInfo(true, false);
 	    $this->log("$Me->email created account", $newguy);
 	} else
 	    $this->log("$Me->email account creation failure", $newguy);
@@ -605,21 +603,6 @@ class Conference {
     function subBlindUntilReview() {
 	return $this->settings["sub_blind"] == BLIND_UNTILREVIEW;
     }
-    function paperBlind($prow, $contact) {
-	if ($prow && $prow->outcome > 0
-	    && $contact && ($contact->isPC || $prow->myReviewType > 0)
-	    && $this->timeReviewerViewAcceptedAuthors())
-	    return false;
-	$bs = $this->settings["sub_blind"];
-	return $bs == BLIND_ALWAYS
-	    || ($bs == BLIND_OPTIONAL
-		&& (!$prow
-		    || (isset($prow->paperBlind) ? $prow->paperBlind : $prow->blind)))
-	    || ($bs == BLIND_UNTILREVIEW
-		&& (!$prow
-		    || (!defval($prow, "myReviewSubmitted")
-			&& (!$contact || !$contact->privChair))));
-    }
 
     function blindReview() {
 	return $this->settings['rev_blind'];
@@ -675,103 +658,20 @@ class Conference {
     //
 
     function storeDocument($uploadId, $paperId, $documentType) {
-	global $Opt, $mimetypeMap, $mimetypeSynonyms, $mimetypeNames;
-	require_once("mimetypes.inc");
-	$while = "while storing paper in database";
-
-	if (!$uploadId
-	    || !fileUploaded($_FILES[$uploadId], $this)
-	    || !isset($_FILES[$uploadId]["tmp_name"]))
-	    return $this->errorMsg("There was an upload error with your file.  Please try again.");
-
-	$filename = $_FILES[$uploadId]["tmp_name"];
-	if (($contents = file_get_contents($filename)) === false
-	    || strlen($contents) == 0)
-	    return $this->errorMsg("Your uploaded file appears to be empty.  Please try again.");
-
-	// Check if paper one of the allowed mimetypes.
-	// We prefer to look at data since MacOS browsers get this wrong.
-	if (strncmp("%PDF-", $contents, 5) == 0)
-	    $mimetype = $mimetypeMap["pdf"];
-	else if (strncmp("%!PS-", $contents, 5) == 0)
-	    $mimetype = $mimetypeMap["ps"];
-	else if (substr($contents, 512, 4) == "\x00\x6E\x1E\xF0")
-	    $mimetype = $mimetypeMap["ppt"];
-	else
-	    $mimetype = defval($_FILES[$uploadId], "type", "application/octet-stream");
-	if (isset($mimetypeSynonyms[$mimetype]))
-	    $mimetype = $mimetypeSynonyms[$mimetype];
-
-	list($mimetypes, $accepts) = documentMimetypes($documentType, null, $mimetype);
-	if (array_search($mimetype, $mimetypes) === false) {
-	    $x = array();
-	    foreach ($mimetypes as $mt)
-		if (isset($mimetypeNames[$mt]))
-		    $x[] = $mimetypeNames[$mt];
-		else {
-		    $x = null;
-		    break;
-		}
-	    $message = "Your uploaded file does not appear to ";
-	    if ($x)
-		$message .= "be a " . commajoin($x, "or") . ".  ";
-	    else if (count($mimetypes))
-		$message .= "have a valid type (" . commajoin($mimetypes, "or") . ").  ";
-	    else
-		$message .= "be valid (internal error: there are no valid formats).  ";
-	    $message .= "(Your file has MIME type &ldquo;" . htmlentities($mimetype) . "&rdquo; and starts with &ldquo;" . htmlspecialchars(substr($contents, 0, 5)) . "&rdquo;.)<br />Please convert your file to a supported type and try again.";
-	    return $this->errorMsg($message);
-	}
-
-	// calculate metadata
-	$contents_sha1 = (!defval($Opt, "disableSHA1") ? sha1($contents, true) : "");
-	$user_filename = null;
-	if (isset($_FILES[$uploadId]["name"])
-	    && strlen($_FILES[$uploadId]["name"]) <= 255
-	    && is_valid_utf8($_FILES[$uploadId]["name"]))
-	    $user_filename = $_FILES[$uploadId]["name"];
-
-	// store the paper
-	$extra = "";
-	if ($this->sversion >= 28)
-	    $extra .= ", sha1='" . sqlq($contents_sha1) . "', documentType=$documentType";
-	if ($this->sversion >= 45 && $user_filename)
-	    $extra .= ", filename='" . sqlq($user_filename) . "'";
-	$timestamp = time();
-	if (!$this->qe("insert into PaperStorage set paperId=$paperId, timestamp=$timestamp, mimetype='" . sqlq($mimetype) . "', paper='" . sqlq(substr($contents, 0, 400000)) . "'" . $extra, $while))
-	    return false;
-
-	$paperStorageId = $this->lastInsertId($while);
-	if (!$paperStorageId)
-	    return $this->errorMsg("Database error: last_insert_id unsuccessful!");
-
-	for ($pos = 400000; $pos < strlen($contents); $pos += 400000)
-	    if (!$this->qe("update PaperStorage set paper=concat(paper,'" . sqlq(substr($contents, $pos, 400000)) . "') where paperStorageId=$paperStorageId", $while))
-		break;
-
-	// check that paper storage succeeded
-	if (!($result = $this->qe("select length(paper) from PaperStorage where paperStorageId=$paperStorageId", $while))
-	    || !($row = edb_row($result))
-	    || $row[0] != strlen($contents))
-	    return $this->errorMsg("Failed to store your paper.  Usually, this is because the file you tried to upload was too big for our system.  Please try again.");
-
-	// return data about the paper
-	return (object) array("paperStorageId" => $paperStorageId,
-			      "contents" => $contents,
-			      "size" => strlen($contents),
-			      "mimetype" => $mimetype,
-			      "timestamp" => $timestamp,
-			      "sha1" => $contents_sha1,
-			      "filename" => $user_filename);
+        return DocumentHelper::upload(new HotCRPDocument($documentType),
+                                      $uploadId,
+                                      (object) array("paperId" => $paperId));
     }
 
     function storePaper($uploadId, $prow, $final) {
 	global $ConfSiteSuffix, $Opt;
 	$paperId = (is_numeric($prow) ? $prow : $prow->paperId);
 
-	$doc = $this->storeDocument($uploadId, $paperId, $final ? DOCUMENT_FINAL : DOCUMENT_SUBMISSION);
-	if (!$doc)
-	    return false;
+	$doc = $this->storeDocument($uploadId, $paperId, $final ? DTYPE_FINAL : DTYPE_SUBMISSION);
+        if (isset($doc->error_html)) {
+            $this->errorMsg($doc->error_html);
+            return false;
+        }
 
 	$while = "while storing paper in database";
 
@@ -805,15 +705,15 @@ class Conference {
 	    $aus = $this->paperContactAuthors($paperId);
 	    $autxt = "";
 	    foreach ($aus as $au)
-		$autxt .= contactText($au) . "\n";
+		$autxt .= Text::user_text($au) . "\n";
 	    if ($autxt)
 		$message .= wordWrapIndent($autxt, "Contact authors: ");
 	    $message .= "\n";
 
 	    $mime = new Mail_mime("\n");
 	    $mime->setTXTBody($message);
-	    $mime->addAttachment($doc->contents, $doc->mimetype,
-				 $this->downloadPaperName($paperId, $doc->mimetype, 0), false);
+	    $mime->addAttachment($doc->content, $doc->mimetype,
+                                 HotCRPDocument::filename($doc), false);
 
 	    $body = $mime->get();
 	    $hdrs = $mime->headers(array("From" => $Opt["emailFrom"],
@@ -832,11 +732,11 @@ class Conference {
     function downloadPaperName($paperId, $mimetype, $documentType) {
 	global $Opt;
 	$title = $Opt["downloadPrefix"];
-	$dtn = documentTypeName($documentType);
+	$dtn = HotCRPDocument::unparse_dtype($documentType);
 	$title .= ($dtn ? $dtn : "xxx");
 	if (ctype_digit($title[strlen($title) - 1]))
 	    $title .= "-";
-	return $title . $paperId . $this->getFileExtension($mimetype);
+	return $title . $paperId . Mimetype::extension($mimetype);
     }
 
     function paperStorageResult($prow, $documentType, $skip_content = false) {
@@ -849,17 +749,15 @@ class Conference {
 	    $paperMatch = " in (" . join(",", $prow) . ")";
 	else
 	    $paperMatch = "=" . $prow->paperId;
-	$q = "select p.paperId, s.mimetype, ";
-	if (isset($Opt["filestore"]) && $Opt["filestore"] && $this->sversion >= 28)
-	    $q .= "s.sha1, ";
-	else if (!$skip_content)
+	$q = "select p.paperId, s.mimetype, s.sha1, ";
+	if (!defval($Opt, "filestore") && !$skip_content)
 	    $q .= "s.paper as content, ";
 	if ($this->sversion >= 45)
 	    $q .= "s.filename, ";
-	$q .= "s.paperStorageId from Paper p";
-	if ($documentType == DOCUMENT_SUBMISSION)
+	$q .= "$documentType documentType, s.paperStorageId from Paper p";
+	if ($documentType == DTYPE_SUBMISSION)
 	    $sjoin = "p.paperStorageId";
-	else if ($documentType == DOCUMENT_FINAL)
+	else if ($documentType == DTYPE_FINAL)
 	    $sjoin = "p.finalPaperStorageId";
 	else {
 	    $q .= " left join PaperOption o on (o.paperId=p.paperId and o.optionId=$documentType)";
@@ -868,233 +766,55 @@ class Conference {
 	return $this->q($q . " left join PaperStorage s on (s.paperStorageId=$sjoin) where p.paperId$paperMatch");
     }
 
-    function _paper_storage_content($row) {
-	if (isset($row->content))
-	    return strlen($row->content) > 0;
-	$xresult = $this->q("select paper, compression from PaperStorage where paperStorageId=$row->paperStorageId");
-	if (!$xresult || !($xrow = edb_row($xresult))) {
-	    $row->content = "";
-	    return false;
+    function paperStorageRow($result, $dtype = DTYPE_SUBMISSION) {
+	if (!($doc = edb_orow($result)))
+	    return $doc;
+        // type doesn't matter
+        $docclass = new HotCRPDocument($dtype);
+        // in modern versions sha1 is set at storage time; before it wasn't
+	if ($doc->paperStorageId && $doc->sha1 == "") {
+	    if (!$docclass->load_database_content($doc))
+		return false;
+	    $doc->sha1 = sha1($doc->content, true);
+	    $this->q("update PaperStorage set sha1='" . sqlq($doc->sha1) . "' where paperStorageId=" . $row->paperStorageId);
 	}
-	if ($xrow[1] == 1)
-	    $row->content = gzinflate($xrow[0]);
-	else
-	    $row->content = $xrow[0];
-	return true;
+        DocumentHelper::load($docclass, $doc);
+	return $doc;
     }
 
-    function _paper_storage_filestore($row) {
-	global $Opt, $ConfSitePATH, $ConfMulticonf;
+    function __downloadPaper($paperId, $attachment, $documentType) {
+	global $Opt, $Me, $zlib_output_compression;
 
-	if ($row->sha1 == "") {
-	    if (!$this->_paper_storage_content($row))
-		return false;
-	    $row->sha1 = sha1($row->content, true);
-	    $this->q("update PaperStorage set sha1='" . sqlq($row->sha1) . "' where paperStorageId=$row->paperStorageId");
-	}
-
-	$filestore = $Opt["filestore"];
-	if ($filestore === true)
-	    $filestore = "$ConfSitePATH/filestore";
-	if (isset($Opt["multiconference"]) && $Opt["multiconference"])
-	    $filestore = str_replace("*", $ConfMulticonf, $filestore);
-	if (!is_dir($filestore) && !@mkdir($filestore, 0700)) {
-	    @rmdir($filestore);
-	    return false;
-	}
-
-	// Ensure an .htaccess file exists, even if someone else made the
-	// filestore directory
-	$htaccess = "$filestore/.htaccess";
-	if (!is_file($htaccess)
-	    && file_put_contents($htaccess, "Order deny,allow\nDeny from all\nphp_flag magic_quotes_gpc off\n") === false) {
-	    @unlink("$filestore/.htaccess");
-	    return false;
-	}
-
-	$sha1 = bin2hex($row->sha1);
-	if (strlen($sha1) != 40)
-	    return false;
-	$superdir = $filestore;
-	$use_subdir = defval($Opt, "filestoreSubdir", false);
-	if ($use_subdir && ($use_subdir === true || $use_subdir > 0))
-	    $superdir .= "/" . substr($sha1, 0,
-				      $use_subdir === true ? 2 : $use_subdir);
-	$filename = $superdir . "/" . $sha1 . $this->getFileExtension($row->mimetype);
-
-	if (!is_readable($filename)
-	    || (isset($_REQUEST["nocache"]) && cvtint($_REQUEST["nocache"], 0))) {
-	    if (!is_dir($superdir) && !@mkdir($superdir, 0770))
-		return false;
-	    if (!$this->_paper_storage_content($row))
-		return false;
-	    if (file_put_contents($filename, $row->content) != strlen($row->content)) {
-		@unlink($filename);
-		return false;
-	    }
-	    @chmod($filename, 0660 & ~umask());
-	}
-
-	$row->filestore = $filename;
-	return true;
-    }
-
-    function paperStorageRow($result) {
-	if (!($row = edb_orow($result)))
-	    return $row;
-	if (isset($row->sha1))
-	    $this->_paper_storage_filestore($row);
-	if (!isset($row->filestore) && !isset($row->content))
-	    $this->_paper_storage_content($row);
-	return $row;
-    }
-
-    function __downloadPaper($paperId, $saveit, $documentType) {
-	global $Me, $zlib_output_compression;
-
-	// Database query
-	$result = $this->paperStorageResult($paperId, $documentType);
-	if (!$result) {
+        $result = $this->paperStorageResult($paperId, $documentType);
+        if (!$result) {
 	    $this->log("Error downloading for review: " . mysql_error($this->dblink), $Me, $paperId);
-	    return new PEAR_Error("Database error while downloading paper.");
+	    return set_error_html("Database error while downloading paper.");
 	} else if (edb_nrows($result) == 0)
-	    return new PEAR_Error("No such document.");
+	    return set_error_html("No such document.");
 
 	// Check data
-	$row = $this->paperStorageRow($result);
-	if (!$row || $row->paperStorageId <= 1)
-	    return new PEAR_Error("Paper #$paperId hasn’t been uploaded yet.");
-	else if (isset($row->content) && strlen($row->content) == 0)
-	    return new PEAR_Error("Paper #$paperId appears to be empty.");
-
-	// Print paper
-	header("Content-Type: $row->mimetype");
-	header("Content-Description: PHP Generated Data");
-	$name = $this->downloadPaperName($paperId, $row->mimetype, $documentType);
-	header("Content-Disposition: " . ($saveit || $row->mimetype != "application/pdf" ? "attachment" : "inline") . "; filename=$name");
-	// reduce likelihood of XSS attacks in IE
-	header("X-Content-Type-Options: nosniff");
-	if (isset($row->filestore)) {
-	    if (!$zlib_output_compression)
-		header("Content-Length: " . filesize($row->filestore));
-	    ob_clean();
-	    flush();
-	    readfile($row->filestore);
-	} else {
-	    if (!$zlib_output_compression)
-		header("Content-Length: " . strlen($row->content));
-	    print $row->content;
-	}
-	return true;
+        $docs = array();
+	while (($doc = $this->paperStorageRow($result, $documentType))) {
+            if (!$doc->mimetype)
+                $doc->mimetype = MIMETYPEID_PDF;
+            $doc->filename = HotCRPDocument::filename($doc);
+            $docs[] = $doc;
+        }
+	if (count($docs) == 1 && $docs[0]->paperStorageId <= 1)
+	    return set_error_html("Paper #" . $docs[0]->paperId . " hasn’t been uploaded yet.");
+        $downloadname = false;
+        if (count($docs) > 1)
+            $downloadname = $Opt["downloadPrefix"] . pluralx(2, HotCRPDocument::unparse_dtype($documentType)) . ".zip";
+        return DocumentHelper::download($docs, $attachment, $downloadname);
     }
 
-    function downloadPaper($paperId, $saveit, $documentType = 0) {
+    function downloadPaper($paperId, $attachment, $documentType = DTYPE_SUBMISSION) {
 	global $Me;
-	$result = $this->__downloadPaper($paperId, $saveit, $documentType);
-	if ($result !== true)
-	    $this->errorMsg($result->getMessage());
+	$result = $this->__downloadPaper($paperId, $attachment, $documentType);
+	if ($result->error)
+	    $this->errorMsg($result->error_html);
 	else
 	    $this->log("Downloaded paper", $Me, $paperId);
-	return $result;
-    }
-
-    function zipAdd(&$tmpdir, $name, $data, &$warnings, &$files) {
-	if (!isset($tmpdir) || !$tmpdir)
-	    if (($tmpdir = tempdir()) === false) {
-		$warnings[] = "Could not create temporary directory!";
-		return false;
-	    }
-	$filename = "$tmpdir/$name";
-	$trylen = file_put_contents($filename, $data);
-	if ($trylen != strlen($data)) {
-	    clean_tempdirs();
-	    $trylen = file_put_contents($filename, $data);
-	}
-	if ($trylen != strlen($data)) {
-	    $warnings[] = "Could not save $name.";
-	    return false;
-	} else {
-	    $files[] = $filename;
-	    return true;
-	}
-    }
-
-    function zipFinish(&$tmpdir, $name, &$files) {
-	global $Opt, $zlib_output_compression;
-
-	if (!($zipcmd = defval($Opt, "zipCommand", "zip")))
-	    return new PEAR_Error("<code>zip</code> is not supported on this installation.");
-	$out = system("$zipcmd -jq $tmpdir/x.zip " . join(" ", $files) . " 2>&1", $status);
-	if ($status != 0)
-	    return new PEAR_Error("<code>zip</code> returned an error.  Its output: <pre>" . htmlspecialchars($out) . "</pre>");
-	if (!file_exists("$tmpdir/x.zip"))
-	    return new PEAR_Error("<code>zip</code> output unreadable or empty.  Its output: <pre>" . htmlspecialchars($out) . "</pre>");
-
-	// output
-	header("Content-Description: PHP Generated Data");
-	header("Content-Disposition: attachment; filename=$name");
-	header("Content-Type: application/zip");
-	if (!$zlib_output_compression)
-	    header("Content-Length: " . filesize("$tmpdir/x.zip"));
-	// flush all output buffers to avoid holding large files in memory
-	ob_clean();
-	flush();
-	readfile("$tmpdir/x.zip");
-	return true;
-    }
-
-    function __downloadPapers($paperIds, &$tmpdir, $documentType) {
-	global $Opt, $zlib_output_compression;
-
-	// special cases
-	if (count($paperIds) == 0)
-	    return new PEAR_Error("No papers selected for download.");
-	else if (count($paperIds) == 1)
-	    return $this->__downloadPaper($paperIds[0], 1, $documentType);
-
-	// read papers
-	$result = $this->paperStorageResult($paperIds, $documentType, true);
-	if (!$result)
-	    return new PEAR_Error("Database error while downloading papers: " . mysql_error($this->dblink));
-
-	// set up temporary directory
-	if (($tmpdir = tempdir()) === false)
-	    return new PEAR_Error("Could not create temporary directory!");
-
-	// write papers into temporary directory
-	$warnings = array();
-	$files = array();
-	while (($row = $this->paperStorageRow($result))) {
-	    $name = $this->downloadPaperName($row->paperId, $row->mimetype, $documentType);
-	    if ($row->paperStorageId <= 1)
-		$warnings[] = "Paper #$row->paperId has not been uploaded yet.";
-	    else if (isset($row->filestore) && @symlink($row->filestore, "$tmpdir/$name"))
-		$files[] = "$tmpdir/$name";
-	    else if ($this->_paper_storage_content($row))
-		$this->zipAdd($tmpdir, $name, $row->content, $warnings, $files);
-	    else
-		$warnings[] = "Could not save $name.";
-	}
-
-	// complete
-	if (!count($files))
-	    return new PEAR_Error("No papers were successfully downloaded.");
-	if (count($warnings))
-	    $this->zipAdd($tmpdir, "README-warnings.txt", join("\n", $warnings) . "\n", $warnings, $files);
-
-	// run zip
-	return $this->zipFinish($tmpdir, $Opt["downloadPrefix"] . pluralx(2, documentTypeName($documentType)) . ".zip", $files);
-    }
-
-    function downloadPapers($paperIds, $documentType) {
-	global $Me;
-	$result = $this->__downloadPapers($paperIds, $tmpdir, $documentType);
-	if ($result !== true)
-	    $this->errorMsg($result->getMessage());
-	else
-	    $this->log("Downloaded papers", $Me, $paperIds);
-	if (isset($tmpdir) && $tmpdir)
-	    exec("/bin/rm -rf $tmpdir");
 	return $result;
     }
 
@@ -1127,7 +847,6 @@ class Conference {
 	//   "myReviews"	All reviews authored by $contactId
 	//   "myOutstandingReviews" All unsubmitted reviews auth by $contactId
 	//   "myReviewsOpt"	myReviews, + include papers not yet reviewed
-	//   "reviewerContact"	Sets reviewer contact ID
 	//   "allReviews"	All reviews (multiple rows per paper)
 	//   "allReviewScores"	All review scores (multiple rows per paper)
 	//   "allComments"	All comments (multiple rows per paper)
@@ -1151,26 +870,19 @@ class Conference {
 	    $contactId = $contact;
 	    $contact = null;
 	}
-	$reviewContactId = $contactId;
-	if (isset($options['reviewerContact']))
-	    $reviewContactId = $options['reviewerContact'];
 	$where = array();
 
 	// fields
 	$pq = "select Paper.*, PaperConflict.conflictType,
 		count(AllReviews.reviewSubmitted) as reviewCount,
 		count(if(AllReviews.reviewNeedsSubmit<=0,AllReviews.reviewSubmitted,AllReviews.reviewId)) as startedReviewCount";
-	$myPaperReview = $highlightPaperReview = null;
-	if (!isset($options['author'])) {
-	    if ($allReviewerQuery) {
-		$myPaperReview = $highlightPaperReview = "MyPaperReview";
-		if ($reviewContactId != $contactId)
-		    $highlightPaperReview = "HighlightPaperReview";
-	    } else if ($reviewContactId != $contactId) {
+	$myPaperReview = null;
+	if (!isset($options["author"])) {
+	    if ($allReviewerQuery)
 		$myPaperReview = "MyPaperReview";
-		$highlightPaperReview = "PaperReview";
-	    } else
-		$myPaperReview = $highlightPaperReview = "PaperReview";
+            else
+		$myPaperReview = "PaperReview";
+            // see also papercolumn.php
 	    $pq .= ",
 		PaperReview.reviewType,
 		PaperReview.reviewId,
@@ -1186,7 +898,7 @@ class Conference {
 		min($myPaperReview.reviewNeedsSubmit) as myReviewNeedsSubmit,
 		PaperReview.reviewRound";
 	} else
-	    $pq .= ",\nnull as myReviewType";
+	    $pq .= ",\nnull reviewType, null reviewId, null myReviewType";
 	if (isset($options['reviewerName']))
 	    $pq .= ",
 		ReviewerContactInfo.firstName as reviewFirstName,
@@ -1233,8 +945,8 @@ class Conference {
 	if (isset($options['scores'])) {
 	    foreach ($options['scores'] as $field) {
 		$pq .= ",\n		PaperScores.${field}Scores";
-		if ($highlightPaperReview)
-		    $pq .= ",\n		$highlightPaperReview.$field";
+		if ($myPaperReview)
+		    $pq .= ",\n		$myPaperReview.$field";
 	    }
 	    $pq .= ",\n		PaperScores.numScores";
 	}
@@ -1291,12 +1003,10 @@ class Conference {
 	    $pq .= "		left join PaperReview on (PaperReview.paperId=Paper.paperId and (PaperReview.contactId=$contactId$qr))\n";
 	else if (isset($options['allReviews']) || isset($options['allReviewScores']))
 	    $pq .= "		join PaperReview on (PaperReview.paperId=Paper.paperId)\n";
-	else if (!isset($options['author']))
-	    $pq .= "		left join PaperReview on (PaperReview.paperId=Paper.paperId and (PaperReview.contactId=$reviewContactId$qr))\n";
+	else if (!isset($options["author"]))
+	    $pq .= "		left join PaperReview on (PaperReview.paperId=Paper.paperId and (PaperReview.contactId=$contactId$qr))\n";
 	if ($myPaperReview == "MyPaperReview")
 	    $pq .= "		left join PaperReview as MyPaperReview on (MyPaperReview.paperId=Paper.paperId and MyPaperReview.contactId=$contactId)\n";
-	if ($highlightPaperReview == "HighlightPaperReview")
-	    $pq .= "		left join PaperReview as HighlightPaperReview on (HighlightPaperReview.paperId=Paper.paperId and HighlightPaperReview.contactId=$reviewContactId)\n";
 	if (isset($options['allComments']))
 	    $pq .= "		join PaperComment on (PaperComment.paperId=Paper.paperId)
 		left join PaperConflict as CommentConflict on (CommentConflict.paperId=PaperComment.paperId and CommentConflict.contactId=PaperComment.contactId)\n";
@@ -1312,7 +1022,7 @@ class Conference {
 		$pq .= ", group_concat(PaperTopic.topicId) as topicIds, group_concat(ifnull(TopicInterest.interest,1)) as topicInterest";
 	    if (isset($options['topicInterestScore']))
 		$pq .= ", sum(if(interest=2,2,interest-1)) as topicInterestScore";
-	    $pq .= " from PaperTopic left join TopicInterest on (TopicInterest.topicId=PaperTopic.topicId and TopicInterest.contactId=$reviewContactId) group by paperId) as PaperTopics on (PaperTopics.paperId=Paper.paperId)\n";
+	    $pq .= " from PaperTopic left join TopicInterest on (TopicInterest.topicId=PaperTopic.topicId and TopicInterest.contactId=$contactId) group by paperId) as PaperTopics on (PaperTopics.paperId=Paper.paperId)\n";
 	}
 
 	if (isset($options['options']) && defval($this->settings, "paperOption")) {
@@ -1334,7 +1044,7 @@ class Conference {
 	}
 
 	if (defval($options, 'reviewerPreference'))
-	    $pq .= "		left join PaperReviewPreference on (PaperReviewPreference.paperId=Paper.paperId and PaperReviewPreference.contactId=$reviewContactId)\n";
+	    $pq .= "		left join PaperReviewPreference on (PaperReviewPreference.paperId=Paper.paperId and PaperReviewPreference.contactId=$contactId)\n";
 	if (defval($options, 'allReviewerPreference')
 	    || defval($options, 'desirability')) {
 	    $subq = "select paperId";
@@ -1346,7 +1056,7 @@ class Conference {
 	    $pq .= "		left join ($subq) as APRP on (APRP.paperId=Paper.paperId)\n";
 	}
 	if (defval($options, 'allConflictType'))
-	    $pq .= "		left join (select paperId, group_concat(concat(contactId,' ',conflictType) separator ',') as allConflictType from PaperConflict group by paperId) as AllConflict on (AllConflict.paperId=Paper.paperId)\n";
+	    $pq .= "		left join (select paperId, group_concat(concat(contactId,' ',conflictType) separator ',') as allConflictType from PaperConflict where conflictType>0 group by paperId) as AllConflict on (AllConflict.paperId=Paper.paperId)\n";
 
 
 	// conditions
@@ -1686,7 +1396,7 @@ class Conference {
 	    if ($curcr)
 		/* do nothing */;
 	    else if (($curcr = array_pop($crows))) {
-		if (!$contact->canViewComment($curcr, $curcr, $whyNot, true)) {
+		if (!$contact->canViewComment($curcr, $curcr, false)) {
 		    $curcr = null;
 		    continue;
 		}
@@ -1703,7 +1413,7 @@ class Conference {
 	    if ($currr)
 		/* do nothing */;
 	    else if (($currr = array_pop($rrows))) {
-		if (!$contact->canViewReview($currr, $currr, $whyNot, true)) {
+		if (!$contact->canViewReview($currr, $currr, false)) {
 		    $currr = null;
 		    continue;
 		}
@@ -1819,9 +1529,8 @@ class Conference {
     function header_head($title) {
 	global $ConfSiteBase, $ConfSiteSuffix, $ConfSitePATH, $Opt;
 	if (!$this->headerPrinted) {
-	    echo "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n";
-	    // PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n";
-	    echo "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">
+	    echo "<!DOCTYPE html>
+<html>
 <head>
 <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />
 <meta http-equiv=\"Content-Style-Type\" content=\"text/css\" />
@@ -1868,9 +1577,10 @@ class Conference {
 	if ($id)
 	    echo " id='$id'";
 	// JavaScript's idea of a timezone offset is the negative of PHP's
-	$this->footerScript("hotcrpLoad.time($now," . (-date("Z", $now) / 60) . "," . (defval($Opt, "time24hour") ? 1 : 0) . ")");
-	$this->footerScript("loadDeadlines.init(" . json_encode($dl) . ",\"" . hoturl("deadlines") . "\")");
-	echo " onload='hotcrpLoad()'>\n";
+	$this->footerScript("hotcrp_load.time($now," . (-date("Z", $now) / 60) . "," . (defval($Opt, "time24hour") ? 1 : 0) . ");"
+                            . "loadDeadlines.init(" . json_encode($dl) . ",\"" . hoturl("deadlines") . "\");"
+                            . "alltagsreport_url=\"" . hoturl("search", "alltags=1") . "\"");
+	echo " onload='hotcrp_load()'>\n";
 
 	echo "<div id='prebody'>\n";
 
@@ -1883,9 +1593,9 @@ class Conference {
 	if ($Me->valid()) {
 	    $xsep = " <span class='barsep'>&nbsp;|&nbsp;</span> ";
 	    if ($Me->contactId > 0) {
-		echo "<a class='q' href='", hoturl("account"), "'><strong>",
+		echo "<a class='q' href='", hoturl("profile"), "'><strong>",
 		    htmlspecialchars($Me->email),
-		    "</strong></a> &nbsp; <a href='", hoturl("account"), "'>Profile</a>",
+		    "</strong></a> &nbsp; <a href='", hoturl("profile"), "'>Profile</a>",
 		    $xsep;
 	    }
 	    if ($Me->chairContact) {
@@ -1950,7 +1660,10 @@ class Conference {
 	    && (!isset($Me->_updatecheck) || $Me->_updatecheck + 20 <= $now)
 	    && (!isset($Opt["updatesSite"]) || $Opt["updatesSite"])) {
 	    $m = defval($Opt, "updatesSite", "http://hotcrp.lcdf.org/updates");
-	    $m .= (strpos($m, "?") === false ? "?" : "&") . "version=" . HOTCRP_VERSION;
+            if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off")
+                $m = preg_replace(',\Ahttp://,', "https://", $m);
+	    $m .= (strpos($m, "?") === false ? "?" : "&") . "version=" . HOTCRP_VERSION
+                . "&addr=" . urlencode($_SERVER["SERVER_ADDR"]);
 	    if (is_dir("$ConfSitePATH/.git")) {
 		$args = array();
 		exec("export GIT_DIR=" . escapeshellarg($ConfSitePATH) . "/.git; git rev-parse HEAD 2>/dev/null; git merge-base origin/master HEAD 2>/dev/null", $args);
@@ -2053,26 +1766,20 @@ class Conference {
     // Miscellaneous
     //
 
-    function getFileExtension(&$mimetype) {
-	global $mimetypeMap;
-	if (!isset($mimetype) || $mimetype == null || $mimetype == "")
-	    return "";
-	else if (isset($mimetypeMap[$mimetype]))
-	    return "." . $mimetypeMap[$mimetype];
-	else
-	    return "";
-    }
-
-    function makeDownloadPath($paperId, $mimetype, $documentType) {
+    function makeDownloadPath($doc) {
 	global $ConfSiteBase, $ConfSiteSuffix;
-	if ($mimetype)
-	    return $ConfSiteBase . "doc$ConfSiteSuffix/" . $this->downloadPaperName($paperId, $mimetype, $documentType);
+        if (!property_exists($doc, "mimetype") || !isset($doc->documentType)) {
+            $trace = debug_backtrace();
+            error_log($trace[0]["file"] . ":" . $trace[0]["line"] . ": makeDownloadPath called with incomplete document");
+        }
+	if ($doc->mimetype)
+	    return $ConfSiteBase . "doc$ConfSiteSuffix/" . HotCRPDocument::filename($doc);
 	else {
-	    $x = $ConfSiteBase . "doc$ConfSiteSuffix?p=" . $paperId;
-	    if ($documentType < 0)
+	    $x = $ConfSiteBase . "doc$ConfSiteSuffix?p=" . $doc->paperId;
+	    if ($doc->documentType == DTYPE_FINAL)
 		return $x . "&amp;final=1";
-	    else if ($documentType > 0)
-		return $x . "&amp;dt=$documentType";
+	    else if ($doc->documentType > 0)
+		return $x . "&amp;dt=$doc->documentType";
 	    else
 		return $x;
 	}

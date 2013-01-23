@@ -1,6 +1,6 @@
 <?php
 // contact.inc -- HotCRP helper class representing system users
-// HotCRP is Copyright (c) 2006-2011 Eddie Kohler and Regents of the UC
+// HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
 class Contact {
@@ -9,17 +9,19 @@ class Contact {
     var $confDsn;
 
     // Information from the SQL definition
-    var $contactId;
+    public $contactId;
+    private $cid;               // for forward compatibility
     var $visits;
     var $firstName;
     var $lastName;
     var $email;
     var $preferredEmail;
+    var $sorter;
     var $affiliation;
     var $collaborators;
     var $voicePhoneNumber;
-    var $faxPhoneNumber;
     var $password;
+    public $disabled;
     var $note;
     var $defaultWatch;
 
@@ -48,6 +50,53 @@ class Contact {
     const CAP_AUTHORVIEW = 1;
     var $capabilities;
     var $validated;
+
+
+    public function __construct() {
+    }
+
+    // begin changing contactId to cid
+    public function __get($name) {
+        if ($name == "cid")
+            return $this->contactId;
+        else
+            return null;
+    }
+
+    public function __set($name, $value) {
+        if ($name == "cid")
+            $this->contactId = $value;
+        else
+            $this->$name = $value;
+    }
+
+    static public function make($o) {
+	// If you change this function, search for its callers to ensure
+	// they provide all necessary information.
+	$c = new Contact();
+	$c->invalidate();
+	$c->contactId = (int) $o->contactId;
+	$c->firstName = defval($o, "firstName", "");
+	$c->lastName = defval($o, "lastName", "");
+	$c->email = defval($o, "email", "");
+	$c->preferredEmail = defval($o, "preferredEmail", "");
+        $c->sorter = trim("$c->firstName $c->lastName $c->email");
+	$c->password = defval($o, "password", "");
+        $c->disabled = !!defval($o, "disabled", false);
+	$c->isAuthor = defval($o, "isAuthor", false) != false;
+	$c->isReviewer = defval($o, "isReviewer", false) != false;
+	$c->reviewsOutstanding = defval($o, "reviewsOutstanding", false) != false;
+	$c->roles = defval($o, "roles", 0);
+	if (defval($o, "isPC", false))
+	    $c->roles |= self::ROLE_PC;
+	if (defval($o, "isAssistant", false))
+	    $c->roles |= self::ROLE_ADMIN;
+	if (defval($o, "isChair", false))
+	    $c->roles |= self::ROLE_CHAIR;
+	$c->isPC = ($c->roles & (self::ROLE_PC | self::ROLE_ADMIN | self::ROLE_CHAIR)) != 0;
+	$c->privChair = ($c->roles & (self::ROLE_ADMIN | self::ROLE_CHAIR)) != 0;
+	return $c;
+    }
 
 
     //
@@ -150,8 +199,8 @@ class Contact {
 	$this->contactId = 0;
 	$this->visits = 0;
 	foreach (array("firstName", "lastName", "email", "preferredEmail",
-		       "affiliation", "voicePhoneNumber", "faxPhoneNumber",
-		       "password", "collaborators") as $k)
+		       "affiliation", "voicePhoneNumber",
+		       "password", "disabled", "collaborators") as $k)
 	    $this->$k = "";
 	foreach (self::_addressKeys() as $k)
 	    $this->$k = null;
@@ -193,12 +242,13 @@ class Contact {
 	$this->firstName = simplifyWhitespace($this->firstName);
 	$this->lastName = simplifyWhitespace($this->lastName);
 	foreach (array("email", "preferredEmail", "affiliation",
-		       "voicePhoneNumber", "faxPhoneNumber", "password", "note",
+		       "voicePhoneNumber", "password", "note",
 		       "addressLine1", "addressLine2", "city", "state",
 		       "zipCode", "country")
 		 as $k)
 	    if ($this->$k)
 		$this->$k = trim($this->$k);
+        $this->sorter = trim("$this->firstName $this->lastName $this->email");
     }
 
     function go($url) {
@@ -257,14 +307,15 @@ class Contact {
 	    else
 		$qa .= ", contactTags=null";
 	}
+        if ($Conf->sversion >= 47)
+            $qa .= ", disabled=" . ($this->disabled ? 1 : 0);
 	$query = sprintf("update ContactInfo set firstName='%s', lastName='%s',
 		email='%s', affiliation='%s', voicePhoneNumber='%s',
-		faxPhoneNumber='%s', password='%s', collaborators='%s'$qa
+		password='%s', collaborators='%s'$qa
 		where contactId='%s'",
 			 sqlq($this->firstName), sqlq($this->lastName),
 			 sqlq($this->email), sqlq($this->affiliation),
 			 sqlq($this->voicePhoneNumber),
-			 sqlq($this->faxPhoneNumber),
 			 sqlq($this->password),
 			 sqlq($this->collaborators),
 			 $this->contactId);
@@ -285,7 +336,7 @@ class Contact {
 	$this->email = trim($email);
 	if (!$useRequest || !$useRequestPassword || !isset($_REQUEST["password"])
 	    || ($this->password = trim($_REQUEST["password"])) == "")
-	    $this->password = self::generatePassword(10);
+	    $this->password = self::random_password();
 
 	// update paper authorship based on authorInformation fields
 	// (ignore errors)
@@ -310,7 +361,7 @@ class Contact {
 	$qa = "email, password, creationTime";
 	$qb = "'" . sqlq($this->email) . "', '" . sqlq($this->password) . "', " . time();
 	foreach (array("firstName", "lastName", "affiliation", "collaborators",
-		       "voicePhoneNumber", "faxPhoneNumber", "preferredEmail")
+		       "voicePhoneNumber", "preferredEmail")
 		 as $k) {
 	    if ($useRequest && isset($_REQUEST[$k])
 		&& defval($this, $k, "") == "")
@@ -345,10 +396,11 @@ class Contact {
 	    $this->lastName = $fromdb->lastName;
 	    $this->email = $fromdb->email;
 	    $this->preferredEmail = defval($fromdb, "preferredEmail", null);
+            $this->sorter = trim("$this->firstName $this->lastName $this->email");
 	    $this->affiliation = $fromdb->affiliation;
 	    $this->voicePhoneNumber = $fromdb->voicePhoneNumber;
-	    $this->faxPhoneNumber = $fromdb->faxPhoneNumber;
 	    $this->password = $fromdb->password;
+            $this->disabled = !!defval($fromdb, "disabled", 0);
 	    $this->note = $fromdb->note;
 	    $this->collaborators = $fromdb->collaborators;
 	    $this->defaultWatch = defval($fromdb, "defaultWatch", 0);
@@ -384,32 +436,6 @@ class Contact {
 	if (($row = edb_orow($result)))
 	    foreach (self::_addressKeys() as $k)
 		$this->$k = $row->$k;
-    }
-
-    static function makeMinicontact($o) {
-	// If you change this function, search for its callers to ensure
-	// they provide all necessary information.
-	$c = new Contact();
-	$c->invalidate();
-	$c->contactId = (int) $o->contactId;
-	$c->firstName = defval($o, "firstName", "");
-	$c->lastName = defval($o, "lastName", "");
-	$c->email = defval($o, "email", "");
-	$c->preferredEmail = defval($o, "preferredEmail", "");
-	$c->password = defval($o, "password", "");
-	$c->isAuthor = defval($o, "isAuthor", false) != false;
-	$c->isReviewer = defval($o, "isReviewer", false) != false;
-	$c->reviewsOutstanding = defval($o, "reviewsOutstanding", false) != false;
-	$c->roles = defval($o, "roles", 0);
-	if (defval($o, "isPC", false))
-	    $c->roles |= self::ROLE_PC;
-	if (defval($o, "isAssistant", false))
-	    $c->roles |= self::ROLE_ADMIN;
-	if (defval($o, "isChair", false))
-	    $c->roles |= self::ROLE_CHAIR;
-	$c->isPC = ($c->roles & (self::ROLE_PC | self::ROLE_ADMIN | self::ROLE_CHAIR)) != 0;
-	$c->privChair = ($c->roles & (self::ROLE_ADMIN | self::ROLE_CHAIR)) != 0;
-	return $c;
     }
 
 
@@ -602,7 +628,7 @@ class Contact {
 	if (!($prow = $this->_fetchPaperRow($prow, $whyNot)))
 	    return false;
 	// policy
-	$conflictType = $this->actConflictType($prow, $download);
+	$conflictType = $this->actConflictType($prow);
 	if ($conflictType >= CONFLICT_AUTHOR
 	    || $this->privChair
 	    || ($prow->myReviewType > 0 && $Conf->timeReviewerViewSubmittedPaper())
@@ -637,15 +663,23 @@ class Contact {
 	if (!($prow = $this->_fetchPaperRow($prow, $whyNot)))
 	    return false;
 	// policy
-	$pblind = $Conf->paperBlind($prow, $this);
 	$conflictType = $this->actConflictType($prow);
+        $bs = $Conf->setting("sub_blind");
+        $nonblind = (($prow->outcome > 0
+                      && ($this->isPC || $prow->myReviewType > 0)
+                      && $Conf->timeReviewerViewAcceptedAuthors())
+                     || $bs == BLIND_NEVER
+                     || ($bs == BLIND_OPTIONAL
+                         && !(isset($prow->paperBlind) ? $prow->paperBlind : $prow->blind))
+                     || ($bs == BLIND_UNTILREVIEW
+                         && defval($prow, "myReviewSubmitted")));
 	if (($conflictType >= CONFLICT_AUTHOR
-	     && (!$this->isPC || !$blindWins || !$pblind))
-	    || ($prow->myReviewType > 0 && !$pblind
+	     && (!$this->isPC || $nonblind || !$blindWins))
+	    || ($prow->myReviewType > 0 && $nonblind
 		&& $Conf->timeReviewerViewSubmittedPaper())
-	    || ($prow->timeSubmitted > 0 && !$pblind && $this->isPC)
-	    || ($this->isPC && !$pblind && $prow->timeWithdrawn <= 0
-		&& $Conf->setting("pc_seeall") > 0))
+	    || ($this->isPC && $nonblind
+                && ($prow->timeSubmitted > 0
+                    || ($prow->timeWithdrawn <= 0 && $Conf->setting("pc_seeall") > 0))))
 	    return true;
 	// collect failure reasons
 	if ($prow->timeWithdrawn > 0)
@@ -696,13 +730,14 @@ class Contact {
 	    || ($rrow->requestedBy == $this->contactId && $rrow->reviewType == REVIEW_EXTERNAL && $Conf->setting("pcrev_editdelegate"));
     }
 
-    function canViewReview($prow, $rrow, &$whyNot = null, $ignoreForceShow = false) {
+    function canViewReview($prow, $rrow, $forceShow, &$whyNot = null) {
 	global $Conf;
 	// fetch paper
 	if (!($prow = $this->_fetchPaperRow($prow, $whyNot)))
 	    return false;
 	// policy
-	$forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"] && !$ignoreForceShow;
+        if ($forceShow === null)
+            $forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"];
 	$rrowSubmitted = (!$rrow || $rrow->reviewSubmitted > 0);
 	$pc_seeallrev = ($this->isPC ? $Conf->setting("pc_seeallrev") : 0);
 	$conflictType = $this->actConflictType($prow);
@@ -910,7 +945,7 @@ class Contact {
 	return $this->canComment($prow, $crow, $whyNot, true);
     }
 
-    function canViewComment($prow, $crow, &$whyNot = null, $ignoreForceShow = false) {
+    function canViewComment($prow, $crow, $forceShow, &$whyNot = null) {
 	global $Conf;
 	// Policy outline:
 	// forAuthors 2, forReviewers 1     response, ready for reviewers
@@ -926,7 +961,8 @@ class Contact {
 	if (!($prow = $this->_fetchPaperRow($prow, $whyNot)))
 	    return false;
 	// policy
-	$forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"] && !$ignoreForceShow;
+        if ($forceShow === null)
+            $forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"];
 	$crow_contactId = 0;
 	if ($crow && isset($crow->commentContactId))
 	    $crow_contactId = $crow->commentContactId;
@@ -946,12 +982,15 @@ class Contact {
 	    || ($this->privChair			// chair privilege
 		&& ($conflictType == 0 || $forceShow))
 	    || ($conflictType == 0			// reviewer postrev
-		&& $this->canViewReview($prow, null, $xWhyNot, $ignoreForceShow)
+		&& $this->canViewReview($prow, null, $forceShow)
 		&& (!$Conf->setting("pc_seeblindrev")
 		    || (defval($prow, "myReviewType") > 0
 			&& (defval($prow, "myReviewSubmitted") > 0
 			    || defval($prow, "myReviewNeedsSubmit", 1) == 0)))
-		&& ($forReviewers == 1 || ($forReviewers == 0 && $this->isPC))))
+		&& ($forReviewers == 1
+                    || ($forReviewers == 0
+                        && $this->isPC
+                        && (!$crow || $crow->forAuthors <= 1)))))
 	    return true;
 	// collect failure reasons
 	if (($conflictType < CONFLICT_AUTHOR
@@ -1056,9 +1095,10 @@ class Contact {
 	return $Conf->timeReviewPaper($this->isPC, $myReview, true);
     }
 
-    function canViewReviewerIdentity($prow, $rrow, $ignoreForceShow = false) {
+    function canViewReviewerIdentity($prow, $rrow, $forceShow = null) {
 	global $Conf;
-	$forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"] && !$ignoreForceShow;
+        if ($forceShow === null)
+            $forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"];
 	$rrow_contactId = 0;
 	if ($rrow && isset($rrow->reviewContactId))
 	    $rrow_contactId = $rrow->reviewContactId;
@@ -1080,7 +1120,7 @@ class Contact {
 	    || ($this->isPC && $prow && $conflictType == 0
 		&& (!($pc_seeblindrev = $Conf->setting("pc_seeblindrev"))
 		    || ($pc_seeblindrev == 2
-			&& $this->canViewReview($prow, $rrow, $whyNot, $ignoreForceShow))))
+			&& $this->canViewReview($prow, $rrow, $forceShow))))
 	    || ($prow && $prow->myReviewType > 0
 		&& (defval($prow, "myReviewSubmitted") > 0
 		    || defval($prow, "myReviewNeedsSubmit", 1) == 0)
@@ -1090,11 +1130,25 @@ class Contact {
 	return false;
     }
 
-    function canViewCommentIdentity($prow, $crow, $ignoreForceShow = false) {
+    function canViewDiscussionLead($prow, $forceShow) {
+        if ($prow === null || $prow === true)
+            return $this->canViewReviewerIdentity(true, null, $forceShow);
+        if ($forceShow === null)
+            $forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"];
+	$conflictType = $this->actConflictType($prow);
+        return ($this->privChair && ($conflictType == 0 || $forceShow))
+            || $prow->leadContactId == $this->cid
+            || (($this->isPC || $prow->myReviewType > 0)
+                && $conflictType == 0
+                && $this->canViewReviewerIdentity($prow, null, $forceShow));
+    }
+
+    function canViewCommentIdentity($prow, $crow, $forceShow) {
 	global $Conf;
 	if ($crow && $crow->forAuthors > 1)
 	    return $this->canViewAuthors($prow, false);
-	$forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"] && !$ignoreForceShow;
+        if ($forceShow === null)
+            $forceShow = isset($_REQUEST["forceShow"]) && $_REQUEST["forceShow"];
 	$crow_contactId = 0;
 	if ($crow && isset($crow->commentContactId))
 	    $crow_contactId = $crow->commentContactId;
@@ -1174,6 +1228,7 @@ class Contact {
     }
 
     function canViewTags($prow, $forceShow = true) {
+        // see also PaperActions::all_tags
 	global $Conf;
 	return ($this->isPC
 		&& (!$prow || $prow->conflictType <= 0
@@ -1303,7 +1358,7 @@ class Contact {
 	//} else if (isset($row->reviewCount) && $row->reviewCount > 0) {
 	//    if ($long < 0 && $row->conflictType < CONFLICT_AUTHOR)
 	//	return "";
-	//    else if ($this->canViewReview($row, null))
+	//    else if ($this->canViewReview($row, null, null))
 	//	return "<span class='pstat pstat_rev'>Reviews&nbsp;available</span>";
 	//    else
 	//	return "<span class='pstat pstat_rev'>Under&nbsp;review</span>";
@@ -1319,40 +1374,39 @@ class Contact {
     }
 
 
-    static function generatePassword($length) {
+    static function random_password($length = 12) {
 	global $Opt;
 	if (isset($Opt["ldapLogin"]))
 	    return "<stored in LDAP>";
 	else if (isset($Opt["httpAuthLogin"]))
 	    return "<using HTTP authentication>";
 
-	$l = array("a", "e", "i", "o", "u", "y", "a", "e", "i", "o", "u", "y",
-		   "a", "e", "i", "o", "u", "y", "a", "e", "i", "o", "u", "y",
-		   "a", "e", "i", "o", "u", "y", "a", "e", "i", "o", "u", "y",
-		   "b", "c", "d", "g", "h", "j", "k", "l", "m", "n", "p",
-		   "r", "s", "t", "u", "v", "w", "tr",
-		   "cr", "br", "fr", "th", "dr", "ch", "ph", "wr", "st",
-		   "sp", "sw", "pr", "sl", "cl",
-		   "2", "3", "4", "5", "6", "7", "8", "9",
-		   "-", "@", "_", "+", "=");
+	$l = explode(" ", "a e i o u y a e i o u y a e i o u y a e i o u y a e i o u y b c d g h j k l m n p r s t u v w tr cr br fr th dr ch ph wr st sp sw pr sl cl 2 3 4 5 6 7 8 9 - @ _ + =");
 	$n = count($l);
 
-	$bytes = hotcrp_random_bytes($length, true);
+	$bytes = hotcrp_random_bytes($length + 10, true);
 	if (!$bytes) {
 	    $bytes = "";
 	    while (strlen($bytes) < $length)
 		$bytes .= sha1($Opt["conferenceKey"] . pack("V", mt_rand()));
 	}
 
-	$password = "";
-	for ($i = 0; strlen($password) < $length; ++$i)
-	    $password .= $l[ord($bytes[$i]) % $n];
-	return $password;
+	$pw = "";
+        $nvow = 0;
+	for ($i = 0;
+             $i < strlen($bytes) &&
+                 strlen($pw) < $length + max(0, ($nvow - 3) / 3);
+             ++$i) {
+            $x = ord($bytes[$i]) % $n;
+            if ($x < 30)
+                ++$nvow;
+	    $pw .= $l[$x];
+        }
+	return $pw;
     }
 
-    function sendAccountInfo($conf, $create, $sensitive) {
-	require_once("mailtemplate.inc");
-	global $mailTemplates;
+    function sendAccountInfo($create, $sensitive) {
+	global $Conf;
 	$mailer = new Mailer(null, $this);
 	$preparation = $mailer->prepareToSend($create ? "@createaccount" : "@accountinfo", null, $this);
 
@@ -1360,7 +1414,7 @@ class Contact {
 	    $mailer->sendPrepared($preparation);
 	    return true;
 	} else {
-	    $conf->errorMsg("Mail cannot be sent to your email address &lt;" . htmlspecialchars($this->email) . "&gt; at this time.");
+	    $Conf->errorMsg("Mail cannot be sent to your email address &lt;" . htmlspecialchars($this->email) . "&gt; at this time.");
 	    return false;
 	}
     }

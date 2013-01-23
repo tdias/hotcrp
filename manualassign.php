@@ -146,7 +146,7 @@ echo "</dl>\nClick a heading to sort.\n</div></div>";
 
 $pcm = pcMembers();
 if ($reviewer > 0)
-    echo "<h2 style='margin-top:1em'>Assignments for ", contactNameHtml($pcm[$reviewer]), ($pcm[$reviewer]->affiliation ? " (" . htmlspecialchars($pcm[$reviewer]->affiliation) . ")" : ""), "</h2>\n";
+    echo "<h2 style='margin-top:1em'>Assignments for ", Text::name_html($pcm[$reviewer]), ($pcm[$reviewer]->affiliation ? " (" . htmlspecialchars($pcm[$reviewer]->affiliation) . ")" : ""), "</h2>\n";
 else
     echo "<h2 style='margin-top:1em'>Assignments by PC member</h2>\n";
 
@@ -166,7 +166,7 @@ $rev_opt = array();
 if ($reviewer <= 0)
     $rev_opt[0] = "(Select a PC member)";
 while (($row = edb_orow($result)))
-    $rev_opt[$row->contactId] = contactHtml($row) . " ("
+    $rev_opt[$row->contactId] = Text::user_html($row) . " ("
 	. plural($row->reviewCount, "assignment") . ")";
 
 echo "<table><tr><td><strong>PC member:</strong> &nbsp;</td>",
@@ -212,6 +212,20 @@ echo "<tr><td colspan='2'><div class='aax' style='text-align:right'>",
     "</div></td></tr>\n",
     "</table>\n</div></form></div></td></tr></table>\n";
 
+
+function make_match_preg($str) {
+    $a = $b = array();
+    foreach (explode(" ", preg_quote($str)) as $word)
+        if ($word != "") {
+            $a[] = Text::utf8_word_regex($word);
+            if (!preg_match("/[\x80-\xFF]/", $word))
+                $b[] = Text::word_regex($word);
+        }
+    $x = (object) array("preg_utf8" => join("|", $a));
+    if (count($a) == count($b))
+        $x->preg_raw = join("|", $b);
+    return $x;
+}
 
 // Current PC member information
 if ($reviewer > 0) {
@@ -295,17 +309,23 @@ if ($reviewer > 0) {
 	"</div></form>\n\n";
 
     // main assignment form
-    $search = new PaperSearch($Me, array("t" => $_REQUEST["t"],
-					 "q" => $_REQUEST["q"],
-					 "urlbase" => hoturl("manualassign", "reviewer=$reviewer")), $reviewer);
+    $search = new PaperSearch($Me,
+                              array("t" => $_REQUEST["t"],
+                                    "q" => $_REQUEST["q"],
+                                    "urlbase" => hoturl("manualassign", "reviewer=$reviewer")),
+                              $reviewer);
     $paperList = new PaperList($search, array("sort" => true, "list" => true));
+    $paperList->display .= " topics ";
+    if ($kind != "c")
+        $paperList->display .= "reviewers ";
+    $paperList->showHeader = PaperList::HEADER_ALL;
     if (isset($showau)) {
 	$search->overrideMatchPreg = true;
 	$search->matchPreg = array();
 	if ($showau)
-	    $search->matchPreg["authorInformation"] = "\\b" . str_replace(" ", "\\b|\\b", preg_quote(substr($showau, 0, strlen($showau) - 1))) . "\\b";
+	    $search->matchPreg["authorInformation"] = make_match_preg($showau);
 	if ($showco)
-	    $search->matchPreg["collaborators"] = "\\b" . str_replace(" ", "\\b|\\b", preg_quote(substr($showau, 0, strlen($showco) - 1))) . "\\b";
+	    $search->matchPreg["collaborators"] = make_match_preg($showco);
     }
     $a = isset($_REQUEST["sort"]) ? "&amp;sort=" . urlencode($_REQUEST["sort"]) : "";
     echo "<div class='aahc'><form class='assignpc' method='post' action=\"", hoturl_post("manualassign", "reviewer=$reviewer&amp;kind=$kind$a"),

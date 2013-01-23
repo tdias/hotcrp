@@ -1,6 +1,6 @@
 <?php
 // commentview.inc -- HotCRP helper class for producing comment boxes
-// HotCRP is Copyright (c) 2006-2012 Eddie Kohler and Regents of the UC
+// HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
 class CommentView {
@@ -15,18 +15,22 @@ class CommentView {
 	$this->numbers = array();
     }
 
-    function beginTable() {
+    function table_begin($classextra) {
+        // div.pbox > table.pbox > tr > td.pboxr > table.cmtc > tr > td.cmtcc
 	echo "<div class='pboxc'><table class='pbox'><tr>
   <td class='pboxl'></td>
-  <td class='pboxr'>", tagg_cbox("cmt", false),
-	    "\t<tr><td></td><td class='cmthead'><h3>Comments</h3></td><td></td></tr>
-  <tr><td></td><td class='cmtcc'>";
+  <td class='pboxr'>", tagg_cbox("cmt", false, $classextra),
+	    "\t<tr><td></td><td class='cmthead'>";
 	$this->mode = 1;
 	$this->ncomment_in_table = 0;
 	$this->numbers = array();
     }
 
-    function endTable() {
+    function table_tobody() {
+        echo "</td><td></td></tr>\n  <tr><td></td><td class='cmtcc'>";
+    }
+
+    function table_end() {
 	if ($this->mode) {
 	    echo "</td><td></td></tr>\n", tagg_cbox("cmt", true),
 		"</td></tr>\n</table></div>\n\n";
@@ -58,15 +62,15 @@ class CommentView {
 		"<span class='cmtnumnum'>", $number, "</span></a></span>";
 	    $sep = $xsep;
 	}
-	if ($crow && $Me->canViewCommentIdentity($prow, $crow)) {
+	if ($crow && $Me->canViewCommentIdentity($prow, $crow, null)) {
 	    $blind = ($crow->blind && $crow->forAuthors > 0);
 	    echo $sep, "<span class='cmtname'>", ($blind ? "[" : ""),
-		contactHtml($crow), ($blind ? "]" : ""), "</span>";
+		Text::user_html($crow), ($blind ? "]" : ""), "</span>";
 	    $sep = $xsep;
 	} else if ($crow && $Me->privChair) {
 	    echo $sep, "<span id='foldcid$crow->commentId' class='cmtname fold4c'>",
 		"<a class='q fn4' href=\"javascript:void fold('cid$crow->commentId', 0, 4)\" title='Show author'>+&nbsp;<i>Hidden for blind review</i></a>",
-		"<span class='fx4'><a class='fx4' href=\"javascript:void fold('cid$crow->commentId', 1, 4)\" title='Hide author'>[blind]</a> ", contactHtml($crow), "</span>",
+		"<span class='fx4'><a class='fx4' href=\"javascript:void fold('cid$crow->commentId', 1, 4)\" title='Hide author'>[blind]</a> ", Text::user_html($crow), "</span>",
 		"</span>";
 	    $sep = $xsep;
 	}
@@ -98,12 +102,16 @@ class CommentView {
 	if ($crow && $crow->forAuthors > 1)
 	    return $this->showResponse($prow, $crow, $useRequest, $editMode);
 
-	if ($crow && !$Me->canViewComment($prow, $crow))
+	if ($crow && !$Me->canViewComment($prow, $crow, null))
 	    return;
-	if ($this->mode != 1)
-	    $this->beginTable();
 	if ($editMode && !$Me->canComment($prow, $crow))
 	    $editMode = false;
+
+	if ($this->mode != 1) {
+	    $this->table_begin("");
+            echo "<h3>Comments</h3>";
+            $this->table_tobody();
+        }
 	$this->ncomment_in_table++;
 
 	if ($editMode) {
@@ -140,12 +148,12 @@ class CommentView {
 		    "\" onclick='return open_new_comment(1)'>+&nbsp;Add Comment</a><span class='fx'>Add Comment</span></h3>";
 	    else
 		echo "<h3>Add Comment</h3>";
-	    $Conf->footerScript("hotcrpLoad('opencomment')");
+	    $Conf->footerScript("hotcrp_load('opencomment')");
 	}
 	$this->commentIdentityTime($prow, $crow, false);
 
 	if ($crow && $editMode && $crow->contactId != $Me->contactId)
-	    echo "<div class='hint'>You didn&rsquo;t write this comment, but as an administrator you can still make changes.</div>\n";
+	    echo "<div class='hint'>You didn’t write this comment, but as an administrator you can still make changes.</div>\n";
 
 	echo "</div><div class='cmtv", (!$crow && $editMode && $foldnew ? " fx" : ""), "'>";
 
@@ -182,7 +190,7 @@ class CommentView {
 		tagg_checkbox_h("blind", 1, ($useRequest ? defval($_REQUEST, "blind") : !$crow || $crow->blind)),
 		"&nbsp;", tagg_label("Anonymous to authors"), ")";
 	if ($Conf->timeAuthorViewReviews())
-	    echo "<br /><span class='fx2 hint'>Authors will be notified of new comments immediately.</span>";
+	    echo "<br /><span class='fx2 hint'>Authors will be notified immediately.</span>";
 	else
 	    echo "<br /><span class='fx2 hint'>Authors cannot view comments at the moment.</span>";
 	echo "</td></tr>\n";
@@ -195,19 +203,19 @@ class CommentView {
 	echo "</table></td></tr></table>\n";
 	$Conf->footerScript("docmtvis(false)");
 
-	// review actions
-	echo "<div class='aa'><table class='pt_buttons'>\n",
-	    "    <tr>\n",
-	    "      <td class='ptb_button'><input class='bb' type='submit' value='Save' name='submit' /></td>\n";
-	if ($crow)
-	    echo "      <td class='ptb_button'><input class='b' type='submit' value='Cancel' name='cancel' /></td>\n";
-	else
-	    echo "      <td class='ptb_button'><button class='b' type='button' onclick='javascript:void fold(\"addcomment\", 1)'>Cancel</button></td>\n";
-	if ($crow)
-	    echo "      <td class='ptb_button'><span class='lgsep'></span><input class='b' type='submit' value='Delete comment' name='delete' /></td>\n";
-	echo "    </tr>\n  </table></div>\n";
+	// actions
+        $buttons = array();
+        $buttons[] = tagg_submit("submit", "Save", array("class" => "bb"));
+        if ($crow) {
+            $buttons[] = tagg_submit("cancel", "Cancel");
+            $buttons[] = "";
+            $buttons[] = tagg_submit("delete", "Delete comment");
+        } else
+            $buttons[] = "<button class='b' type='button' onclick='cancel_comment()'>Cancel</button>";
+        $post = "";
 	if (!$Me->timeReview($prow, null))
-	    echo tagg_checkbox("override"), "&nbsp;", tagg_label("Override&nbsp;deadlines");
+	    $post = tagg_checkbox("override") . "&nbsp;" . tagg_label("Override&nbsp;deadlines");
+        echo tagg_actions($buttons, null, $post);
 
 	echo "</div></div></form>\n\n";
     }
@@ -215,25 +223,20 @@ class CommentView {
     function showResponse($prow, $crow, $useRequest, $editMode) {
 	global $Conf, $Me, $forceShow, $linkExtra;
 
-	$this->endTable();
 	if ($editMode && !$Me->canRespond($prow, $crow)
 	    && ($crow || !$Me->privChair))
 	    $editMode = false;
 	$this->nresponse++;
-	$wordlimit = $Conf->setting("resp_words", 0);
 
 	if ($editMode) {
-	    echo "<form action='", hoturl_post("comment", ($crow ? "c=$crow->commentId" : "p=$prow->paperId") . "$linkExtra&amp;response=1");
+	    echo "<form action='", hoturl_post("comment", "p=$prow->paperId" . ($crow ? "&amp;c=$crow->commentId" : "") . "$linkExtra&amp;response=1");
 	    if ($crow)
 		echo "#comment$crow->commentId";
 	    echo "' method='post' enctype='multipart/form-data' accept-charset='UTF-8'><div class='aahc'>\n";
 	}
 
-	echo "<div class='pboxc'><table class='pbox'>
-<tr>
-  <td class='pboxl'></td>
-  <td class='pboxr'>", tagg_cbox("cmt", false, "response"),
-	    "\t<tr><td></td><td class='cmthead'>";
+	$this->table_end();
+        $this->table_begin("response");
 
 	// Links
 	if ($crow && ($prow->conflictType >= CONFLICT_AUTHOR || $Me->privChair)
@@ -251,63 +254,71 @@ class CommentView {
 	echo ">Response</h3>";
 	$this->commentIdentityTime($prow, $crow, true);
 
-	if ($editMode) {
-	    $limittext = ($wordlimit ? ": the conference system will enforce a limit of $wordlimit words" : "");
-	    echo "<div class='hint'>The authors&rsquo; response is intended to address
-reviewer concerns and correct misunderstandings.
-The response should be addressed to the program committee, who
-will consider it when making their decision.  Don&rsquo;t try to
-augment the paper&rsquo;s content or form&mdash;the conference deadline
-has passed.  Please keep the response short and to the point",
-		$limittext, ".</div>\n";
-	    if ($prow->conflictType < CONFLICT_AUTHOR)
-		echo "<div class='hint'>Although you aren&rsquo;t a contact for this paper, as an administrator you can edit the authors&rsquo; response.</div>\n";
-	}
-
-	echo "</td><td></td></tr>
-  <tr><td></td><td class='cmtcc'>";
+	$this->table_tobody();
 
 	if (isset($_SESSION["comment_msgs"]) && $crow
 	    && isset($_SESSION["comment_msgs"][$crow->commentId]))
 	    echo $_SESSION["comment_msgs"][$crow->commentId];
+        else if ($editMode && $crow && !$crow->forReviewers)
+            echo "<div class='xwarning'>This is a draft response. Reviewers won’t see it until you submit.</div>";
 
 	if (!$editMode) {
 	    echo "<div class='cmtg cmtg1'>";
 	    if ($Me->privChair && $crow->forReviewers == 0)
-		echo "<i>The <a href='", hoturl("comment", "c=$crow->commentId$linkExtra"), "'>authors&rsquo; response</a> is not yet ready for reviewers to view.</i>";
-	    else if (!$Me->canViewComment($prow, $crow))
-		echo "<i>The authors&rsquo; response is not yet ready for reviewers to view.</i>";
+		echo "<i>The <a href='", hoturl("comment", "c=$crow->commentId$linkExtra"), "'>authors’ response</a> is not yet ready for reviewers to view.</i>";
+	    else if (!$Me->canViewComment($prow, $crow, null))
+		echo "<i>The authors’ response is not yet ready for reviewers to view.</i>";
 	    else
 		echo htmlWrapText(htmlspecialchars($crow->comment));
-	    echo "</div></td><td></td></tr>\n", tagg_cbox("cmt", true),
-		"</td></tr>\n</table></div>\n";
+	    echo "</div>";
+            $this->table_end();
 	    return;
 	}
 
+        echo "<div class='hint'>The authors’ response should address
+reviewer concerns and correct misunderstandings.
+Make it short and to the point; the conference deadline has passed.";
+        $wordlimit = $Conf->setting("resp_words", 500);
+        if ($wordlimit > 0)
+            echo " Try to stay within ", plural($wordlimit, "word"), ".";
+        echo "</div>\n";
+        if ($prow->conflictType < CONFLICT_AUTHOR)
+            echo "<div class='hint'>Although you aren’t a contact for this paper, as an administrator you can edit the authors’ response.</div>\n";
+
 	// From here on, edit mode.
 	// form body
-	echo "<textarea name='comment' class='reviewtext' rows='10' cols='60' onchange='hiliter(this)'>";
-	if ($useRequest)
-	    echo htmlspecialchars(defval($_REQUEST, 'comment'));
-	else if ($crow)
-	    echo htmlspecialchars($crow->comment);
-	echo "</textarea>
-  <div class='g'></div>\n  ",
-	    tagg_checkbox_h("forReviewers", 1, ($useRequest ? defval($_REQUEST, "forReviewers") : !$crow || $crow->forReviewers != 0)),
-	    "&nbsp;", tagg_label("This response should be sent to the reviewers."), "\n";
+        if ($useRequest)
+            $ctext = defval($_REQUEST, "comment", "");
+        else
+            $ctext = ($crow ? $crow->comment : "");
+	echo "<textarea id='responsetext' name='comment' class='reviewtext' rows='10' cols='60' onchange='hiliter(this)'>", htmlspecialchars($ctext), "</textarea>\n  ";
 
-	// review actions
-	echo "<div class='aa'><table class='pt_buttons'>
-    <tr>\n";
-	echo "      <td class='ptb_button'><input class='bb' type='submit' value='Save' name='submit' /></td>\n";
-	if ($crow)
-	    echo "      <td class='ptb_button'><input class='b' type='submit' value='Delete response' name='delete' /></td>\n";
-	echo "    </tr>\n  </table></div>\n";
-	if (!$Conf->timeAuthorRespond())
-	    echo tagg_checkbox("override"), "&nbsp;", tagg_label("Override&nbsp;deadlines");
+	// actions
+        $buttons = array();
+        $buttons[] = tagg_submit("submitresponse", "Submit", array("class" => "bb"));
+        if ($Me->privChair || !$crow || !$crow->forReviewers)
+            $buttons[] = tagg_submit("savedraft", "Save as draft");
+        if ($crow) {
+            $buttons[] = "";
+            $buttons[] = tagg_submit("delete", "Delete response");
+        }
+        if ($wordlimit > 0) {
+            $buttons[] = "";
+            $wc = preg_match_all("/\\PZ+/u", $ctext, $cm);
+            $wct = ($wordlimit < $wc ? plural($wc - $wordlimit, "word") . " over" : plural($wordlimit - $wc, "word") . " left");
+            $buttons[] = "<div id='responsewc' class='words"
+                . ($wordlimit < $wc ? " wordsover" :
+                   ($wordlimit * 0.9 < $wc ? " wordsclose" : "")) . "'>"
+                . $wct . "</div>";
+            $Conf->footerScript("set_response_wc(\"responsetext\",\"responsewc\",$wordlimit)");
+        }
+        $post = "";
+        if (!$Conf->timeAuthorRespond())
+            $post = tagg_checkbox("override") . "&nbsp;" . tagg_label("Override&nbsp;deadlines");
+        echo tagg_actions($buttons, null, $post);
 
-	echo "</td><td></td></tr>\n", tagg_cbox("cmt", true),
-	    "</td></tr>\n</table>\n</div></div></div></form>\n\n";
+        $this->table_end();
+	echo "</form>\n\n";
     }
 
 
@@ -323,8 +334,8 @@ has passed.  Please keep the response short and to the point",
 	if (strlen($crow->shortTitle) != strlen($crow->title))
 	    $t .= "...";
 	$t .= "</a>";
-	if ($contact->canViewCommentIdentity($crow, $crow, true))
-	    $t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>comment by</span> " . contactHtml($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
+	if ($contact->canViewCommentIdentity($crow, $crow, false))
+	    $t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>comment by</span> " . Text::user_html($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
 	$t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>posted</span> " . $Conf->parseableTime($crow->timeModified, false);
 	$t .= "</small><br /><a class='q'" . substr($a, 3)
 	    . htmlspecialchars($crow->shortComment);

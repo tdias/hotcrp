@@ -1,6 +1,6 @@
 <?php
 // search.php -- HotCRP paper search page
-// HotCRP is Copyright (c) 2006-2012 Eddie Kohler and Regents of the UC
+// HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
 require_once("Code/header.inc");
@@ -27,7 +27,7 @@ if (count($tOpt) == 0) {
     exit;
 }
 if (isset($_REQUEST["t"]) && !isset($tOpt[$_REQUEST["t"]])) {
-    $Conf->errorMsg("You aren't allowed to search that paper collection.");
+    $Conf->errorMsg("You aren’t allowed to search that paper collection.");
     unset($_REQUEST["t"]);
 }
 if (!isset($_REQUEST["t"]))
@@ -69,14 +69,20 @@ function cleanAjaxResponse(&$response, $type) {
 }
 
 
+// report tag info
+if (isset($_REQUEST["alltags"]) && $Me->isPC)
+    PaperActions::all_tags(isset($papersel) ? $papersel : null);
+
+
 // download selected papers
-if (($getaction == "paper" || $getaction == "final" || substr($getaction, 0, 4) == "opt-")
+if (($getaction == "paper" || $getaction == "final"
+     || substr($getaction, 0, 4) == "opt-")
     && isset($papersel)
     && ($dt = requestDocumentType($getaction, null)) !== null) {
     $q = $Conf->paperQuery($Me, array("paperId" => $papersel));
     $result = $Conf->qe($q, "while selecting papers");
     $downloads = array();
-    while ($row = edb_orow($result)) {
+    while (($row = edb_orow($result))) {
 	if (!$Me->canViewPaper($row, $whyNot, true))
 	    $Conf->errorMsg(whyNotText($whyNot, "view"));
 	else
@@ -84,7 +90,7 @@ if (($getaction == "paper" || $getaction == "final" || substr($getaction, 0, 4) 
     }
 
     session_write_close();	// to allow concurrent clicks
-    $result = $Conf->downloadPapers($downloads, $dt);
+    $result = $Conf->downloadPaper($downloads, true, $dt);
     if ($result === true)
 	exit;
 }
@@ -94,7 +100,7 @@ if (($getaction == "paper" || $getaction == "final" || substr($getaction, 0, 4) 
 if ($getaction == "abstract" && isset($papersel) && defval($_REQUEST, "ajax")) {
     $Search = new PaperSearch($Me, $_REQUEST);
     $pl = new PaperList($Search);
-    $response = $pl->ajaxColumn(PaperList::FIELD_OPT_ABSTRACT, $Me);
+    $response = $pl->ajaxColumn("abstract", $Me);
     $response["ok"] = (count($response) > 0);
     $Conf->ajaxExit($response);
 } else if ($getaction == "abstract" && isset($papersel)) {
@@ -138,24 +144,16 @@ if ($getaction == "abstract" && isset($papersel) && defval($_REQUEST, "ajax")) {
 }
 
 
-// download selected authors
-if ($getaction == "authors" && isset($papersel) && defval($_REQUEST, "ajax")) {
-    $full = defval($_REQUEST, "aufull", 0);
-    displayOptionsSet("pldisplay", "aufull", $full);
-    $Search = new PaperSearch($Me, $_REQUEST);
-    $pl = new PaperList($Search);
-    $response = $pl->ajaxColumn(PaperList::FIELD_OPT_AUTHORS, $Me);
-    $response["ok"] = (count($response) > 0);
-    $Conf->ajaxExit($response);
-}
-
-
 // other field-based Ajax downloads: tags, collaborators, ...
-if ($getaction && ($fdef = defval($paperListFolds, $getaction))
-    && isset($fdef->id) && defval($_REQUEST, "ajax")) {
+if ($getaction && ($fdef = PaperColumn::lookup($getaction))
+    && $fdef->foldnum && defval($_REQUEST, "ajax")) {
+    if ($getaction == "authors") {
+        $full = defval($_REQUEST, "aufull", 0);
+        displayOptionsSet("pldisplay", "aufull", $full);
+    }
     $Search = new PaperSearch($Me, $_REQUEST);
     $pl = new PaperList($Search);
-    $response = $pl->ajaxColumn($fdef->id, $Me);
+    $response = $pl->ajaxColumn($getaction, $Me);
     $response["ok"] = (count($response) > 0);
     $Conf->ajaxExit($response);
 }
@@ -215,16 +213,12 @@ function downloadReviews(&$texts, &$errors) {
 	downloadText($text, $rfname, "review forms");
 	exit;
     } else {
-	$files = array();
+        $zip = DocumentHelper::start_zip();
+        $zip->warnings = $warnings;
 	foreach ($texts as $sel => $text)
-	    $Conf->zipAdd($tmpdir, $Opt['downloadPrefix'] . $rfname . $papersel[$sel] . ".txt", $header . $text, $warnings, $files);
-	if (count($warnings))
-	    $Conf->zipAdd($tmpdir, "README-warnings.txt", join("\n", $warnings) . "\n", $warnings, $files);
-
-	$result = $Conf->zipFinish($tmpdir, $Opt['downloadPrefix'] . "reviews.zip", $files);
-	if (isset($tmpdir) && $tmpdir)
-	    exec("/bin/rm -rf $tmpdir");
-	if ($result === true)
+	    $zip->add($header . $text, $Opt["downloadPrefix"] . $rfname . $papersel[$sel] . ".txt");
+	$result = $zip->finish($Opt["downloadPrefix"] . "reviews.zip");
+	if (!$result->error)
 	    exit;
     }
 }
@@ -275,7 +269,7 @@ if (($getaction == "rev" || $getaction == "revz") && isset($papersel)) {
     if ($Me->privChair)
 	$_REQUEST["forceShow"] = 1;
     while ($row = edb_orow($result)) {
-	if (!$Me->canViewReview($row, null, $whyNot))
+	if (!$Me->canViewReview($row, null, null, $whyNot))
 	    $errors[whyNotText($whyNot, "view review")] = true;
 	else if ($row->reviewSubmitted)
 	    defappend($texts[$paperselmap[$row->paperId]], $rf->prettyTextForm($row, $row, $Me, false) . "\n");
@@ -283,7 +277,7 @@ if (($getaction == "rev" || $getaction == "revz") && isset($papersel)) {
 
     $crows = $Conf->commentRows($Conf->paperQuery($Me, array("paperId" => $papersel, "allComments" => 1, "reviewerName" => 1)));
     foreach ($crows as $row)
-	if ($Me->canViewComment($row, $row, $whyNot))
+	if ($Me->canViewComment($row, $row, null))
 	    defappend($texts[$paperselmap[$row->paperId]], $rf->prettyTextComment($row, $row, $Me) . "\n");
 
     downloadReviews($texts, $errors);
@@ -293,7 +287,6 @@ if (($getaction == "rev" || $getaction == "revz") && isset($papersel)) {
 // set tags for selected papers
 function tagaction() {
     global $Conf, $Me, $Error, $papersel;
-    require_once("Code/tags.inc");
 
     $errors = array();
     $papers = $papersel;
@@ -311,13 +304,14 @@ function tagaction() {
 
     $act = $_REQUEST["tagtype"];
     $tag = $_REQUEST["tag"];
+    $tagger = new Tagger;
     if (count($papers) && ($act == "a" || $act == "d" || $act == "s" || $act == "so" || $act == "ao" || $act == "sos" || $act == "sor" || $act == "aos" || $act == "da"))
-	setTags($papers, $tag, $act, $Me->privChair);
-    else if (count($papers) && $act == "cr" && $Me->privChair
-	     && checkTag($tag, CHECKTAG_NOINDEX | CHECKTAG_NOPRIVATE | CHECKTAG_ERRORARRAY | CHECKTAG_CHAIR)) {
+	$tagger->save($papers, $tag, $act);
+    else if (count($papers) && $act == "cr" && $Me->privChair) {
 	$source_tag = trim(defval($_REQUEST, "tagcr_source", ""));
 	$source_tag = ($source_tag == "" ? $tag : $source_tag);
-	if (checkTag($source_tag, CHECKTAG_NOINDEX | CHECKTAG_NOPRIVATE | CHECKTAG_ERRORARRAY)) {
+        if ($tagger->check($tag, Tagger::NOVALUE | Tagger::NOPRIVATE)
+            && $tagger->check($source_tag, Tagger::NOVALUE | Tagger::NOPRIVATE)) {
 	    require_once("Code/rank.inc");
 	    ini_set("max_execution_time", 1200);
 	    $r = new PaperRank($source_tag, $tag, $papers,
@@ -337,7 +331,8 @@ function tagaction() {
 	    $r->save();
 	    if ($_REQUEST["q"] === "")
 		$_REQUEST["q"] = "order:$tag";
-	}
+	} else
+            defappend($Error["tags"], $tagger->error_html . "<br />\n");
     }
     if (isset($Error["tags"]))
 	$Conf->errorMsg($Error["tags"]);
@@ -361,8 +356,8 @@ else if (isset($_REQUEST["tagact"]) && defval($_REQUEST, "ajax"))
 // download votes
 if ($getaction == "votes" && isset($papersel) && defval($_REQUEST, "tag")
     && $Me->isPC) {
-    require_once("Code/tags.inc");
-    if (($tag = checkTag($_REQUEST["tag"], CHECKTAG_NOINDEX)) !== false) {
+    $tagger = new Tagger;
+    if (($tag = $tagger->check($_REQUEST["tag"], Tagger::NOVALUE | Tagger::NOCHAIR))) {
 	$showtag = trim($_REQUEST["tag"]); // no "23~" prefix
 	$q = $Conf->paperQuery($Me, array("paperId" => $papersel, "tagIndex" => $tag));
 	$result = $Conf->qe($q, "while selecting papers");
@@ -373,7 +368,8 @@ if ($getaction == "votes" && isset($papersel) && defval($_REQUEST, "tag")
 	ksort($texts);
 	downloadCSV($texts, array("tag", "votes", "paper", "title"), "votes", "votes");
 	exit;
-    }
+    } else
+        $Conf->errorMsg($tagger->error_html);
 }
 
 
@@ -381,8 +377,8 @@ if ($getaction == "votes" && isset($papersel) && defval($_REQUEST, "tag")
 $settingrank = ($Conf->setting("tag_rank") && defval($_REQUEST, "tag") == "~" . $Conf->settingText("tag_rank"));
 if ($getaction == "rank" && isset($papersel) && defval($_REQUEST, "tag")
     && ($Me->isPC || ($Me->amReviewer() && $settingrank))) {
-    require_once("Code/tags.inc");
-    if (($tag = checkTag($_REQUEST["tag"], CHECKTAG_NOINDEX)) !== false) {
+    $tagger = new Tagger;
+    if (($tag = $tagger->check($_REQUEST["tag"], Tagger::NOVALUE | Tagger::NOCHAIR))) {
 	$q = $Conf->paperQuery($Me, array("paperId" => $papersel, "tagIndex" => $tag, "order" => "order by tagIndex, PaperReview.overAllMerit desc, Paper.paperId"));
 	$result = $Conf->qe($q, "while selecting papers");
 	$real = "";
@@ -400,21 +396,23 @@ if ($getaction == "rank" && isset($papersel) && defval($_REQUEST, "tag")
 		    $real .= str_pad("", min($row->tagIndex - $lastIndex, 5), ">") . "\t$row->paperId\t$row->title\n";
 		$lastIndex = $row->tagIndex;
 	    }
-	$text = "# Edit the rank order by rearranging this file's lines.\n"
-	    . "# The first line has the highest rank.\n\n"
-	    . "# Lines starting with \"#\" are ignored.  Unranked papers appear at the end\n"
-	    . "# in lines starting with \"X\", sorted by overall merit.  Create a rank by\n"
-	    . "# removing the \"X\"s and rearranging the lines.  Lines starting with \"=\"\n"
-	    . "# mark papers with the same rank as the preceding papers.  Lines starting\n"
-	    . "# with \">>\", \">>>\", and so forth indicate rank gaps between papers.\n"
-	    . "# When you are done, upload the file at\n"
+	$text = "# Edit the rank order by rearranging this file's lines.
+
+# The first line has the highest rank. Lines starting with \"#\" are
+# ignored. Unranked papers appear at the end in lines starting with
+# \"X\", sorted by overall merit. Create a rank by removing the \"X\"s and
+# rearranging the lines. Lines starting with \"=\" mark papers with the
+# same rank as the preceding papers. Lines starting with \">>\", \">>>\",
+# and so forth indicate rank gaps between papers. When you are done,
+# upload the file at\n"
 	    . "#   " . hoturl_absolute("offline") . "\n\n"
 	    . "Tag: " . trim($_REQUEST["tag"]) . "\n"
 	    . "\n"
 	    . $real . $null;
 	downloadText($text, "rank", "rank");
 	exit;
-    }
+    } else
+        $Conf->errorMsg($tagger->error_html);
 }
 
 
@@ -604,7 +602,7 @@ if ($getaction == "scores" && $Me->isPC && isset($papersel)) {
 	$_REQUEST["forceShow"] = 1;
     $texts = array();
     while (($row = edb_orow($result))) {
-	if (!$Me->canViewReview($row, null, $whyNot))
+	if (!$Me->canViewReview($row, null, null, $whyNot))
 	    $errors[] = whyNotText($whyNot, "view review") . "<br />";
 	else if ($row->reviewSubmitted) {
 	    $a = array($row->paperId, $row->title);
@@ -613,7 +611,7 @@ if ($getaction == "scores" && $Me->isPC && isset($papersel)) {
 	    $a[] = $row->outcome;
 	    foreach ($scores as $score)
 		$a[] = $rf->unparseOption($score, $row->$score);
-	    if ($Me->canViewReviewerIdentity($row, $row)) {
+	    if ($Me->canViewReviewerIdentity($row, $row, null)) {
 		$a[] = $row->reviewEmail;
 		$a[] = trim($row->reviewFirstName . " " . $row->reviewLastName);
 	    }
@@ -688,14 +686,20 @@ if ($getaction == "topics" && isset($papersel)) {
     $rf = reviewForm();
     $texts = array();
 
-    while ($row = edb_orow($result)) {
-	if (!$Me->canViewPaper($row) || $row->topicIds === "")
+    while (($row = edb_orow($result))) {
+	if (!$Me->canViewPaper($row))
 	    continue;
 	$out = array();
-	foreach (explode(",", $row->topicIds) as $tid)
-	    if ($tid != "")
-		$out[$rf->topicOrder[$tid]] =
-		    array($row->paperId, $row->title, $rf->topicName[$tid]);
+        $topicIds = ($row->topicIds == "" ? "x" : $row->topicIds);
+	foreach (explode(",", $topicIds) as $tid) {
+	    if ($tid === "")
+                continue;
+            else if ($tid === "x")
+                list($order, $name) = array(99999, "<none>");
+            else
+                list($order, $name) = array($rf->topicOrder[$tid], $rf->topicName[$tid]);
+            $out[$order] = array($row->paperId, $row->title, $name);
+        }
 	ksort($out);
 	arrayappend($texts[$paperselmap[$row->paperId]], $out);
     }
@@ -855,9 +859,9 @@ if (isset($_REQUEST["compare"]) && isset($papersel)) {
 // set fields to view
 if (isset($_REQUEST["redisplay"])) {
     $_SESSION["pldisplay"] = " ";
-    foreach ($paperListFolds as $n => $foldnum)
-	if (defval($_REQUEST, "show$n", 0))
-	    $_SESSION["pldisplay"] .= $n . " ";
+    foreach ($_REQUEST as $k => $v)
+        if (substr($k, 0, 4) == "show" && $v)
+            $_SESSION["pldisplay"] .= substr($k, 4) . " ";
 }
 displayOptionsSet("pldisplay");
 if (defval($_REQUEST, "scoresort") == "M")
@@ -965,11 +969,11 @@ if (isset($_REQUEST["saveformulas"]) && $Me->isPC && $Conf->sversion >= 32
 // save formula
 function savesearch() {
     global $Conf, $Me, $paperListFormulas, $OK;
-    require_once("Code/tags.inc");
     $while = "while saving search";
 
     $name = simplifyWhitespace(defval($_REQUEST, "ssname", ""));
-    if (!checkTag($name, CHECKTAG_NOPRIVATE | CHECKTAG_QUIET | CHECKTAG_NOINDEX)) {
+    $tagger = new Tagger;
+    if (!$tagger->check($name, Tagger::NOPRIVATE | Tagger::NOVALUE)) {
 	if ($name == "")
 	    return $Conf->errorMsg("Saved search name missing.");
 	else
@@ -1098,7 +1102,7 @@ function displayOptionCheckbox($type, $column, $title, $opt = array()) {
     $loadresult = "";
 
     if (!isset($opt["onchange"])) {
-	$opt["onchange"] = "foldplinfo(this,'$type')";
+	$opt["onchange"] = "plinfo('$type',this)";
 	$loadresult = "<div id='${type}loadformresult'></div>";
     } else
 	$loadresult = "<div></div>";
@@ -1123,7 +1127,8 @@ if ($pl) {
     $viewAcceptedAuthors =
 	$Me->amReviewer() && $Conf->timeReviewerViewAcceptedAuthors();
     $viewAllAuthors = ($_REQUEST["t"] == "a"
-		       || ($_REQUEST["t"] == "acc" && $viewAcceptedAuthors));
+		       || ($_REQUEST["t"] == "acc" && $viewAcceptedAuthors)
+                       || $Conf->subBlindNever());
 
     displayOptionText("<strong>Show:</strong>" . foldsessionpixel("pl", "pldisplay", null), 1);
 
@@ -1133,37 +1138,36 @@ if ($pl) {
 	if ($Me->privChair && $viewAllAuthors)
 	    $onchange .= ";fold('pl',!this.checked,'anonau')";
 	if ($Me->privChair)
-	    $onchange .= ";foldplinfo_extra()";
+	    $onchange .= ";plinfo.extra()";
 	displayOptionCheckbox("au", 1, "Authors", array("id" => "showau", "onchange" => $onchange));
     } else if ($Conf->subBlindAlways() && $Me->privChair) {
-	$onchange = "fold('pl',!this.checked,'anonau');foldplinfo_extra()";
-	displayOptionCheckbox("anonau", 1, "Authors", array("id" => "showau", "onchange" => $onchange, "disabled" => (!$pl || !($pl->headerInfo["authors"] & 2))));
+	$onchange = "fold('pl',!this.checked,'anonau');plinfo.extra()";
+	displayOptionCheckbox("anonau", 1, "Authors", array("id" => "showau", "onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau)));
     }
     if (!$Conf->subBlindAlways() || $viewAcceptedAuthors || $viewAllAuthors || $Me->privChair)
 	displayOptionCheckbox("aufull", 1, "Full author info", array("indent" => true));
-    if ($Me->privChair && !$viewAllAuthors && ($Conf->subBlindOptional() || $viewAcceptedAuthors)) {
-	$onchange = "fold('pl',!this.checked,'anonau');foldplinfo_extra()";
-	displayOptionCheckbox("anonau", 1, "Anonymous authors", array("onchange" => $onchange, "disabled" => (!$pl || !($pl->headerInfo["authors"] & 2)), "indent" => true));
+    if (!$viewAllAuthors && $Me->privChair) {
+	$onchange = "fold('pl',!this.checked,'anonau');plinfo.extra()";
+	displayOptionCheckbox("anonau", 1, "Anonymous authors", array("onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau), "indent" => true));
     }
-    if ($pl->headerInfo["collab"])
+    if ($pl->any->collab)
 	displayOptionCheckbox("collab", 1, "Collaborators", array("indent" => true));
 
     // Abstract group
-    if ($pl->headerInfo["abstract"])
+    if ($pl->any->abstract)
 	displayOptionCheckbox("abstract", 1, "Abstracts");
-    if ($pl->headerInfo["topics"])
+    if ($pl->any->topics)
 	displayOptionCheckbox("topics", 1, "Topics");
 
     // Tags group
-    if ($Me->isPC && $pl->headerInfo["tags"]) {
-	require_once("Code/tags.inc");
+    if ($Me->isPC && $pl->any->tags) {
 	$opt = array("disabled" => ($_REQUEST["t"] == "a" && !$Me->privChair));
 	displayOptionCheckbox("tags", 1, "Tags", $opt);
 	if ($Me->privChair) {
-	    $vtags = voteTags(rankTags());
-	    ksort($vtags);
-	    foreach ($vtags as $tag => $value)
-		displayOptionCheckbox("tagrep_" . preg_replace('/\W+/', '_', $tag), 1, "“${tag}” tag report", $opt);
+            $tagger = new Tagger;
+            foreach ($tagger->defined_tags() as $t)
+                if ($t->vote || $t->rank)
+                    displayOptionCheckbox("tagrep_" . preg_replace('/\W+/', '_', $t->tag), 1, "“" . $t->tag . "” tag report", $opt);
 	}
     }
 
@@ -1172,18 +1176,18 @@ if ($pl) {
 	displayOptionCheckbox("rownum", 1, "Row numbers", array("onchange" => "fold('pl',!this.checked,'rownum')"));
 
     // Reviewers group
-    if ($Me->canViewReviewerIdentity(true, null))
+    if ($Me->canViewReviewerIdentity(true, null, null))
 	displayOptionCheckbox("reviewers", 2, "Reviewers");
     if ($Me->privChair)
 	displayOptionCheckbox("pcconf", 2, "PC conflicts");
-    if ($Me->isPC && $pl->headerInfo["lead"])
+    if ($Me->isPC && $pl->any->lead)
 	displayOptionCheckbox("lead", 2, "Discussion leads");
-    if ($Me->isPC && $pl->headerInfo["shepherd"])
+    if ($Me->isPC && $pl->any->shepherd)
 	displayOptionCheckbox("shepherd", 2, "Shepherds");
 
     // Scores group
     $anyScores = false;
-    if (isset($pl->scoreMax)) {
+    if ($pl->scoresOk == "present") {
 	$rf = reviewForm();
 	if ($Me->amReviewer() && $_REQUEST["t"] != "a")
 	    $revViewScore = $Me->viewReviewFieldsScore(null, true);
@@ -1203,7 +1207,7 @@ if ($pl) {
 	if (count($displayOptions) > $n) {
 	    $onchange = "highlightUpdate(\"redisplay\")";
 	    if ($Me->privChair)
-		$onchange .= ";foldplinfo_extra()";
+		$onchange .= ";plinfo.extra()";
 	    displayOptionText("<div style='padding-top:1ex'>Sort by: &nbsp;"
 		. tagg_select("scoresort", $scoreSorts, $_SESSION["scoresort"], array("onchange" => $onchange, "id" => "scoresort", "style" => "font-size: 100%"))
 		. "<a class='help' href='" . hoturl("help", "t=scoresort") . "' target='_blank' title='Learn more'>?</a></div>", 3);
@@ -1220,13 +1224,18 @@ if ($pl) {
 }
 
 
-echo "<table id='searchform' class='tablinks$activetab fold3$searchform_formulas'>\n<tr><td><div class='tlx'><div class='tld1'>";
+echo "<table id='searchform' class='tablinks$activetab fold3$searchform_formulas'>
+<tr><td><div class='tlx'><div class='tld1'>";
 
 // Basic search
-echo "<form method='get' action='", hoturl("search"), "' accept-charset='UTF-8'><div class='inform'>
+echo "<form method='get' action='", hoturl("search"), "' accept-charset='UTF-8'><div class='inform' style='position:relative'>
   <input id='searchform1_d' class='textlite' type='text' size='40' style='width:30em' name='q' value=\"", htmlspecialchars(defval($_REQUEST, "q", "")), "\" tabindex='1' /> &nbsp;in &nbsp;$tselect &nbsp;
   <input class='b' type='submit' value='Search' />
+<div id='taghelp_searchform1' class='taghelp_s'></div>
 </div></form>";
+
+if (!defval($Opt, "noSearchAutocomplete"))
+    $Conf->footerScript("taghelp(\"searchform1_d\",\"taghelp_searchform1\",taghelp_q)");
 
 echo "</div><div class='tld2'>";
 
@@ -1403,13 +1412,13 @@ if ($pl && $pl->count > 0) {
 	$Conf->footerHtml("<form id='savedisplayoptionsform' method='post' action='" . hoturl_post("search", "savedisplayoptions=1") . "' enctype='multipart/form-data' accept-charset='UTF-8'>"
 . "<div><input id='scoresortsave' type='hidden' name='scoresort' value='"
 . $_SESSION["scoresort"] . "' /></div></form>");
-	$Conf->footerScript("function foldplinfo_extra() { $$('savedisplayoptionsbutton').disabled = false; }");
+	$Conf->footerScript("plinfo.extra=function(){\$\$('savedisplayoptionsbutton').disabled=false};");
 	// strings might be in different orders, so sort before comparing
 	$pld = explode(" ", trim($Conf->settingText("pldisplay_default", " overAllMerit ")));
 	sort($pld);
 	if ($_SESSION["pldisplay"] != " " . ltrim(join(" ", $pld) . " ")
 	    || $_SESSION["scoresort"] != $Conf->settingText("scoresort_default", $defaultScoreSort))
-	    $Conf->footerScript("foldplinfo_extra()");
+	    $Conf->footerScript("plinfo.extra()");
     }
 
     echo "<input id='redisplay' class='b' type='submit' value='Redisplay' /></td>";

@@ -4,7 +4,6 @@
 // Distributed under an MIT-like license; see LICENSE
 
 require_once("Code/header.inc");
-require_once("Code/tags.inc");
 require_once("Code/paperoption.inc");
 require_once("Code/cleanxhtml.inc");
 $Me->goIfInvalid();
@@ -77,6 +76,7 @@ $SettingGroups = array("acc" => array(
 			     "resp_open" => "check",
 			     "resp_done" => "date",
 			     "resp_grace" => "grace",
+                             "resp_words" => "int",
 			     "decisions" => "special",
 			     "final_open" => "check",
 			     "final_soft" => "date",
@@ -185,7 +185,6 @@ function unparseGrace($v) {
 function expandMailTemplate($name, $default) {
     global $nullMailer;
     if (!isset($nullMailer)) {
-	require_once("Code/mailtemplate.inc");
 	$nullMailer = new Mailer(null, null);
 	$nullMailer->width = 10000000;
     }
@@ -214,12 +213,17 @@ function parseValue($name, $type) {
 	else if (($v = strtotime($v)) !== false)
 	    return $v;
 	else
-	    $err = $SettingText[$name] . ": not a valid date.";
+	    $err = $SettingText[$name] . ": invalid date.";
     } else if ($type == "grace") {
 	if (($v = parseGrace($v)) !== null)
 	    return intval($v);
 	else
-	    $err = $SettingText[$name] . ": parse error.";
+	    $err = $SettingText[$name] . ": invalid grace period.";
+    } else if ($type == "int") {
+        if (preg_match("/\\A[-+]?[0-9]+\\z/", $v))
+            return intval($v);
+	else
+	    $err = $SettingText[$name] . ": should be a number.";
     } else if ($type == "string") {
 	// Avoid storing the default message in the database
 	if (substr($name, 0, 9) == "mailbody_") {
@@ -252,12 +256,12 @@ function parseValue($name, $type) {
 
 function doTags($set, $what) {
     global $Conf, $Values, $Error, $Highlight, $TagStyles;
-    require_once("Code/tags.inc");
+    $tagger = new Tagger;
 
     if (!$set && $what == "tag_chair" && isset($_REQUEST["tag_chair"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_chair"]) as $t)
-	    if ($t !== "" && checkTag($t, CHECKTAG_QUIET | CHECKTAG_NOPRIVATE | CHECKTAG_NOINDEX))
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
 		$vs[] = $t;
 	    else if ($t !== "") {
 		$Error[] = "Chair-only tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
@@ -273,7 +277,7 @@ function doTags($set, $what) {
     if (!$set && $what == "tag_vote" && isset($_REQUEST["tag_vote"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_vote"]) as $t)
-	    if ($t !== "" && checkTag($t, CHECKTAG_QUIET | CHECKTAG_NOPRIVATE)) {
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE)) {
 		if (preg_match('/\A([^#]+)(|#|#0+|#-\d*)\z/', $t, $m))
 		    $t = $m[1] . "#1";
 		$vs[] = $t;
@@ -306,7 +310,7 @@ function doTags($set, $what) {
 	    while (($row = edb_row($result))) {
 		$who = substr($row[1], 0, strpos($row[1], "~"));
 		if ($row[2] < 0) {
-		    $Error[] = "Removed " . contactHtml($pcm[$who]) . "'s negative &ldquo;$base&rdquo; vote for paper #$row[0].";
+		    $Error[] = "Removed " . Text::user_html($pcm[$who]) . "'s negative &ldquo;$base&rdquo; vote for paper #$row[0].";
 		    $negative = true;
 		} else {
 		    $pvals[$row[0]] = defval($pvals, $row[0], 0) + $row[2];
@@ -316,7 +320,7 @@ function doTags($set, $what) {
 
 	    foreach ($cvals as $who => $what)
 		if ($what > $allotment) {
-		    $Error[] = contactHtml($pcm[$who]) . " already has more than $allotment votes for tag &ldquo;$base&rdquo;.";
+		    $Error[] = Text::user_html($pcm[$who]) . " already has more than $allotment votes for tag &ldquo;$base&rdquo;.";
 		    $Highlight["tag_vote"] = true;
 		}
 
@@ -334,7 +338,7 @@ function doTags($set, $what) {
     if (!$set && $what == "tag_rank" && isset($_REQUEST["tag_rank"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_rank"]) as $t)
-	    if ($t !== "" && checkTag($t, CHECKTAG_QUIET | CHECKTAG_NOPRIVATE | CHECKTAG_NOINDEX))
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
 		$vs[] = $t;
 	    else if ($t !== "") {
 		$Error[] = "Rank tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
@@ -363,7 +367,7 @@ function doTags($set, $what) {
 	    if (isset($_REQUEST["tag_color_" . $k])) {
 		$any_set = true;
 		foreach (preg_split('/,*\s+/', $_REQUEST["tag_color_" . $k]) as $t)
-		    if ($t !== "" && checkTag($t, CHECKTAG_QUIET | CHECKTAG_NOPRIVATE | CHECKTAG_NOINDEX))
+		    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
 			$vs[] = $t . "=" . $k;
 		    else if ($t !== "") {
 			$Error[] = ucfirst($k) . " color tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
@@ -374,6 +378,9 @@ function doTags($set, $what) {
 	if ($any_set && $Conf->settingText("tag_color") !== $v[1])
 	    $Values["tag_color"] = $v;
     }
+
+    if ($set)
+        Tagger::invalidate_defined_tags();
 }
 
 function doTopics($set) {
@@ -395,6 +402,7 @@ function doTopics($set) {
 	    if ($v == "") {
 		$Conf->qe("delete from TopicArea where topicId=$k", $while);
 		$Conf->qe("delete from PaperTopic where topicId=$k", $while);
+                $Conf->qe("delete from TopicInterest where topicId=$k", $while);
 	    } else if (isset($rf->topicName[$k]) && $v != $rf->topicName[$k])
 		$Conf->qe("update TopicArea set topicName='" . sqlq($v) . "' where topicId=$k", $while);
 	}
@@ -814,7 +822,6 @@ function doSpecial($name, $set) {
 	if (!$set && !isset($_REQUEST["rev_roundtag"]))
 	    $Values["rev_roundtag"] = null;
 	else if (!$set) {
-	    require_once("Code/tags.inc");
 	    $t = trim($_REQUEST["rev_roundtag"]);
 	    if ($t == "" || $t == "(None)")
 		$Values["rev_roundtag"] = null;
@@ -933,7 +940,7 @@ if (isset($_REQUEST["update"]) && check_post()) {
     // make settings
     if (count($Error) == 0 && count($Values) > 0) {
 	$while = "updating settings";
-	$tables = "Settings write, TopicArea write, PaperTopic write, OptionType write, PaperOption write";
+	$tables = "Settings write, TopicArea write, PaperTopic write, TopicInterest write, OptionType write, PaperOption write";
 	if (isset($Values['decisions']) || isset($Values['reviewform']))
 	    $tables .= ", ReviewFormOptions write";
 	else
@@ -1115,10 +1122,10 @@ function doAccGroup() {
 
     echo "<hr class='hr' /><h3>Program committee &amp; system administrators</h3>";
 
-    echo "<p><a href='", hoturl("account", "new=1"), "' class='button'>Create account</a> &nbsp;|&nbsp; ",
+    echo "<p><a href='", hoturl("profile", "u=new"), "' class='button'>Create account</a> &nbsp;|&nbsp; ",
 	"Select a user&rsquo;s name to edit a profile or change PC/administrator status.</p>\n";
     $pl = new ContactList($Me, false);
-    echo $pl->text("pcadminx", hoturl("contacts", "t=pcadmin"));
+    echo $pl->text("pcadminx", hoturl("users", "t=pcadmin"));
 }
 
 // Messages
@@ -1502,26 +1509,22 @@ function doRevGroup() {
     echo "<hr class='hr' />";
 
     // Tags
+    $tagger = new Tagger;
     echo "<h3>Tags</h3>\n";
 
     echo "<table><tr><td class='lcaption'>", decorateSettingName("tag_chair", "Chair-only tags"), "</td>";
     if (count($Error) > 0)
 	$v = defval($_REQUEST, "tag_chair", "");
-    else {
-	$t = array_keys(chairTags());
-	sort($t);
-	$v = join(" ", $t);
-    }
+    else
+        $v = join(" ", array_keys($tagger->chair_tags()));
     echo "<td><input type='text' class='textlite' name='tag_chair' value=\"", htmlspecialchars($v), "\" size='40' onchange='hiliter(this)' /><br /><div class='hint'>Only PC chairs can change these tags.  (PC members can still <i>view</i> the tags.)</div></td></tr>";
 
     echo "<tr><td class='lcaption'>", decorateSettingName("tag_vote", "Voting tags"), "</td>";
     if (count($Error) > 0)
 	$v = defval($_REQUEST, "tag_vote", "");
     else {
-	$t = voteTags();
-	ksort($t);
 	$x = "";
-	foreach ($t as $n => $v)
+	foreach ($tagger->vote_tags() as $n => $v)
 	    $x .= "$n#$v ";
 	$v = trim($x);
     }
@@ -1595,6 +1598,7 @@ function doDecGroup() {
     echo "<tr class='fx'><td></td><td><table>";
     doDateRow('resp_done', 'Hard deadline', null, "lxcaption");
     doGraceRow('resp_grace', 'Grace period', "lxcaption");
+    doTextRow("resp_words", array("Word limit", "This is a soft limit: authors may submit longer responses. 0 means no limit."), setting("resp_words", 500), 5, "lxcaption", "none");
     echo "</table></td></tr></table>";
     $Conf->footerScript("fold('auresp',!\$\$('cbresp_open').checked)");
 

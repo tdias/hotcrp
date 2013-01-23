@@ -70,7 +70,7 @@ if (isset($_REQUEST["setwatch"]) && $prow && check_post()) {
     $ajax = defval($_REQUEST, "ajax", 0);
     if (!$Me->privChair
 	|| ($contactId = rcvtint($_REQUEST["contactId"])) <= 0)
-	$contactId = $Me->contactId;
+	$contactId = $Me->cid;
     saveWatchPreference($prow->paperId, $contactId, WATCHTYPE_COMMENT, defval($_REQUEST, "watch"));
     if ($OK)
 	$Conf->confirmMsg("Saved");
@@ -83,10 +83,8 @@ if (isset($_REQUEST["setwatch"]) && $prow && check_post()) {
 function comment_watch_callback($prow, $minic) {
     global $savedCrow;
     $tmpl = ($savedCrow->forAuthors > 1 ? "@responsenotify" : "@commentnotify");
-    if ($minic->canViewComment($prow, $savedCrow)) {
-	require_once("Code/mailtemplate.inc");
+    if ($minic->canViewComment($prow, $savedCrow, false))
 	Mailer::send($tmpl, $prow, $minic, null, array("commentId" => $savedCrow->commentId));
-    }
 }
 
 function watch() {
@@ -117,7 +115,11 @@ function saveComment($text) {
 	$blind = 1;
     if (isset($_REQUEST["response"])) {
 	$forAuthors = 2;
-	$forReviewers = (defval($_REQUEST, "forReviewers") ? 1 : 0);
+        if (defval($_REQUEST, "forReviewers")
+            || isset($_REQUEST["submitresponse"]))
+            $forReviewers = 1;
+        else
+            $forReviewers = 0;
 	$blind = $prow->blind;	// use $prow->blind setting on purpose
     }
 
@@ -139,7 +141,7 @@ function saveComment($text) {
 	$q = "insert into PaperComment
 		(contactId, paperId, timeModified, comment, forReviewers,
 		forAuthors, blind, timeNotified$qa)
-	select $Me->contactId, $prow->paperId, $now, '" . sqlq($text) . "',
+	select $Me->cid, $prow->paperId, $now, '" . sqlq($text) . "',
 		$forReviewers, $forAuthors, $blind, $now$qb\n";
 	if ($forAuthors == 2) {
 	    // make sure there is exactly one response
@@ -161,7 +163,8 @@ function saveComment($text) {
 	    $now = $crow->timeModified + 1;
 	// do not notify on updates within 3 hours
 	$qa = "";
-	if ($crow->timeNotified + 10800 < $now)
+	if ($crow->timeNotified + 10800 < $now
+            || ($forAuthors == 2 && $forReviewers && !$crow->forReviewers))
 	    $qa = ", timeNotified=$now";
 	$q = "update PaperComment set timeModified=$now$qa, comment='" . sqlq($text) . "', forReviewers=$forReviewers, forAuthors=$forAuthors, blind=$blind where commentId=$crow->commentId";
     }
@@ -186,9 +189,9 @@ function saveComment($text) {
 	    $extratext = "  You have until $deadline to send the response to the reviewers.";
 	else
 	    $extratext = "";
-	$_SESSION["comment_msgs"][$savedCommentId] = "<div class='xwarning'>$what saved.  However, at your request, this response will not be shown to reviewers.$extratext</div>";
+	$_SESSION["comment_msgs"][$savedCommentId] = "<div class='xwarning'>$what saved. However, at your request, this response will not be shown to reviewers.$extratext</div>";
     } else if ($text != "")
-	$_SESSION["comment_msgs"][$savedCommentId] = "<div class='xconfirm'>$what saved.</div>";
+	$_SESSION["comment_msgs"][$savedCommentId] = "<div class='xconfirm'>$what submitted.</div>";
     else
 	$Conf->confirmMsg("$what deleted.");
     $Conf->log("Comment $savedCommentId " . ($text != "" ? "saved" : "deleted"),
@@ -220,7 +223,7 @@ function saveComment($text) {
 }
 
 function saveResponse($text) {
-    global $Me, $Conf, $prow, $crow, $linkExtra;
+    global $Me, $Conf, $prow, $linkExtra;
 
     $success = saveComment($text);
     if (!$success) {
@@ -232,7 +235,9 @@ function saveResponse($text) {
 
 if (!check_post())
     /* do nothing */;
-else if (isset($_REQUEST["submit"]) && defval($_REQUEST, "response")) {
+else if ((isset($_REQUEST["submit"]) || isset($_REQUEST["submitresponse"])
+          || isset($_REQUEST["savedraft"]))
+         && defval($_REQUEST, "response")) {
     if (!$Me->canRespond($prow, $crow, $whyNot, true)) {
 	$Conf->errorMsg(whyNotText($whyNot, "respond to reviews for"));
 	$useRequest = true;
@@ -262,14 +267,13 @@ else if (isset($_REQUEST["submit"]) && defval($_REQUEST, "response")) {
 
 // paper actions
 if ((isset($_REQUEST["settags"]) || isset($_REQUEST["settingtags"])) && check_post()) {
-    require_once("Code/paperactions.inc");
     PaperActions::setTags($prow);
     loadRows();
 }
 
 
 // can we view/edit reviews?
-$viewAny = $Me->canViewReview($prow, null, $whyNotView);
+$viewAny = $Me->canViewReview($prow, null, null, $whyNotView);
 $editAny = $Me->canReview($prow, null, $whyNotEdit);
 
 
@@ -301,7 +305,7 @@ $paperTable->paptabBegin();
 
 if (!$viewAny && !$editAny
     && (!$paperTable->rrow
-	|| !$Me->canViewReview($prow, $paperTable->rrow, $whyNot)))
+	|| !$Me->canViewReview($prow, $paperTable->rrow, null)))
     $paperTable->paptabEndWithReviewMessage();
 else if ($paperTable->mode == "r" && !$paperTable->rrow)
     $paperTable->paptabEndWithReviews();

@@ -6,7 +6,6 @@
 require_once("Code/header.inc");
 require_once("Code/paperlist.inc");
 require_once("Code/search.inc");
-require_once("Code/tags.inc");
 $Me->goIfInvalid();
 $Me->goIfNotPrivChair();
 
@@ -193,7 +192,7 @@ function review_count_report($nrev, $pc, $prefix) {
 
 function conflictedPapers() {
     global $Conf, $Me;
-    $result = $Conf->qe("select paperId from PaperConflict where conflictType!=0 and contactId=$Me->contactId");
+    $result = $Conf->qe("select paperId from PaperConflict where conflictType!=0 and contactId=$Me->cid");
     $confs = array();
     while (($row = edb_row($result)))
 	$confs[$row[0]] = true;
@@ -714,7 +713,7 @@ if (isset($assignments) && count($assignments) > 0) {
 	$t = "";
 	foreach ($pcm as $pc)
 	    if (in_array($pc->contactId, $pcs)) {
-		$t .= ($t ? ", " : "") . contactNameHtml($pc);
+		$t .= ($t ? ", " : "") . Text::name_html($pc);
 		$pref = $assignprefs["$pid:$pc->contactId"];
 		if ($pref !== "X" && $pref != 0)
 		    $t .= " <span class='asspref" . ($pref > 0 ? 1 : -1)
@@ -730,13 +729,15 @@ if (isset($assignments) && count($assignments) > 0) {
 
     $search = new PaperSearch($Me, array("t" => $_REQUEST["t"], "q" => join(" ", array_keys($assignments))));
     $plist = new PaperList($search, array("extraText" => $atext));
+    $plist->showHeader = PaperList::HEADER_TITLES;
+    $plist->display .= " reviewers ";
     echo $plist->text("reviewers", $Me);
 
     if ($atype != "prefconflict") {
 	echo "<div class='g'></div>";
 	echo "<strong>Assignment Summary</strong><br />\n";
 	echo "<table class='pctb'><tr><td class='pctbcolleft'><table>";
-	$colorizer = new TagColorizer($Me);
+	$colorizer = new Tagger;
 	$pcdesc = array();
 	foreach ($pcm as $id => $p) {
 	    $nnew = defval($pc_nass, $id, 0);
@@ -754,10 +755,10 @@ if (isset($assignments) && count($assignments) > 0) {
 		$nrev->sec[$id] += $nnew;
 		$nrev->pset->sec[$id] += $nnew;
 	    }
-	    $color = $colorizer->match_all($p->contactTags);
+	    $color = $colorizer->color_classes($p->contactTags);
 	    $color = ($color ? " class='${color}'" : "");
 	    $c = "<tr$color><td class='pctbname pctbl'>"
-		. contactNameHtml($p)
+		. Text::name_html($p)
 		. ": " . plural($nnew, "assignment")
 		. "</td></tr><tr$color><td class='pctbnrev pctbl'>"
 		. review_count_report($nrev, $p, "After assignment:&nbsp;");
@@ -829,6 +830,8 @@ if (isset($_REQUEST["requery"]) || isset($_REQUEST["prevpap"])) {
 
     $search = new PaperSearch($Me, array("t" => $_REQUEST["t"], "q" => $_REQUEST["q"]));
     $plist = new PaperList($search);
+    $plist->showHeader = PaperList::HEADER_TITLES;
+    $plist->display .= " reviewers ";
     $plist->footer = false;
     $plist->papersel = array_fill_keys($papersel, 1);
     foreach (preg_split('/\s+/', defval($_REQUEST, "prevpap")) as $p)
@@ -837,8 +840,8 @@ if (isset($_REQUEST["requery"]) || isset($_REQUEST["prevpap"])) {
     echo $plist->text("reviewersSel", $Me);
     echo "<input type='hidden' name='prevt' value=\"", htmlspecialchars($_REQUEST["t"]), "\" />",
 	"<input type='hidden' name='prevq' value=\"", htmlspecialchars($_REQUEST["q"]), "\" />";
-    if ($plist->headerInfo["pap"])
-	echo "<input type='hidden' name='prevpap' value=\"", htmlspecialchars(join(" ", $plist->headerInfo["pap"])), "\" />";
+    if ($plist->ids)
+	echo "<input type='hidden' name='prevpap' value=\"", htmlspecialchars(join(" ", $plist->ids)), "\" />";
 }
 echo "</div>\n";
 // echo "<tr><td class='caption'></td><td class='entry'><div class='g'></div></td></tr>\n";
@@ -926,17 +929,17 @@ echo ")</td></tr>\n<tr><td></td><td><table class='pctb'><tr><td class='pctbcolle
 $pcm = pcMembers();
 $nrev = countReviews();
 $pcdesc = array();
-$colorizer = new TagColorizer($Me);
+$colorizer = new Tagger;
 foreach ($pcm as $id => $p) {
     $count = count($pcdesc) + 1;
-    $color = $colorizer->match_all($p->contactTags);
+    $color = $colorizer->color_classes($p->contactTags);
     $color = ($color ? " class='${color}'" : "");
     $c = "<tr$color><td class='pctbl'>"
 	. tagg_checkbox("pcs[]", $id, isset($pcsel[$id]),
 			array("id" => "pcsel$count",
 			      "onclick" => "pselClick(event,this);\$\$('pctyp_sel').checked=true"))
 	. "&nbsp;</td><td class='pctbname'>"
-	. tagg_label(contactNameHtml($p), "pcsel$count")
+	. tagg_label(Text::name_html($p), "pcsel$count")
 	. "</td></tr><tr$color><td class='pctbl'></td><td class='pctbnrev'>"
 	. review_count_report($nrev, $p, "")
 	. "</td></tr>";
@@ -960,7 +963,7 @@ function bpSelector($i, $which) {
     if (!$badPairSelector) {
 	$badPairSelector = array("0" => "(PC member)");
 	foreach ($pcm as $pc)
-	    $badPairSelector[$pc->contactId] = htmlspecialchars(contactNameText($pc));
+	    $badPairSelector[$pc->contactId] = Text::name_html($pc);
     }
     $selected = ($i <= $_REQUEST["bpcount"] ? defval($_REQUEST, "bp$which$i") : "0");
     if ($selected && isset($badPairSelector[$selected]))

@@ -43,7 +43,7 @@ class ContactList extends BaseList {
     var $listNumber;
     var $contactLinkArgs;
 
-    function ContactList($contact, $sortable = true) {
+    function __construct($contact, $sortable = true) {
 	global $contactListFields;
 	$this->showHeader = true;
 
@@ -218,14 +218,12 @@ class ContactList extends BaseList {
 	case self::FIELD_SCORE:
 	    $scoreName = $reviewScoreNames[$this->sortField - self::FIELD_SCORE];
 	    $scoreMax = $this->scoreMax[$scoreName];
-	    $this->sortInfo = array();
-	    $this->sortAverage = array();
 	    $scoresort = defval($_SESSION, "pplscoresort", "A");
 	    if ($scoresort != "A" && $scoresort != "V" && $scoresort != "D")
-		$scoresort = 1;
+		$scoresort = "A";
 	    foreach ($rows as $row)
-		$this->_setSortRow($row, $scoreName, $scoreMax, $scoresort);
-	    usort($rows, array($this, "_sortScoreNum"));
+		$this->score_analyze($row, $scoreName, $scoreMax, $scoresort);
+            $this->score_sort($rows, $scoresort);
 	    break;
 	}
 	if ($this->reverseSort)
@@ -282,11 +280,11 @@ class ContactList extends BaseList {
 	global $Conf, $reviewTypeName, $reviewScoreNames;
 	switch (self::_normalizeField($fieldId)) {
 	case self::FIELD_NAME:
-	    $t = contactHtml($row->firstName, $row->lastName);
+	    $t = Text::name_html($row);
 	    if (trim($t) == "")
 		$t = "[No name]";
 	    if ($this->contact->privChair)
-		$t = "<a href=\"" . hoturl("account", "contact=$row->contactId$this->contactLinkArgs") . "\">$t</a>";
+		$t = "<a href=\"" . hoturl("profile", "u=" . urlencode($row->email) . $this->contactLinkArgs) . "\"" . ($row->disabled ? " class='uu'" : "") . ">$t</a>";
 	    if ($row->chair)
 		$t .= " <span class='pcrole'>(Chair)</span>";
 	    else if ($row->assistant)
@@ -295,13 +293,19 @@ class ContactList extends BaseList {
 		$t .= " <span class='pcrole'>(PC)</span>";
 	    if ($this->contact->privChair && $row->email != $this->contact->email)
 		$t .= " <a href=\"" . hoturl("index", "viewContact=" . urlencode($row->email)) . "\">"
-		    . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . htmlspecialchars(contactNameText($row)))
+		    . $Conf->cacheableImage("viewas.png", "[Act as]", "Act as " . Text::name_html($row))
 		    . "</a>";
+            if ($row->disabled)
+                $t .= " <span class='hint'>(disabled)</span>";
 	    return $t;
 	case self::FIELD_EMAIL:
 	    if (!$this->contact->isPC)
 		return "";
-	    return "<a href=\"mailto:" . htmlspecialchars($row->email) . "\">" . htmlspecialchars($row->email) . "</a>";
+            $e = htmlspecialchars($row->email);
+            if (strpos($row->email, "@") === false)
+                return $e;
+            else
+                return "<a href=\"mailto:$e\">$e</a>";
 	case self::FIELD_AFFILIATION:
 	case self::FIELD_AFFILIATION_ROW:
 	    return htmlspecialchars($row->affiliation);
@@ -391,7 +395,6 @@ class ContactList extends BaseList {
 	case self::FIELD_TAGS:
 	    if (!$this->contact->isPC || !$row->contactTags)
 		return "";
-	    require_once("tags.inc");
 	    $t = $row->contactTags;
 	    if (strpos($t, "~") !== false) {
 		$t = str_replace(" " . $this->contact->contactId . "~", " ~", " $t ");
@@ -478,11 +481,12 @@ class ContactList extends BaseList {
 	global $Conf;
 
 	$aulimit = (strlen($this->limit) >= 2 && $this->limit[0] == 'a' && $this->limit[1] == 'u');
-	$pq = "select ContactInfo.contactId,
-	ContactInfo.contactId as paperId,
+        $qa = ($Conf->sversion >= 47 ? ", disabled" : ", 0 disabled");
+	$pq = "select u.contactId,
+	u.contactId as paperId,
 	firstName, lastName, email, affiliation, contactTags,
-	voicePhoneNumber, faxPhoneNumber,
-	ContactInfo.collaborators, lastLogin, visits, note,
+	voicePhoneNumber,
+	u.collaborators, lastLogin$qa, visits, note,
 	PCMember.contactId as pc, Chair.contactId as chair,
 	ChairAssistant.contactId as assistant";
 	if (isset($queryOptions['topics']))
@@ -510,12 +514,12 @@ class ContactList extends BaseList {
 	else if (isset($queryOptions['papers']))
 	    $pq .= ",\n\tgroup_concat(PaperConflict.paperId) as paperIds";
 
-	$pq .= "\n	from ContactInfo\n";
-	$pq .= ($this->limit == "pc" ? "\tjoin" : "\tleft join") . " PCMember on (PCMember.contactId=ContactInfo.contactId)\n";
-	$pq .= "\tleft join Chair on (Chair.contactId=ContactInfo.contactId)
-	left join ChairAssistant on (ChairAssistant.contactId=ContactInfo.contactId)\n";
+	$pq .= "\n	from ContactInfo u\n";
+	$pq .= ($this->limit == "pc" ? "\tjoin" : "\tleft join") . " PCMember on (PCMember.contactId=u.contactId)\n";
+	$pq .= "\tleft join Chair on (Chair.contactId=u.contactId)
+	left join ChairAssistant on (ChairAssistant.contactId=u.contactId)\n";
 	if (isset($queryOptions['topics']))
-	    $pq .= "	left join (select contactId, group_concat(topicId) as topicIds, group_concat(interest) as topicInterest from TopicInterest group by contactId) as TopicInterests on (TopicInterests.contactId=ContactInfo.contactId)\n";
+	    $pq .= "	left join (select contactId, group_concat(topicId) as topicIds, group_concat(interest) as topicInterest from TopicInterest group by contactId) as TopicInterests on (TopicInterests.contactId=u.contactId)\n";
 	if (isset($queryOptions['reviews'])) {
 	    $j = "left join";
 	    if ($this->limit == "re" || $this->limit == "req" || $this->limit == "ext" || $this->limit == "resub" || $this->limit == "extsub")
@@ -545,7 +549,7 @@ class ContactList extends BaseList {
 		$pq .= " where " . join(" and ", $jwhere);
 	    if (isset($queryOptions["revratings"]))
 		$pq .= " group by PaperReview.reviewId";
-	    $pq .= ") as PaperReview on (PaperReview.contactId=ContactInfo.contactId)\n";
+	    $pq .= ") as PaperReview on (PaperReview.contactId=u.contactId)\n";
 	}
 	if (isset($queryOptions['ranks'])) {
 	    $tag_rank = "~" . $Conf->settingText("tag_rank");
@@ -566,7 +570,7 @@ class ContactList extends BaseList {
 		$pq .= " left join PaperConflict on (PaperConflict.paperId=Paper.paperId and PaperConflict.contactId=" . $this->contact->contactId . ")";
 		$jwhere[] = "(conflictType is null or conflictType=0)";
 	    }
-	    $pq .= " where " . join(" and ", $jwhere) . " group by Paper.leadContactId) as LeadPapers on (LeadPapers.leadContactId=ContactInfo.contactId)\n";
+	    $pq .= " where " . join(" and ", $jwhere) . " group by Paper.leadContactId) as LeadPapers on (LeadPapers.leadContactId=u.contactId)\n";
 	}
 	if (isset($queryOptions["shepherds"])) {
 	    $pq .= "	left join (select shepherdContactId, group_concat(Paper.paperId) as shepherdPaperIds, count(Paper.paperId) as numShepherds from Paper";
@@ -579,10 +583,10 @@ class ContactList extends BaseList {
 		    $mywhere .= " or conflictType>=" . CONFLICT_AUTHOR;
 		$jwhere[] = "($mywhere)";
 	    }
-	    $pq .= " where " . join(" and ", $jwhere) . " group by Paper.shepherdContactId) as ShepherdPapers on (ShepherdPapers.shepherdContactId=ContactInfo.contactId)\n";
+	    $pq .= " where " . join(" and ", $jwhere) . " group by Paper.shepherdContactId) as ShepherdPapers on (ShepherdPapers.shepherdContactId=u.contactId)\n";
 	}
 	if ($aulimit)
-	    $pq .= "\tjoin PaperConflict on (PaperConflict.contactId=ContactInfo.contactId and PaperConflict.conflictType>=" . CONFLICT_AUTHOR . ")\n";
+	    $pq .= "\tjoin PaperConflict on (PaperConflict.contactId=u.contactId and PaperConflict.conflictType>=" . CONFLICT_AUTHOR . ")\n";
 	if ($this->limit == "au")
 	    $pq .= "\tjoin Paper on (Paper.paperId=PaperConflict.paperId and Paper.timeSubmitted>0)\n";
 	if ($this->limit == "aurej")
@@ -592,7 +596,7 @@ class ContactList extends BaseList {
 	if ($this->limit == "auuns")
 	    $pq .= "\tjoin Paper on (Paper.paperId=PaperConflict.paperId and Paper.timeSubmitted<=0)\n";
 	if ($this->limit == "all")
-	    $pq .= "\tleft join PaperConflict on (PaperConflict.contactId=ContactInfo.contactId and PaperConflict.conflictType>=" . CONFLICT_AUTHOR . ")\n";
+	    $pq .= "\tleft join PaperConflict on (PaperConflict.contactId=u.contactId and PaperConflict.conflictType>=" . CONFLICT_AUTHOR . ")\n";
 
 	$mainwhere = array();
 	if (isset($queryOptions["where"]))
@@ -604,7 +608,7 @@ class ContactList extends BaseList {
 	if (count($mainwhere))
 	    $pq .= "\twhere " . join(" and ", $mainwhere) . "\n";
 
-	$pq .= "	group by ContactInfo.contactId
+	$pq .= "	group by u.contactId
 	order by lastName, firstName, email";
 
 	// make query
@@ -627,7 +631,7 @@ class ContactList extends BaseList {
 	// PC tags
 	$queryOptions = array();
 	if (substr($listname, 0, 3) == "pc:") {
-	    $queryOptions["where"] = "(ContactInfo.contactTags like '% " . sqlq_for_like(substr($listname, 3)) . " %')";
+	    $queryOptions["where"] = "(u.contactTags like '% " . sqlq_for_like(substr($listname, 3)) . " %')";
 	    $listname = "pc";
 	}
 
@@ -684,10 +688,8 @@ class ContactList extends BaseList {
 	// collect row data
 	$this->count = 0;
 	$colorizer = null;
-	if ($this->contact->isPC) {
-	    require_once("tags.inc");
-	    $colorizer = new TagColorizer($this->contact);
-	}
+	if ($this->contact->isPC)
+            $colorizer = new Tagger($this->contact);
 
 	$anyData = array();
 	$body = '';
@@ -699,8 +701,10 @@ class ContactList extends BaseList {
 		continue;
 
 	    $trclass = "k" . ($this->count % 2);
-	    if ($colorizer && ($c = $colorizer->match_all($row->contactTags)))
+	    if ($colorizer && ($c = $colorizer->color_classes($row->contactTags)))
 		$trclass .= " " . $c;
+            if ($row->disabled)
+                $trclass .= " greytext";
 	    $this->count++;
 	    $ids[] = $row->contactId;
 
@@ -811,8 +815,8 @@ class ContactList extends BaseList {
 	if ($this->listNumber) {
 	    $ids["description"] = ($listtitle ? $listtitle : "Users");
 	    $ids["timestamp"] = time();
-	    $ids["listid"] = "a:" . $this->limit . "::";
-	    $ids["url"] = "contacts$ConfSiteSuffix?t=" . $this->limit;
+	    $ids["listid"] = "u:" . $this->limit . "::";
+	    $ids["url"] = "users$ConfSiteSuffix?t=" . $this->limit;
 	    $_SESSION["l"][$this->listNumber] = $ids;
 	}
 
@@ -823,7 +827,7 @@ class ContactList extends BaseList {
 	// PC tags
 	$queryOptions = array();
 	if (substr($listname, 0, 3) == "pc:") {
-	    $queryOptions["where"] = "(ContactInfo.contactTags like '% " . sqlq_for_like(substr($listname, 3)) . " %')";
+	    $queryOptions["where"] = "(u.contactTags like '% " . sqlq_for_like(substr($listname, 3)) . " %')";
 	    $listname = "pc";
 	}
 

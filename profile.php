@@ -1,6 +1,6 @@
 <?php
-// account.php -- HotCRP account management page
-// HotCRP is Copyright (c) 2006-2012 Eddie Kohler and Regents of the UC
+// profile.php -- HotCRP profile management page
+// HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
 require_once("Code/header.inc");
@@ -11,19 +11,27 @@ if (!$Me->validContact())
 $newProfile = false;
 $Error = array();
 
+if (!isset($_REQUEST["u"]) && isset($_REQUEST["user"]))
+    $_REQUEST["u"] = $_REQUEST["user"];
+if (!isset($_REQUEST["u"]) && isset($_REQUEST["contact"]))
+    $_REQUEST["u"] = $_REQUEST["contact"];
+if (!isset($_REQUEST["u"]) && isset($_SERVER["PATH_INFO"])
+    && preg_match(',\A/(?:new|[^\s/]+)\z,i', $_SERVER["PATH_INFO"]))
+    $_REQUEST["u"] = substr($_SERVER["PATH_INFO"], 1);
+
 
 if (!$Me->privChair)
     $Acct = $Me;		// always this contact
-else if (isset($_REQUEST["new"])) {
+else if (isset($_REQUEST["new"]) || defval($_REQUEST, "u") == "new") {
     $Acct = new Contact();
     $Acct->invalidate();
     $newProfile = true;
-} else if (isset($_REQUEST["contact"])) {
+} else if (isset($_REQUEST["u"])) {
     $Acct = new Contact();
-    if (($id = cvtint($_REQUEST["contact"])) > 0)
+    if (($id = cvtint($_REQUEST["u"])) > 0)
 	$Acct->lookupById($id);
     else
-	$Acct->lookupByEmail($_REQUEST["contact"]);
+	$Acct->lookupByEmail($_REQUEST["u"]);
     if (!$Acct->valid()) {
 	$Conf->errorMsg("Invalid contact.");
 	$Acct = $Me;
@@ -112,7 +120,7 @@ function createUser(&$tf, $newProfile, $useRequestPassword = false) {
 	$Acct = new Contact();
 	if (!$Acct->initialize($_REQUEST["uemail"], true, $useRequestPassword))
 	    return tfError($tf, "uemail", "Database error, please try again");
-	$Acct->sendAccountInfo($Conf, true, false);
+	$Acct->sendAccountInfo(true, false);
 	$Conf->log("Account created by $Me->email", $Acct);
     }
 
@@ -135,8 +143,11 @@ function createUser(&$tf, $newProfile, $useRequestPassword = false) {
 	$checkass = !isset($_REQUEST["ass"]) && $Me->contactId == $Acct->contactId && ($Acct->roles & Contact::ROLE_ADMIN) != 0;
 
 	$while = "while initializing roles";
-	foreach (array("pc" => "PCMember", "ass" => "ChairAssistant", "chair" => "Chair") as $k => $table) {
-	    $role = ($k == "pc" ? Contact::ROLE_PC : ($k == "ass" ? Contact::ROLE_ADMIN : Contact::ROLE_CHAIR));
+	foreach (array("pc" => array("PCMember", Contact::ROLE_PC),
+                       "ass" => array("ChairAssistant", Contact::ROLE_ADMIN),
+                       "chair" => array("Chair", Contact::ROLE_CHAIR))
+                 as $k => $tableinfo) {
+            list($table, $role) = $tableinfo;
 	    if (($Acct->roles & $role) != 0 && !isset($_REQUEST[$k])) {
 		$Conf->qe("delete from $table where contactId=$Acct->contactId", $while);
 		$Conf->log("Removed as $table by $Me->email", $Acct);
@@ -179,7 +190,7 @@ function createUser(&$tf, $newProfile, $useRequestPassword = false) {
 	$Acct->password = $_REQUEST["upassword"];
     if (isset($_REQUEST["preferredEmail"]))
 	$Acct->preferredEmail = $_REQUEST["preferredEmail"];
-    foreach (array("voicePhoneNumber", "faxPhoneNumber", "collaborators",
+    foreach (array("voicePhoneNumber", "collaborators",
 		   "addressLine1", "addressLine2", "city", "state",
 		   "zipCode", "country") as $v)
 	if (isset($_REQUEST[$v]))
@@ -198,17 +209,15 @@ function createUser(&$tf, $newProfile, $useRequestPassword = false) {
     if (($Acct->roles & (Contact::ROLE_PC | Contact::ROLE_ADMIN | Contact::ROLE_CHAIR))
 	&& $Me->privChair
 	&& defval($_REQUEST, "contactTags", "") != "") {
-	require_once("Code/tags.inc");
+	$tagger = new Tagger;
 	$tout = "";
 	$warn = "";
-	foreach (preg_split('/\s+/', $_REQUEST["contactTags"]) as $t)
-	    if ($t != "") {
-		$e = checkTagError($t, CHECKTAG_NOPRIVATE | CHECKTAG_NOINDEX);
-		if ($e == "")
-		    $tout .= " " . $t;
-		else
-		    $warn .= htmlspecialchars($e) . "<br />\n";
-	    }
+	foreach (preg_split('/\s+/', $_REQUEST["contactTags"]) as $t) {
+	    if ($t != "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
+                $tout .= " " . $t;
+            else if ($t != "")
+                $warn .= $tagger->error_html . "<br />\n";
+        }
 	if ($warn != "")
 	    return tfError($tf, "contactTags", $warn);
 	if ($tout != "")
@@ -283,13 +292,13 @@ function parseBulkFile($text, $filename) {
 	foreach (array("firstname" => "firstName", "first" => "firstName",
 		       "lastname" => "lastName", "last" => "lastName",
 		       "voice" => "voicePhoneNumber", "phone" => "voicePhoneNumber",
-		       "fax" => "faxPhoneNumber", "address1" => "addressLine1",
+		       "address1" => "addressLine1",
 		       "address2" => "addressLine2", "postalcode" => "zipCode",
 		       "zip" => "zipCode", "tags" => "contactTags") as $k => $x)
 	    if (isset($line[$k]) && !isset($line[$x]))
 		$line[$x] = $line[$k];
 	if (isset($line["name"]) && !isset($line["firstName"]) && !isset($line["lastName"]))
-	    list($line["firstName"], $line["lastName"]) = splitName(simplifyWhitespace($line["name"]));
+	    list($line["firstName"], $line["lastName"]) = Text::split_name($line["name"]);
 	foreach ($line as $k => $v)
 	    if (is_string($k))
 		$_REQUEST[$k] = $v;
@@ -297,10 +306,10 @@ function parseBulkFile($text, $filename) {
 	    array(defval($line, "firstName", ""), defval($line, "lastName", ""), defval($line, "email", ""));
 
 	if (createUser($tf, true, true))
-	    $success[] = "<a href=\"" . hoturl("account", "contact=" . urlencode($Acct->email)) . "\">" . htmlspecialchars(contactText($Acct->firstName, $Acct->lastName, $Acct->email)) . "</a>";
+	    $success[] = "<a href=\"" . hoturl("profile", "u=" . urlencode($Acct->email)) . "\">" . Text::user_html($Acct) . "</a>";
 
 	foreach (array("firstName", "lastName", "uemail", "affiliation", "preferredEmail",
-		       "voicePhoneNumber", "faxPhoneNumber", "collaborators",
+		       "voicePhoneNumber", "collaborators",
 		       "addressLine1", "addressLine2", "city", "state", "zipCode", "country",
 		       "pctype", "pc", "chair", "ass",
 		       "watchcomment", "watchcommentall", "watchfinalall", "contactTags") as $k)
@@ -327,7 +336,7 @@ function parseBulkFile($text, $filename) {
 if (!check_post())
     /* do nothing */;
 else if (isset($_REQUEST["register"]) && $newProfile
-	 && fileUploaded($_FILES["bulk"], $Conf)) {
+         && fileUploaded($_FILES["bulk"])) {
     if (($text = file_get_contents($_FILES["bulk"]["tmp_name"])) === false)
 	$Conf->errorMsg("Internal error: cannot read file.");
     else
@@ -338,7 +347,7 @@ else if (isset($_REQUEST["register"]) && $newProfile
     $tf = array();
     if (createUser($tf, $newProfile)) {
 	if ($newProfile) {
-	    $Conf->confirmMsg("Created <a href=\"" . hoturl("account", "contact=" . urlencode($Acct->email)) . "\">an account for " . htmlspecialchars($Acct->email) . "</a>.  A password has been emailed to that address.  You may now create another account.");
+	    $Conf->confirmMsg("Created <a href=\"" . hoturl("profile", "u=" . urlencode($Acct->email)) . "\">an account for " . htmlspecialchars($Acct->email) . "</a>.  A password has been emailed to that address.  You may now create another account.");
 	    $_REQUEST["uemail"] = $_REQUEST["newUsername"] = $_REQUEST["firstName"] = $_REQUEST["lastName"] = $_REQUEST["affiliation"] = "";
 	} else
 	    $Conf->confirmMsg("Account profile updated.");
@@ -396,11 +405,11 @@ if (isset($_REQUEST["delete"]) && $OK && check_post()) {
     if (!$Me->privChair)
 	$Conf->errorMsg("Only administrators can delete users.");
     else if ($Acct->contactId == $Me->contactId)
-	$Conf->errorMsg("You aren't allowed to delete yourself.");
+	$Conf->errorMsg("You aren’t allowed to delete yourself.");
     else {
 	$tracks = databaseTracks($Acct->contactId);
 	if (count($tracks->soleAuthor))
-	    $Conf->errorMsg("This user can't be deleted since they are sole contact for " . pluralx($tracks->soleAuthor, "paper") . " " . textArrayPapers($tracks->soleAuthor) . ".  You will be able to delete the user after deleting those papers or adding additional paper contacts.");
+	    $Conf->errorMsg("This user can’t be deleted since they are sole contact for " . pluralx($tracks->soleAuthor, "paper") . " " . textArrayPapers($tracks->soleAuthor) . ".  You will be able to delete the user after deleting those papers or adding additional paper contacts.");
 	else {
 	    $while = "while deleting user";
 	    foreach (array("ContactInfo", "Chair", "ChairAssistant",
@@ -411,26 +420,28 @@ if (isset($_REQUEST["delete"]) && $OK && check_post()) {
 			   "PaperWatch", "ReviewRating", "TopicInterest")
 		     as $table)
 		$Conf->qe("delete from $table where contactId=$Acct->contactId", $while);
-	    // tags are special because of voting tags, so go through
-	    // Code/tags.inc
-	    require_once("Code/tags.inc");
-	    $prefix = $Acct->contactId . "~";
-	    $result = $Conf->qe("select paperId, tag from PaperTag where tag like '$prefix%'", $while);
+	    // tags are special because of voting tags, so go through Tagger
+	    $result = $Conf->qe("select paperId, tag from PaperTag where tag like '" . $Acct->contactId . "~%'", $while);
 	    $pids = $tags = array();
 	    while (($row = edb_row($result))) {
 		$pids[$row[0]] = 1;
-		$tags[substr($row[1], strlen($prefix) - 1)] = 1;
+		$tags[substr($row[1], strlen($Acct->contactId))] = 1;
 	    }
-	    if (count($pids) > 0)
-		setTags(array_keys($pids), join(" ", array_keys($tags)), "d", $Acct->contactId);
+	    if (count($pids) > 0) {
+                $tagger = new Tagger($Acct);
+		$tagger->save(array_keys($pids), join(" ", array_keys($tags)), "d");
+            }
 	    // recalculate Paper.numComments if necessary
 	    // (XXX lock tables?)
 	    foreach ($tracks->comment as $pid)
 		$Conf->qe("update Paper set numComments=(select count(commentId) from PaperComment where paperId=$pid), numAuthorComments=(select count(commentId) from PaperComment where paperId=$pid and forAuthors>0) where paperId=$pid", $while);
+            // clear caches
+            if ($Acct->isPC || $Acct->privChair)
+                $Conf->invalidateCaches(array("pc" => 1));
 	    // done
 	    $Conf->confirmMsg("Permanently deleted user " . htmlspecialchars($Acct->email) . ".");
 	    $Conf->log("Permanently deleted user " . htmlspecialchars($Acct->email) . " ($Acct->contactId)", $Me);
-	    $Me->go(hoturl("contacts", "t=all"));
+	    $Me->go(hoturl("users", "t=all"));
 	}
     }
 }
@@ -533,13 +544,13 @@ else if (isset($Me->fresh) && $Me->fresh === "redirect") {
 
 $params = array();
 if ($newProfile)
-    $params[] = "new=1";
+    $params[] = "u=new";
 else if ($Me->contactId != $Acct->contactId)
-    $params[] = "contact=" . $Acct->contactId;
+    $params[] = "u=" . urlencode($Acct->email);
 if (isset($_REQUEST["ls"]))
     $params[] = "ls=" . urlencode($_REQUEST["ls"]);
 echo "<form id='accountform' method='post' action='",
-    hoturl_post("account", (count($params) ? join("&amp;", $params) : "")),
+    hoturl_post("profile", (count($params) ? join("&amp;", $params) : "")),
     "' enctype='multipart/form-data' accept-charset='UTF-8' autocomplete='off'><div class='aahc'>\n";
 if (isset($_REQUEST["redirect"]))
     echo "<input type='hidden' name='redirect' value=\"", htmlspecialchars($_REQUEST["redirect"]), "\" />\n";
@@ -590,7 +601,7 @@ echofield(0, "affiliation", "Affiliation", textinput("affiliation", crpformvalue
 $any_address = ($Acct->addressLine1 || $Acct->addressLine2 || $Acct->city
 		|| $Acct->state || $Acct->zipCode || $Acct->country);
 if ($Conf->setting("acct_addr") || $Acct->amReviewer()
-    || $any_address || $Acct->voicePhoneNumber || $Acct->faxPhoneNumber) {
+    || $any_address || $Acct->voicePhoneNumber) {
     echo "<div class='g'></div>\n";
     if ($Conf->setting("acct_addr") || $any_address) {
 	echofield(0, false, "Address line 1", textinput("addressLine1", crpformvalue("addressLine1"), 52));
@@ -601,8 +612,6 @@ if ($Conf->setting("acct_addr") || $Acct->amReviewer()
 	echofield(0, false, "Country", countrySelector("country", (isset($_REQUEST["country"]) ? $_REQUEST["country"] : $Acct->country)));
     }
     echofield(1, false, "Phone <span class='f-cx'>(optional)</span>", textinput("voicePhoneNumber", crpformvalue("voicePhoneNumber"), 24));
-    if ($Conf->setting("acct_addr") || $Acct->faxPhoneNumber)
-	echofield(2, false, "Fax <span class='f-cx'>(optional)</span>", textinput("faxPhoneNumber", crpformvalue("faxPhoneNumber"), 24));
     echo "<div class='clear'></div></div>\n";
 }
 
@@ -757,7 +766,7 @@ if ($Me->privChair && !$newProfile && $Me->contactId != $Acct->contactId) {
   <p>Be careful: This will permanently delete all information about this
   user from the database and <strong>cannot be undone</strong>.</p>
   $dialog
-  <form method='post' action=\"" . hoturl_post("account", "contact=" . $Acct->contactId) . "\" enctype='multipart/form-data' accept-charset='UTF-8'>
+  <form method='post' action=\"" . hoturl_post("profile", "u=" . urlencode($Acct->email)) . "\" enctype='multipart/form-data' accept-charset='UTF-8'>
     <div class='popup_actions'>
       <button type='button' class='b' onclick=\"popup(null, 'd', 1)\">Cancel</button>
       &nbsp;<input class='bb' type='submit' name='delete' value='Delete user' />

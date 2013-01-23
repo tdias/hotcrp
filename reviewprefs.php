@@ -139,7 +139,7 @@ function parseUploadedPreferences($filename, $printFilename, $reviewer) {
     if ($successes > 0)
 	savePreferences($reviewer);
 }
-if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["uploadedFile"], $Conf)
+if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["uploadedFile"])
     && check_post())
     parseUploadedPreferences($_FILES["uploadedFile"]["tmp_name"], $_FILES["uploadedFile"]["name"], $reviewer);
 else if (isset($_REQUEST["upload"]))
@@ -156,9 +156,9 @@ if (isset($_REQUEST["get"]) && isset($papersel)) {
 // set options to view
 if (isset($_REQUEST["redisplay"])) {
     $_SESSION["pfdisplay"] = " ";
-    foreach ($paperListFolds as $n => $fdef)
-	if (defval($_REQUEST, "show$n"))
-	    $_SESSION["pfdisplay"] .= "$n ";
+    foreach ($_REQUEST as $k => $v)
+        if (substr($k, 0, 4) == "show" && $v)
+            $_SESSION["pfdisplay"] .= substr($k, 4) . " ";
     redirectSelf();
 }
 $pldisplay = displayOptionsSet("pfdisplay");
@@ -195,9 +195,11 @@ paper’s detail page.  You may also upload preferences from a text file; see th
 
 
 // search
-$search = new PaperSearch($Me, array("t" => $_REQUEST["t"],
-				     "urlbase" => hoturl("reviewprefs", "reviewer=$reviewer"),
-				     "q" => defval($_REQUEST, "q", "")), $reviewer);
+$search = new PaperSearch($Me,
+                          array("t" => $_REQUEST["t"],
+                                "urlbase" => hoturl("reviewprefs", "reviewer=$reviewer"),
+                                "q" => defval($_REQUEST, "q", "")),
+                          $reviewer);
 $pl = new PaperList($search, array("sort" => true, "list" => true, "foldtype" => "pf"));
 $pl->showHeader = PaperList::HEADER_TITLES;
 $pl->footer = "<div id='plactr'><input class='hb' type='submit' name='update' value='Save changes' /></div>";
@@ -229,7 +231,7 @@ if ($Me->privChair) {
     $result = $Conf->qe($query);
     $revopt = array();
     while (($row = edb_orow($result))) {
-	$revopt[$row->contactId] = contactHtml($row);
+	$revopt[$row->contactId] = Text::user_html($row);
 	if ($row->preferenceCount <= 0)
 	    $revopt[$row->contactId] .= " (no preferences)";
     }
@@ -250,43 +252,45 @@ $loadforms = "";
 if (!$Conf->subBlindAlways()) {
     echo $sep,
 	tagg_checkbox("showau", 1, strpos($pldisplay, " au ") !== false,
-		      array("disabled" => ($Conf->subBlindOptional() && !($pl->headerInfo["authors"] & 1)),
-			    "onchange" => "foldplinfo(this,'au')",
+		      array("disabled" => (!$Conf->subBlindNever() && !$pl->any->openau),
+			    "onchange" => "plinfo('au',this)",
 			    "id" => "showau")),
 	"&nbsp;", tagg_label("Authors");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='auloadformresult'></div>";
 }
 if (!$Conf->subBlindNever() && $Me->privChair) {
-    echo "<span class='fx10'>", $sep,
+    echo (!$Conf->subBlindAlways() ? "<span class='fx10'>" : ""),
+        $sep,
 	tagg_checkbox("showanonau", 1, strpos($pldisplay, " anonau ") !== false,
-		      array("disabled" => !($pl->headerInfo["authors"] & 2),
-			    "onchange" => ($Conf->subBlindOptional() ? "" : "foldplinfo(this,'au');") . "foldplinfo(this,'anonau')",
-			    "id" => ($Conf->subBlindOptional() ? "showanonau" : "showau"))),
-	"&nbsp;", tagg_label($Conf->subBlindOptional() ? "Anonymous authors" : "Authors"), "</span>";
+		      array("disabled" => !$pl->any->anonau,
+			    "onchange" => (!$Conf->subBlindAlways() ? "" : "plinfo('au',this);") . "plinfo('anonau',this)",
+			    "id" => (!$Conf->subBlindAlways() ? "showanonau" : "showau"))),
+	"&nbsp;", tagg_label(!$Conf->subBlindAlways() ? "Anonymous authors" : "Authors"),
+        (!$Conf->subBlindAlways() ? "</span>" : "");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='anonauloadformresult'></div>";
 }
 if (!$Conf->subBlindAlways() || $Me->privChair) {
     echo "<span class='fx10'>", $sep,
 	tagg_checkbox("showaufull", 1, strpos($pldisplay, " aufull ") !== false,
-		      array("onchange" => "foldplinfo(this,'aufull')")),
+		      array("onchange" => "plinfo('aufull',this)")),
 	"&nbsp;", tagg_label("Full author info"), "</span>";
-    $Conf->footerScript("function foldplinfo_extra(type,dofold){var x=(type=='au'?!dofold:(\$\$('showau')||{}).checked);fold('redisplayform',!x,10)}");
+    $Conf->footerScript("plinfo.extra=function(type,dofold){var x=(type=='au'?!dofold:(\$\$('showau')||{}).checked);fold('redisplayform',!x,10)};");
     $loadforms .= "<div id='aufullloadformresult'></div>";
 }
-if ($pl->headerInfo["abstract"]) {
+if ($pl->any->abstract) {
     echo $sep,
 	tagg_checkbox("showabstract", 1, strpos($pldisplay, " abstract ") !== false,
-		      array("onchange" => "foldplinfo(this,'abstract')")),
+		      array("onchange" => "plinfo('abstract',this)")),
 	"&nbsp;", tagg_label("Abstracts");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='abstractloadformresult'></div>";
 }
-if ($pl->headerInfo["topics"]) {
+if ($pl->any->topics) {
     echo $sep,
 	tagg_checkbox("showtopics", 1, strpos($pldisplay, " topics ") !== false,
-		      array("onchange" => "foldplinfo(this,'topics')")),
+		      array("onchange" => "plinfo('topics',this)")),
 	"&nbsp;", tagg_label("Topics");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='topicsloadformresult'></div>";
