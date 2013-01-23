@@ -7,6 +7,7 @@ require_once("paperlist.inc");
 
 class PaperColumn extends Column {
     static private $by_name = array();
+    static private $factories = array();
 
     public function __construct($name, $view, $extra) {
         if ($extra === true)
@@ -19,8 +20,11 @@ class PaperColumn extends Column {
     public static function lookup($name) {
         if (isset(self::$by_name[$name]))
             return self::$by_name[$name];
-        else
-            return null;
+        foreach (self::$factories as $prefix => $f)
+            if (str_starts_with($name, $prefix)
+                && ($x = $f->make_field($name)))
+                return $x;
+        return null;
     }
 
     public static function register($fdef) {
@@ -29,6 +33,10 @@ class PaperColumn extends Column {
         for ($i = 1; $i < func_num_args(); ++$i)
             self::$by_name[func_get_arg($i)] = $fdef;
         return $fdef;
+    }
+    public static function register_factory($prefix, $f) {
+        assert(!isset(self::$factories[$prefix]));
+        self::$factories[$prefix] = $f;
     }
 
     public function prepare($pl, &$queryOptions, $folded) {
@@ -606,8 +614,8 @@ class PreferencePaperColumn extends PaperColumn {
 }
 
 class PreferenceListPaperColumn extends PaperColumn {
-    public function __construct($name, $extra) {
-        parent::__construct($name, Column::VIEW_ROW, $extra);
+    public function __construct($name) {
+        parent::__construct($name, Column::VIEW_ROW, 0);
     }
     public function prepare($pl, &$queryOptions, $folded) {
         if (!$pl->contact->privChair)
@@ -752,6 +760,88 @@ class TagListPaperColumn extends PaperColumn {
                                                     $pl->search->orderTags,
                                                     $row->conflictType <= 0);
         return $t;
+    }
+}
+
+class TagPaperColumn extends PaperColumn {
+    protected $is_value;
+    protected $dtag;
+    protected $ctag;
+    public function __construct($name, $tag, $is_value) {
+        parent::__construct($name, Column::VIEW_COLUMN, true);
+        $this->dtag = $tag;
+        $this->is_value = $is_value;
+    }
+    public function make_field($name) {
+        $p = 4 + ($this->is_value ? 3 : 0);
+        return parent::register(new TagPaperColumn($name, substr($name, $p), $this->is_value));
+    }
+    public function prepare($pl, &$queryOptions, $folded) {
+        if (!$pl->contact->canViewTags(null))
+            return false;
+        $tagger = new Tagger($pl->contact);
+        if (!($ctag = $tagger->check($this->dtag, Tagger::NOVALUE)))
+            return false;
+        $this->ctag = " $ctag#";
+        $queryOptions["tags"] = 1;
+        return true;
+    }
+    protected function _tag_value($row) {
+        if (($p = strpos(" " . $row->paperTags, $this->ctag)) === false)
+            return null;
+        else
+            return (int) substr($row->paperTags, $p + strlen($this->ctag) - 1);
+    }
+    private function _sort_tag($a, $b) {
+        $av = $this->_tag_value($a);
+        $av = $av !== null ? $av : 2147483647;
+        $bv = $this->_tag_value($b);
+        $bv = $bv !== null ? $bv : 2147483647;
+        return $av < $bv ? -1 : ($av == $bv ? $a->paperId - $b->paperId : 1);
+    }
+    public function sort($pl, &$rows) {
+        usort($rows, array($this, "_sort_tag"));
+    }
+    public function header($pl, $row = null, $ordinal = 0) {
+        return "#$this->dtag";
+    }
+    public function content_empty($pl, $row) {
+        return !$pl->contact->canViewTags($row);
+    }
+    public function content($pl, $row) {
+        if (($v = $this->_tag_value($row)) === null)
+            return "";
+        else if ($v === 0 && !$this->is_value)
+            return "&#x2713;";
+        else
+            return $v;
+    }
+}
+
+class EditTagPaperColumn extends TagPaperColumn {
+    public function __construct($name, $tag, $is_value) {
+        parent::__construct($name, $tag, $is_value);
+    }
+    public function make_field($name) {
+        $p = 8 + ($this->is_value ? 3 : 0);
+        return parent::register(new EditTagPaperColumn($name, substr($name, $p), $this->is_value));
+    }
+    public function prepare($pl, &$queryOptions, $folded) {
+        global $Conf;
+        if (($p = parent::prepare($pl, $queryOptions, $folded))) {
+            $Conf->footerHtml("<form id='edittagajaxform' method='post' action='" . hoturl_post("paper", "settags=1&amp;forceShow=1") . "' enctype='multipart/form-data' accept-charset='UTF-8' style='display:none'><div><input name='p' value='' /><input name='addtags' value='' /><input name='deltags' value='' /></div></form>", "edittagajaxform");
+            $Conf->footerScript("addedittagajax()");
+        }
+        return $p;
+    }
+    public function content($pl, $row) {
+        $v = $this->_tag_value($row);
+        if (!$this->is_value)
+            return "<input type='checkbox' class='cb' name='tag:$this->dtag $row->paperId' value='x' tabindex='6'"
+                . ($v !== null ? " checked='checked'" : "") . " />";
+        else
+            return "<input type='text' class='textlite' size='4' name='tag:$this->dtag $row->paperId' value=\""
+                . ($v !== null ? htmlspecialchars($v) : "") . "\" tabindex='6' />";
     }
 }
 
@@ -969,7 +1059,7 @@ class TagOrderSortPaperColumn extends PaperColumn {
 	global $Conf;
         $careful = !$pl->contact->privChair
             && $Conf->setting("tag_seeall") <= 0;
-        $ot = $this->search->orderTags;
+        $ot = $pl->search->orderTags;
         for ($i = 0; $i < count($ot); ++$i) {
             $n = "tagIndex" . ($i ? $i : "");
             $rev = $ot[$i]->reverse;
@@ -1032,38 +1122,45 @@ class ShepherdPaperColumn extends PaperColumn {
 function initialize_paper_columns() {
     global $paperListFormulas, $reviewScoreNames, $Conf;
 
-    PaperColumn::register(new SelectorPaperColumn("sel", array("minimal" => true)), PaperList::FIELD_SELECTOR);
-    PaperColumn::register(new SelectorPaperColumn("selon", array("minimal" => true, "cssname" => "sel")), PaperList::FIELD_SELECTOR_ON);
-    PaperColumn::register(new SelectorPaperColumn("selconf", array("cssname" => "confselector")), PaperList::FIELD_SELECTOR_CONFLICT);
-    PaperColumn::register(new IdPaperColumn, PaperList::FIELD_ID);
-    PaperColumn::register(new TitlePaperColumn("title"), PaperList::FIELD_TITLE);
-    PaperColumn::register(new StatusPaperColumn("status", false), PaperList::FIELD_STATUS_SHORT);
-    PaperColumn::register(new StatusPaperColumn("statusfull", true), PaperList::FIELD_STATUS);
-    PaperColumn::register(new ReviewerTypePaperColumn("revtype"), PaperList::FIELD_REVIEWER_TYPE_ICON);
-    PaperColumn::register(new ReviewStatusPaperColumn("revstat"), PaperList::FIELD_REVIEWS_STATUS);
-    PaperColumn::register(new ReviewSubmittedPaperColumn("revsubmitted"), PaperList::FIELD_REVIEWER_STATUS);
-    PaperColumn::register(new ReviewDelegationPaperColumn("revdelegation", array("cssname" => "text", "sortable" => true)), PaperList::FIELD_REVIEWER_MONITOR);
-    PaperColumn::register(new AssignReviewPaperColumn("assrev"), PaperList::FIELD_ASSIGN_REVIEW);
-    PaperColumn::register(new TopicScorePaperColumn("topicscore", true), PaperList::FIELD_TOPIC_INTEREST);
-    PaperColumn::register(new TopicListPaperColumn("topics", 13), PaperList::FIELD_OPT_TOPIC_NAMES);
-    PaperColumn::register(new PreferencePaperColumn("revpref", false), PaperList::FIELD_REVIEWER_PREFERENCE);
-    PaperColumn::register(new PreferencePaperColumn("revprefedit", true), PaperList::FIELD_EDIT_REVIEWER_PREFERENCE);
-    PaperColumn::register(new PreferenceListPaperColumn("allrevpref", 0), PaperList::FIELD_ALL_PREFERENCES);
-    PaperColumn::register(new DesirabilityPaperColumn("desirability"), PaperList::FIELD_DESIRABILITY);
-    PaperColumn::register(new ReviewerListPaperColumn("reviewers", 10), PaperList::FIELD_OPT_ALL_REVIEWER_NAMES);
-    PaperColumn::register(new AuthorsPaperColumn("authors", 3), PaperList::FIELD_OPT_AUTHORS);
-    PaperColumn::register(new CollabPaperColumn("collab", 15), PaperList::FIELD_COLLABORATORS);
-    PaperColumn::register(new TagListPaperColumn("tags", 4), PaperList::FIELD_TAGS);
-    PaperColumn::register(new AbstractPaperColumn("abstract", 5), PaperList::FIELD_OPT_ABSTRACT);
-    PaperColumn::register(new LeadPaperColumn("lead", 12), PaperList::FIELD_LEAD);
-    PaperColumn::register(new ShepherdPaperColumn("shepherd", 11), PaperList::FIELD_SHEPHERD);
-    PaperColumn::register(new PCConflictListPaperColumn("pcconf", 14), PaperList::FIELD_OPT_PC_CONFLICTS);
-    PaperColumn::register(new ConflictMatchPaperColumn("authorsmatch", "authorInformation"), PaperList::FIELD_AUTHOR_MATCH);
-    PaperColumn::register(new ConflictMatchPaperColumn("collabmatch", "collaborators"), PaperList::FIELD_COLLABORATORS_MATCH);
-    PaperColumn::register(new SearchSortPaperColumn, PaperList::FIELD_PIDARRAY);
-    PaperColumn::register(new TagOrderSortPaperColumn, PaperList::FIELD_TAGINDEX);
+    // The ID numbers passed as argument 2 to PaperColumn::register are
+    // legacy, new code uses names. We keep the numbers because they might
+    // define sort orders for old saved searches.
+    PaperColumn::register(new SelectorPaperColumn("sel", array("minimal" => true)), 1000);
+    PaperColumn::register(new SelectorPaperColumn("selon", array("minimal" => true, "cssname" => "sel")), 1001);
+    PaperColumn::register(new SelectorPaperColumn("selconf", array("cssname" => "confselector")), 1002);
+    PaperColumn::register(new IdPaperColumn, 1);
+    PaperColumn::register(new TitlePaperColumn("title"), 11);
+    PaperColumn::register(new StatusPaperColumn("status", false), 21);
+    PaperColumn::register(new StatusPaperColumn("statusfull", true), 20);
+    PaperColumn::register(new ReviewerTypePaperColumn("revtype"), 27);
+    PaperColumn::register(new ReviewStatusPaperColumn("revstat"), 41);
+    PaperColumn::register(new ReviewSubmittedPaperColumn("revsubmitted"), 28);
+    PaperColumn::register(new ReviewDelegationPaperColumn("revdelegation", array("cssname" => "text", "sortable" => true)), 29);
+    PaperColumn::register(new AssignReviewPaperColumn("assrev"), 35);
+    PaperColumn::register(new TopicScorePaperColumn("topicscore", true), 36);
+    PaperColumn::register(new TopicListPaperColumn("topics", 13), 73);
+    PaperColumn::register(new PreferencePaperColumn("revpref", false), 39);
+    PaperColumn::register(new PreferencePaperColumn("revprefedit", true), 40);
+    PaperColumn::register(new PreferenceListPaperColumn("allrevpref"), 44);
+    PaperColumn::register(new DesirabilityPaperColumn("desirability"), 43);
+    PaperColumn::register(new ReviewerListPaperColumn("reviewers", 10), 75);
+    PaperColumn::register(new AuthorsPaperColumn("authors", 3), 70);
+    PaperColumn::register(new CollabPaperColumn("collab", 15), 74);
+    PaperColumn::register(new TagListPaperColumn("tags", 4), 71);
+    PaperColumn::register(new AbstractPaperColumn("abstract", 5), 72);
+    PaperColumn::register(new LeadPaperColumn("lead", 12), 77);
+    PaperColumn::register(new ShepherdPaperColumn("shepherd", 11), 78);
+    PaperColumn::register(new PCConflictListPaperColumn("pcconf", 14), 76);
+    PaperColumn::register(new ConflictMatchPaperColumn("authorsmatch", "authorInformation"), 47);
+    PaperColumn::register(new ConflictMatchPaperColumn("collabmatch", "collaborators"), 48);
+    PaperColumn::register(new SearchSortPaperColumn, 9);
+    PaperColumn::register(new TagOrderSortPaperColumn, 8);
+    PaperColumn::register_factory("tag:", new TagPaperColumn(null, null, false));
+    PaperColumn::register_factory("tagval:", new TagPaperColumn(null, null, true));
+    PaperColumn::register_factory("edittag:", new EditTagPaperColumn(null, null, false));
+    PaperColumn::register_factory("edittagval:", new EditTagPaperColumn(null, null, true));
 
-    $nextfield = PaperList::FIELD_SCORE;
+    $nextfield = 50; /* BaseList::FIELD_SCORE */
     foreach ($reviewScoreNames as $k => $n) {
         ScorePaperColumn::register(new ScorePaperColumn($n, $nextfield));
         ++$nextfield;
