@@ -43,7 +43,11 @@ $searchKeywords = array("ti" => "ti", "title" => "ti",
 	"repref" => "revpref",
 	"ss" => "ss", "search" => "ss",
 	"HEADING" => "HEADING", "heading" => "HEADING",
-	"VIEW" => "VIEW", "view" => "VIEW");
+        "show" => "show", "VIEW" => "show", "view" => "show",
+        "hide" => "hide", "edit" => "edit",
+        "sort" => "sort", "showsort" => "showsort",
+        "sortshow" => "showsort", "editsort" => "editsort",
+        "sortedit" => "editsort");
 
 class SearchOperator {
     var $op;
@@ -1323,13 +1327,27 @@ class PaperSearch {
 		$this->headingmap = array();
 	    $qt[] = SearchTerm::make_float(array("heading" => $heading));
 	}
-	if ($keyword == "VIEW") {
+	if ($keyword == "show" || $keyword == "hide" || $keyword == "edit"
+            || $keyword == "sort" || $keyword == "showsort"
+            || $keyword == "editsort") {
 	    $views = array();
-	    foreach (preg_split('/\s+/', $word) as $w)
-		if ($w != "" && $w[0] == "-")
-		    $views[substr($w, 1)] = false;
-		else if ($w != "")
-		    $views[$w] = true;
+	    foreach (preg_split('/\s+/', $word) as $w) {
+                $a = ($keyword == "hide" ? false : true);
+		if ($w[0] == "-")
+                    list($a, $w) = array(false, substr($w, 1));
+                if ($w[0] == "#") {
+                    if (strpos($keyword, "edit") !== false)
+                        $w = "edittagval:" . substr($w, 1);
+                    else
+                        $w = "tag:" . substr($w, 1);
+                }
+                $comma = strpos($w, ",");
+                $subw = $comma === false ? $w : substr($w, 0, $comma);
+                if ($subw != "" && $keyword != "sort")
+                    $views[$subw] = $a;
+                if (strpos($keyword, "sort") !== false)
+                    $views["sort"] = $w;
+            }
 	    $qt[] = SearchTerm::make_float(array("view" => $views));
 	}
 

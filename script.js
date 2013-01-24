@@ -20,6 +20,37 @@ function e_value(id, value) {
 	elt.value = value;
 }
 
+function eltPos(e) {
+    if (typeof e == "string")
+	e = $$(e);
+    var pos = {
+	top: 0, left: 0, width: e.offsetWidth, height: e.offsetHeight,
+	right: e.offsetWidth, bottom: e.offsetHeight
+    };
+    while (e) {
+	pos.left += e.offsetLeft;
+	pos.top += e.offsetTop;
+	pos.right += e.offsetLeft;
+	pos.bottom += e.offsetTop;
+	e = e.offsetParent;
+    }
+    return pos;
+}
+
+function event_stop(evt) {
+    if (evt.stopPropagation)
+	evt.stopPropagation();
+    else
+	evt.cancelBubble = true;
+}
+
+function event_prevent(evt) {
+    if (evt.preventDefault)
+	evt.preventDefault();
+    else
+	evt.returnValue = false;
+}
+
 
 setLocalTime = (function () {
 var servhr24, showdifference = false;
@@ -416,6 +447,7 @@ function pc_tags_members(tag) {
 }
 
 autosub = (function () {
+var current;
 
 function autosub_kp(event) {
     var code, form, inputs, i;
@@ -423,6 +455,8 @@ function autosub_kp(event) {
     code = event.charCode || event.keyCode;
     if (code != 13 || event.ctrlKey || event.altKey || event.shiftKey)
 	return true;
+    else if (current === false)
+	return false;
     form = this;
     while (form && form.tagName && form.tagName.toUpperCase() != "FORM")
 	form = form.parentNode;
@@ -440,13 +474,15 @@ function autosub_kp(event) {
 
 return function (name, elt) {
     var da = $$("defaultact");
-    if (da)
+    if (da && typeof name === "string")
 	da.value = name;
+    current = name;
     if (elt && !elt.onkeypress && elt.tagName.toUpperCase() == "INPUT")
 	elt.onkeypress = autosub_kp;
 };
 
 })();
+
 
 function plactions_dofold() {
     var elt = $$("placttagtype"), folded, x, i;
@@ -544,7 +580,7 @@ function staged_foreach(a, f, backwards) {
     var step = (backwards ? -1 : 1);
     var stagef = function () {
 	var x;
-	for (x = 0; i >= 0 && i < a.length && x < 50; i += step, ++x)
+	for (x = 0; i >= 0 && i < a.length && x < 100; i += step, ++x)
 	    f(a[i]);
 	if (i < a.length)
 	    setTimeout(stagef, 0);
@@ -553,16 +589,6 @@ function staged_foreach(a, f, backwards) {
 }
 
 // temporary text
-function tempText(elt, text, on) {
-    if (on && elt.value == text) {
-	elt.value = "";
-	elt.className = elt.className.replace(/\btemptext\b/, "temptextoff");
-    } else if (!on && elt.value == "") {
-	elt.value = text;
-	elt.className = elt.className.replace(/\btemptextoff\b/, "temptext");
-    }
-}
-
 mktemptext = (function () {
 function setclass(e, on) {
     e.className = e.className.replace(on ? /\btemptextoff\b/ : /\btemptext\b/,
@@ -850,18 +876,13 @@ return function (elt, report_elt, cleanf) {
 
 
 // review preferences
-addRevprefAjax = (function () {
+add_revpref_ajax = (function () {
 
-function revpref_focus() {
-    tempText(this, "0", true);
+function rp_focus() {
     autosub("update", this);
 }
 
-function revpref_blur() {
-    tempText(this, "0", false);
-}
-
-function revpref_change() {
+function rp_change() {
     var form = $$("prefform"), whichpaper = this.name.substr(7);
     form.p.value = whichpaper;
     form.revpref.value = this.value;
@@ -873,12 +894,12 @@ function revpref_change() {
 	});
 }
 
-function revpref_keypress(event) {
+function rp_keypress(event) {
     var e = event || window.event, code = e.charCode || e.keyCode;
     if (e.ctrlKey || e.altKey || e.shiftKey || code != 13)
 	return true;
     else {
-	revpref_change.apply(this);
+	rp_change.apply(this);
 	return false;
     }
 }
@@ -890,11 +911,11 @@ return function () {
 	form = null;
     staged_foreach(inputs, function (elt) {
 	if (elt.type == "text" && elt.name.substr(0, 7) == "revpref") {
-	    elt.onfocus = revpref_focus;
-	    elt.onblur = revpref_blur;
+	    elt.onfocus = rp_focus;
+	    mktemptext(elt, "0");
 	    if (form) {
-		elt.onchange = revpref_change;
-		elt.onkeypress = revpref_keypress;
+		elt.onchange = rp_change;
+		elt.onkeypress = rp_keypress;
 	    }
 	}
     });
@@ -902,105 +923,403 @@ return function () {
 
 })();
 
-function makeassrevajax(select, pcs, paperId) {
-    return function () {
-	var form = $$("assrevform");
-	var immediate = $$("assrevimmediate");
-	var roundtag = $$("assrevroundtag");
-	if (form && form.p && form[pcs] && immediate && immediate.checked) {
-	    form.p.value = paperId;
-	    form.rev_roundtag.value = (roundtag ? roundtag.value : "");
-	    form[pcs].value = select.value;
-	    Miniajax.submit("assrevform", function (rv) {
-		setajaxcheck(select, rv);
-	    });
-	} else
-	    hiliter(select);
-    };
+
+add_assrev_ajax = (function () {
+var pcs;
+
+function ar_onchange() {
+    var form = $$("assrevform"), immediate = $$("assrevimmediate"),
+    roundtag = $$("assrevroundtag"), that = this;
+    if (form && form.p && form[pcs] && immediate && immediate.checked) {
+	form.p.value = this.name.substr(6);
+	form.rev_roundtag.value = (roundtag ? roundtag.value : "");
+	form[pcs].value = this.value;
+	Miniajax.submit("assrevform", function (rv) {
+	    setajaxcheck(that, rv);
+	});
+    } else
+	hiliter(this);
 }
 
-function addAssrevAjax() {
+return function () {
     var form = $$("assrevform");
     if (!form || !form.reviewer)
 	return;
-    var pcs = "pcs" + form.reviewer.value;
+    pcs = "pcs" + form.reviewer.value;
     var inputs = document.getElementsByTagName("select");
     staged_foreach(inputs, function (elt) {
-	if (elt.name.substr(0, 6) == "assrev") {
-	    var whichpaper = elt.name.substr(6);
-	    elt.onchange = makeassrevajax(elt, pcs, whichpaper);
-	}
+	if (elt.name.substr(0, 6) == "assrev")
+	    elt.onchange = ar_onchange;
     });
+};
+
+})();
+
+
+add_conflict_ajax = (function () {
+var pcs;
+
+function conf_onclick() {
+    var form = $$("assrevform"), immediate = $$("assrevimmediate"), that = this;
+    if (form && form.p && form[pcs] && immediate && immediate.checked) {
+	form.p.value = this.value;
+	form[pcs].value = (this.checked ? -1 : 0);
+	Miniajax.submit("assrevform", function (rv) {
+	    setajaxcheck(that, rv);
+	});
+    } else
+	hiliter(this);
 }
 
-function makeconflictajax(input, pcs, paperId) {
-    return function () {
-	var form = $$("assrevform");
-	var immediate = $$("assrevimmediate");
-	if (form && form.p && form[pcs] && immediate && immediate.checked) {
-	    form.p.value = paperId;
-	    form[pcs].value = (input.checked ? -1 : 0);
-	    Miniajax.submit("assrevform", function (rv) {
-		setajaxcheck(input, rv);
-	    });
-	} else
-	    hiliter(input);
-    };
-}
-
-function addConflictAjax() {
+return function () {
     var form = $$("assrevform");
     if (!form || !form.reviewer)
 	return;
-    var pcs = "pcs" + form.reviewer.value;
+    pcs = "pcs" + form.reviewer.value;
     var inputs = document.getElementsByTagName("input");
     staged_foreach(inputs, function (elt) {
 	if (elt.name == "pap[]")
-	    elt.onclick = makeconflictajax(elt, pcs, elt.value);
+	    elt.onclick = conf_onclick;
     });
+};
+
+})();
+
+
+add_edittag_ajax = (function () {
+var ready, dragtag,
+    plt_tbody, dragging, rowanal, srcindex, dragindex, dragger;
+
+function parse_tagvalue(s) {
+    s = s.replace(/^\s+|\s+$/, "").toLowerCase();
+    if (s == "y" || s == "yes" || s == "t" || s == "true" || s == "✓")
+	return 0;
+    else if (s == "n" || s == "no" || s == "" || s == "f" || s == "false" || s == "na" || s == "n/a")
+	return false;
+    else if (s.match(/^[-+]?\d+$/))
+	return +s;
+    else
+	return null;
 }
 
-function edittagajax() {
-    var form = $$("edittagajaxform"), that = this;
-    var m = this.name.match(/^tag:(\S+) (\d+)$/);
+function unparse_tagvalue(tv) {
+    return tv === false ? "" : tv;
+}
+
+function tag_setform(elt) {
+    var form = $$("edittagajaxform");
+    var m = elt.name.match(/^tag:(\S+) (\d+)$/);
     form.p.value = m[2];
     form.addtags.value = form.deltags.value = "";
-    if (this.type.toLowerCase() == "checkbox") {
-	if (this.checked)
+    if (elt.type.toLowerCase() == "checkbox") {
+	if (elt.checked)
 	    form.addtags.value = m[1];
 	else
 	    form.deltags.value = m[1];
     } else {
-	var s = this.value.replace(/^\s+/, "").replace(/\s+$/, "").toLowerCase();
-	if (s == "y" || s == "yes" || s == "t" || s == "true" || s == "✓")
-	    form.addtags.value = m[1];
-	else if (s == "n" || s == "no" || s == "" || s == "f" || s == "false" || s == "na" || s == "n/a")
+	var tv = parse_tagvalue(elt.value);
+	if (tv === false)
 	    form.deltags.value = m[1];
-	else if (s.match(/^[-+]?\d+$/))
-	    form.addtags.value = m[1] + "#" + s;
-	else
-	    return setajaxcheck(that, {ok: false, error: "Tag value must be an integer (or “n” to remove the tag)."});
+	else if (tv !== null)
+	    form.addtags.value = m[1] + "#" + tv;
+	else {
+	    setajaxcheck(elt, {ok: false, error: "Tag value must be an integer (or “n” to remove the tag)."});
+	    return false;
+	}
     }
-    Miniajax.submit("edittagajaxform", function (rv) {
-	setajaxcheck(that, rv);
-    });
+    return true;
 }
 
-function addedittagajax() {
-    var sel = $$("sel");
-    if (!$$("edittagajaxform") || !sel || window.addedittagajax_called)
-	return;
-    window.addedittagajax_called = true;
-    var inputs = document.getElementsByTagName("input");
-    staged_foreach(inputs, function (elt) {
-	if (elt.name.substr(0, 4) == "tag:") {
-	    if (elt.type.toLowerCase() == "checkbox")
-		elt.onclick = edittagajax;
-	    else
-		elt.onchange = edittagajax;
-	}
-    });
+function tag_onclick() {
+    var that = this;
+    if (tag_setform(that))
+	Miniajax.submit("edittagajaxform", function (rv) {
+	    setajaxcheck(that, rv);
+	});
 }
+
+function tag_keypress(evt) {
+    evt = evt || window.event;
+    var code = evt.charCode || evt.keyCode;
+    if (evt.ctrlKey || evt.altKey || evt.shiftKey || code != 13)
+	return true;
+    else {
+	this.onchange();
+	return false;
+    }
+}
+
+function PaperRow(rows, l, r, index) {
+    this.l = l;
+    this.r = r;
+    this.index = index;
+    this.tagvalue = null;
+    this.id = rows[l].getAttribute("hotcrpid");
+    var inputs = rows[l].getElementsByTagName("input");
+    var i, prefix = "tag:" + dragtag + " ";
+    for (i in inputs)
+	if (inputs[i].name.substr(0, prefix.length) == prefix) {
+	    this.entry = inputs[i];
+	    this.tagvalue = parse_tagvalue(inputs[i].value);
+	    break;
+	}
+}
+PaperRow.prototype.top = function () {
+    return eltPos(rows[this.l]).top;
+};
+PaperRow.prototype.bottom = function () {
+    return eltPos(rows[this.r]).bottom;
+};
+PaperRow.prototype.middle = function () {
+    return (this.top() + this.bottom()) / 2;
+};
+
+function analyze_rows(e) {
+    var rows = plt_tbody.childNodes, i, l, r, e, eindex = null;
+    while (e && e.nodeName != "TR")
+	e = e.parentElement;
+    rowanal = [];
+    for (i = 0, l = null; i < rows.length; ++i)
+	if (rows[i].nodeName == "TR") {
+	    if (/^plx/.test(rows[i].className))
+		r = i;
+	    else {
+		if (l !== null)
+		    rowanal.push(new PaperRow(rows, l, r, rowanal.length));
+		l = r = i;
+	    }
+	    if (e == rows[i])
+		eindex = rowanal.length;
+	}
+    if (l !== null)
+	rowanal.push(new PaperRow(rows, l, r, rowanal.length));
+    return eindex;
+}
+
+function tag_mousemove(evt) {
+    evt = evt || window.event;
+    var rows = plt_tbody.childNodes, y = evt.clientY + Geometry().top, a;
+
+    // binary search to find containing rows
+    var l = 0, r = rowanal.length;
+    while (l < r) {
+	var m = Math.floor((l + r) / 2);
+	if (y < rowanal[m].top())
+	    r = m;
+	else if (y < rowanal[m].bottom()) {
+	    l = m;
+	    break;
+	} else
+	    l = m + 1;
+    }
+
+    // find nearest insertion position
+    if (l < rowanal.length && y > rowanal[l].middle())
+	++l;
+
+    // create dragger
+    if (!dragger) {
+	dragger = document.createElement("div");
+	dragger.style.position = "absolute";
+	dragger.style.left = "100px";
+	dragger.style.top = "100px";
+	dragger.style.zIndex = 10;
+	dragger.innerHTML = "XXXX";
+	var body = document.body || document.getElementsByTagName("body")[0] || document.documentElement;
+	body.appendChild(dragger);
+    }
+    dragger.style.display = "block";
+
+    // show dragger between nodes unless position unchanged
+    dragindex = l;
+    if (dragindex == srcindex || dragindex == srcindex + 1) {
+	y = rowanal[srcindex].middle();
+	dragindex = srcindex;
+    } else if (dragindex < rowanal.length)
+	y = rowanal[dragindex].top();
+    else
+	y = rowanal[rowanal.length - 1].bottom();
+    y -= eltPos(dragger).height / 2;
+    dragger.style.top = y + "px";
+
+    event_stop(evt);
+}
+
+function row_move(srcindex, dstindex) {
+    // shift row groups
+    var rows = plt_tbody.childNodes;
+    var range = [rowanal[srcindex].l, rowanal[srcindex].r];
+    var sibling = dstindex < rowanal.length ? rows[rowanal[dstindex].l] : null;
+    while (range[0] <= range[1]) {
+	e = plt_tbody.removeChild(rows[range[0]]);
+	plt_tbody.insertBefore(e, sibling);
+	srcindex > dstindex ? ++range[0] : --range[1];
+    }
+
+    // fix classes
+    e = 1;
+    for (var i = 0; i < rows.length; ++i)
+	if (rows[i].nodeName == "TR") {
+	    if (!/^plx/.test(rows[i].className))
+		e = 1 - e;
+	    rows[i].className = rows[i].className.replace(/\bk[01]\b/, "k" + e);
+	}
+}
+
+function commit_drag(si, di) {
+    var na = [].concat(rowanal), i, delta;
+
+    // initialize newvalues, make sure all elements in drag range have values
+    for (i = 0; i < na.length; ++i) {
+	na[i].newvalue = na[i].tagvalue;
+	if ((i < si || i < di) && na[i].newvalue === false)
+	    na[i].newvalue = (i ? na[i-1].newvalue + 1 : 1);
+    }
+
+    if (si < di) {
+	if (na[si].newvalue !== na[si+1].newvalue) {
+	    delta = na[si].tagvalue - na[si+1].tagvalue;
+	    for (i = si + 1; i < di; ++i)
+		na[i].newvalue += delta;
+	}
+	if (di < na.length && na[di].newvalue !== false
+	    && na[di].newvalue > na[di-1].newvalue + 2)
+	    delta = Math.floor((na[di-1].newvalue + na[di].newvalue)/2);
+	else
+	    delta = na[di-1].newvalue + 1;
+    } else {
+	if (di == 0 && na[di].newvalue < 0)
+	    delta = na[di].newvalue - 1;
+	else if (di == 0)
+	    delta = 1;
+	else if (na[di].newvalue > na[di-1].newvalue + 2)
+	    delta = Math.floor((na[di-1].newvalue + na[di].newvalue)/2);
+	else
+	    delta = na[di-1].newvalue + 1;
+    }
+    na[si].newvalue = delta;
+    for (i = di; i < na.length; ++i) {
+	if (i != si && na[i].newvalue !== false && na[i].newvalue <= delta)
+	    delta = na[i].newvalue = delta + 1;
+	else if (i != si)
+	    break;
+    }
+
+    for (i = 0; i < na.length; ++i)
+	if (na[i].newvalue !== na[i].tagvalue && na[i].entry) {
+	    na[i].entry.value = unparse_tagvalue(na[i].newvalue);
+	    na[i].entry.onchange();
+	}
+}
+
+function sorttag_onchange() {
+    var that = this, tv = parse_tagvalue(that.value);
+    if (tag_setform(this))
+	Miniajax.submit("edittagajaxform", function (rv) {
+	    setajaxcheck(that, rv);
+	    var srcindex = analyze_rows(that);
+	    if (!rv.ok || srcindex === null)
+		return;
+	    var id = rowanal[srcindex].id, i, ltv;
+	    for (i = 0; i < rowanal.length; ++i) {
+		ltv = rowanal[i].tagvalue;
+		if ((tv !== false && ltv === false)
+		    || (tv !== false && ltv !== null && ltv > tv)
+		    || (ltv === tv && rowanal[i].id > id))
+		    break;
+	    }
+	    var had_focus = document.activeElement == that;
+	    row_move(srcindex, i);
+	    if (had_focus)
+		that.focus();
+	});
+}
+
+function tag_mousedown(evt) {
+    evt = evt || window.event;
+    if (dragging)
+	tag_mouseup();
+    dragging = this;
+    dragindex = null;
+    srcindex = analyze_rows(this);
+    if (document.addEventListener) {
+	document.addEventListener("mousemove", tag_mousemove, true);
+	document.addEventListener("mouseup", tag_mouseup, true);
+    } else {
+	dragging.setCapture();
+	dragging.attachEvent("onmousemove", tag_mousemove);
+	dragging.attachEvent("onmouseup", tag_mouseup);
+	dragging.attachEvent("onmousecapture", tag_mouseup);
+    }
+    event_stop(evt);
+    event_prevent(evt);
+}
+
+function tag_mouseup(evt) {
+    if (document.removeEventListener) {
+	document.removeEventListener("mousemove", tag_mousemove, true);
+	document.removeEventListener("mouseup", tag_mouseup, true);
+    } else {
+	dragging.detachEvent("onmousemove", tag_mousemove);
+	dragging.detachEvent("onmouseup", tag_mouseup);
+	dragging.detachEvent("onmousecapture", tag_mouseup);
+	dragging.releaseCapture();
+    }
+    if (dragger)
+	dragger.style.display = "none";
+
+    if (srcindex !== null && (dragindex === null || srcindex != dragindex))
+	commit_drag(srcindex, dragindex);
+
+    dragging = srcindex = dragindex = null;
+}
+
+return function (active_dragtag) {
+    var sel = $$("sel");
+    if (!$$("edittagajaxform") || !sel)
+	return;
+    if (!ready) {
+	ready = true;
+	staged_foreach(document.getElementsByTagName("input"), function (elt) {
+	    if (elt.name.substr(0, 4) == "tag:") {
+		if (elt.type.toLowerCase() == "checkbox")
+		    elt.onclick = tag_onclick;
+		else {
+		    elt.onchange = tag_onclick;
+		    elt.onkeypress = tag_keypress;
+		}
+	    }
+	});
+    }
+    if (active_dragtag) {
+	dragtag = active_dragtag;
+
+	var tables = document.getElementsByTagName("table"), i, j;
+	for (i = 0; i < tables.length && !plt_tbody; ++i)
+	    if (tables[i].className.match(/\bpltable\b/)) {
+		var children = tables[i].childNodes;
+		for (j = 0; j < children.length; ++j)
+		    if (children[j].nodeName.toUpperCase() == "TBODY") {
+			plt_tbody = children[j];
+			rows = plt_tbody.childNodes;
+			break;
+		    }
+	    }
+
+	staged_foreach(plt_tbody.getElementsByTagName("input"), function (elt) {
+	    if (elt.name.substr(0, 5 + dragtag.length) == "tag:" + dragtag + " ") {
+		var x = document.createElement("span");
+		x.className = "dragtaghandle";
+		x.setAttribute("hotcrpid", elt.name.substr(5 + dragtag.length));
+		elt.parentElement.insertBefore(x, elt.nextSibling);
+		x.onmousedown = tag_mousedown;
+		elt.onchange = sorttag_onchange;
+	    }
+	});
+    }
+};
+
+})();
 
 
 // thank you David Flanagan
@@ -1040,19 +1359,6 @@ if (window.innerWidth) {
 	    bottom: e.scrollTop + e.clientHeight
 	};
     };
-}
-
-
-function eltPos(e) {
-    var pos = { top: 0, left: 0, right: e.offsetWidth, bottom: e.offsetHeight };
-    while (e) {
-	pos.left += e.offsetLeft;
-	pos.top += e.offsetTop;
-	pos.right += e.offsetLeft;
-	pos.bottom += e.offsetTop;
-	e = e.offsetParent;
-    }
-    return pos;
 }
 
 

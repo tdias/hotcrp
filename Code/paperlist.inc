@@ -673,7 +673,8 @@ class PaperList extends BaseList {
 	    $field = $field->foldnum ? $field->name : null;
 	return ($field
 		&& !defval($_REQUEST, "show$field")
-		&& strpos($this->display, " $field ") === false);
+                && ($this->viewmap->$field === false
+                    || strpos($this->display, " $field ") === false));
     }
 
     function _row_text($rstate, $row, $fieldDef) {
@@ -751,10 +752,10 @@ class PaperList extends BaseList {
 	    $rstate->foldinfo["wholerow"] = true;
 	}
 
-	$t = "  <tr class=\"pl $trclass\">\n" . $t . "  </tr>\n";
+	$t = "  <tr class=\"pl $trclass\" hotcrpid=\"$row->paperId\">\n" . $t . "  </tr>\n";
 
 	if ($tt !== "") {
-	    $t .= "  <tr class=\"plx $trclass\">";
+	    $t .= "  <tr class=\"plx $trclass\" hotcrpid=\"$row->paperId\">";
 	    if ($rstate->skipcallout > 0)
 		$t .= "<td colspan=\"$rstate->skipcallout\"></td>";
 	    $t .= "<td colspan=\"" . ($rstate->ncol - $rstate->skipcallout) . "\">$tt</td></tr>\n";
@@ -932,21 +933,35 @@ class PaperList extends BaseList {
             && $field_list[0]->name == "sel")
 	    $field_list[0] = PaperColumn::lookup("selon");
 
+        // add requested fields
+        $specials = array_flip(array("cc", "compactcolumn", "cc", "compactcolumns", "column", "col", "columns", "sort"));
+        foreach ($this->viewmap as $k => $v)
+            if (!isset($specials[$k]) && $v
+                && ($f = PaperColumn::lookup($k)))
+                $field_list[] = $f;
+
 	// check paper link destination
 	if (isset($_REQUEST["linkto"]) && ($_REQUEST["linkto"] == "paper" || $_REQUEST["linkto"] == "review" || $_REQUEST["linkto"] == "assign"))
 	    $this->paperLink = $_REQUEST["linkto"];
 
         // check sort
-        $special_sort = $sort_field = null;
+        $special_sort = null;
         if (!$special_sort && count($this->search->orderTags)
             && ($special_sort = PaperColumn::lookup("tagordersort"))
-            && !$special_sort->prepare($this, $queryOptions, false))
+            && !$special_sort->prepare($this, $queryOptions, -1))
             $special_sort = null;
         if (!$special_sort && $this->search->simplePaperList() !== null)
             $special_sort = PaperColumn::lookup("searchsort");
+        if ($this->viewmap->sort
+            && ($new_sorter = BaseList::parse_sorter($this->viewmap->sort))
+            && ($sort_field = PaperColumn::lookup($new_sorter->type))
+            && $sort_field->prepare($this, $queryOptions, -1))
+            $this->sorter = $new_sorter;
+        else
+            $sort_field = null;
         if ($this->sorter->type
             && ($sort_field = PaperColumn::lookup($this->sorter->type))
-            && !$sort_field->prepare($this, $queryOptions, false))
+            && !$sort_field->prepare($this, $queryOptions, -1))
             $sort_field = null;
         if (!$sort_field)
             $sort_field = $special_sort;
@@ -959,8 +974,9 @@ class PaperList extends BaseList {
 	$ncol = 0;
 	foreach ($field_list as $f)
 	    if ($f->view > 0
+                && $this->viewmap[$f->name] !== false
                 && $f->prepare($this, $queryOptions,
-                               $this->_field_is_folded($f))) {
+                               $this->_field_is_folded($f) ? 0 : 1)) {
 		$fieldDef[] = $f;
 		if ($f->view == Column::VIEW_COLUMN)
 		    $ncol++;
@@ -1147,7 +1163,7 @@ class PaperList extends BaseList {
 	$ncol = 0;
 	$this->unfolded = true;
 	if (!($fdef = PaperColumn::lookup($fieldId))
-	    || !$fdef->prepare($this, $queryOptions, false))
+	    || !$fdef->prepare($this, $queryOptions, 0))
 	    return null;
 	$unfolded = $this->unfolded;
 

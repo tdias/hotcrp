@@ -1413,7 +1413,8 @@ td.pl_lastvisit, td.al_time {
 td.pl_name,
 td.al_name,
 td.pl_assrev,
-td.pl_revprefedit {
+td.pl_revprefedit,
+td.pl_edittagval {
 	white-space: nowrap;
 }
 table.ppltable td.pl_score {
@@ -1474,6 +1475,17 @@ tr.pl_splitcol > td > div.pl_footgap {
 }
 table.plt_reviewerHome tr.pl_headrow th {
 	border-bottom: none;
+}
+span.dragtaghandle {
+	display: inline-block;
+	position: relative;
+	bottom: -0.25em;
+	background-color: #999999;
+	margin-left: .25em;
+	width: 11px;
+	height: 1.3em;
+	cursor: move;
+	background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAAXNSR0IArs4c6QAAADtJREFUCNdjOHz4zs/Dh+9cYEADTAwMDF8YGBj4Dh++gypha6sizMDAoMSADyAby4Qm94WBgYEPn04GAD/XFLwv6x9HAAAAAElFTkSuQmCC') repeat;
 }
 
 span.match {
