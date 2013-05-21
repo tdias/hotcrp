@@ -262,7 +262,7 @@ function doTags($set, $what) {
     if (!$set && $what == "tag_chair" && isset($_REQUEST["tag_chair"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_chair"]) as $t)
-	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOCHAIR | Tagger::NOVALUE))
 		$vs[] = $t;
 	    else if ($t !== "") {
 		$Error[] = "Chair-only tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
@@ -278,7 +278,7 @@ function doTags($set, $what) {
     if (!$set && $what == "tag_vote" && isset($_REQUEST["tag_vote"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_vote"]) as $t)
-	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE)) {
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOCHAIR)) {
 		if (preg_match('/\A([^#]+)(|#|#0+|#-\d*)\z/', $t, $m))
 		    $t = $m[1] . "#1";
 		$vs[] = $t;
@@ -339,7 +339,7 @@ function doTags($set, $what) {
     if (!$set && $what == "tag_rank" && isset($_REQUEST["tag_rank"])) {
 	$vs = array();
 	foreach (preg_split('/\s+/', $_REQUEST["tag_rank"]) as $t)
-	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
+	    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOCHAIR | Tagger::NOVALUE))
 		$vs[] = $t;
 	    else if ($t !== "") {
 		$Error[] = "Rank tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
@@ -368,7 +368,7 @@ function doTags($set, $what) {
 	    if (isset($_REQUEST["tag_color_" . $k])) {
 		$any_set = true;
 		foreach (preg_split('/,*\s+/', $_REQUEST["tag_color_" . $k]) as $t)
-		    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOVALUE))
+		    if ($t !== "" && $tagger->check($t, Tagger::NOPRIVATE | Tagger::NOCHAIR | Tagger::NOVALUE))
 			$vs[] = $t . "=" . $k;
 		    else if ($t !== "") {
 			$Error[] = ucfirst($k) . " color tag &ldquo;" . htmlspecialchars($t) . "&rdquo; contains odd characters.";
