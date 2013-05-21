@@ -29,6 +29,7 @@ $searchKeywords = array("ti" => "ti", "title" => "ti",
 	"ord" => "order", "order" => "order",
 	"rord" => "rorder", "rorder" => "rorder",
 	"revord" => "rorder", "revorder" => "rorder",
+	"comp" => "compare", "compare" => "compare",
 	"decision" => "decision", "dec" => "decision",
 	"topic" => "topic",
 	"option" => "option", "opt" => "option",
@@ -918,6 +919,63 @@ class PaperSearch {
 	$qt[] = new SearchTerm("tag", $rt, $compar ? array($value, $compar) : $value, $extra);
     }
 
+    function _searchCompareTags($word, $keyword, &$qt) {
+	global $Conf;
+	require_once("tags.inc");
+
+	// regular expressions for private tag, comparator, and list of paper numbers in search word
+	$regex_privateTag = "~[a-zA-Z!@_:.][-a-zA-Z0-9!@_:.\/]*?";
+	$regex_offset = "[-+]\d+";
+	$regex_comparator = "[<>!=]=?";
+	$regex_number = "#?(\d+)";
+	$regex_range = "$regex_number-$regex_number";
+	$regex_notRange = "(?=[\s,]|\z)";
+	$regex_numOrRange = "(?:$regex_number$regex_notRange|$regex_range)";
+	$regex_separator = "\s*[\s,]\s*";
+	$regex_list = "$regex_numOrRange(?:$regex_separator$regex_numOrRange)*";
+
+	// match regular expression to search word; fail if no match
+	if (!preg_match("/\A\s*($regex_privateTag)($regex_offset)*($regex_comparator)\s*($regex_list)\s*\z/", $word, $m)) {
+	    $this->warn("The <code>$keyword</code> keyword expects a private tag, an optional +/-offset, a comparison operator, and a list of paper numbers. See <a href='" . hoturl("help", "t=keywords") . "'>search keywords help</a>");
+	    $qt[] = new SearchTerm("f");
+	    return;
+	}
+
+	// extract private tag, comparator, and list of paper numbers
+	$privateTag = $m[1];
+	$offset = intval($m[2]);
+	$comparator = self::_cleanCompar($m[3]);
+	$paperNumList = $m[4];
+
+	$paperNums = array();
+	while (preg_match("/\A$regex_numOrRange(?:$regex_separator(.*))?\z/", $paperNumList, $m)) {
+	    if (is_numeric($m[1]))
+		$paperNums[] = $m[1];
+	    else
+		$paperNums = array_merge($paperNums, range($m[2], $m[3]));
+	    $paperNumList = $m[4];
+	}
+
+	// find reviewer tags and corresponding tag indices for all papers in list
+	$privateTag_length = strlen($privateTag);
+	$tagQuery = "select tag, tagIndex from PaperTag where right(tag,$privateTag_length)='$privateTag' and left(tag,1)!='~' and paperId in (" . join(", ", $paperNums) . ")";
+	$result = $Conf->qe($tagQuery, "while evaluating $keyword keyword");
+
+	// find papers that satisfy requested comparison
+	$tagWhere = array();
+	while ($row = edb_row($result)) {
+	    $comparand = $row[1] - $offset;
+	    $tagWhere[] = "tag='$row[0]' and tagIndex $comparator $comparand";
+	}
+	$result = $Conf->qe("select distinct paperId from PaperTag where " . join(" or ", $tagWhere), "while evaluating $keyword keyword");
+
+	// add a new search term for identified paper numbers
+	$paperNums = array();
+	while ($row = edb_row($result))
+	    $paperNums[] = $row[0];
+	$qt[] = new SearchTerm("pn", 0, array($paperNums, array()));
+    }
+
     function _searchOptions($word, &$qt, $error) {
 	$type = "option";
 	if (preg_match('/\A(.*?)([:#][<>!=]?=?|[<>!=]=?)(.*)\z/', $word, $m)) {
@@ -1155,6 +1213,9 @@ class PaperSearch {
 	if (($keyword ? $keyword == "tag" : isset($this->fields["tag"]))
 	    || $keyword == "order" || $keyword == "rorder")
 	    $this->_searchTags($word, $keyword, $qt);
+	if (($keyword ? $keyword == "compare" : isset($this->fields["compare"]))
+		&& $this->privChair)
+	    $this->_searchCompareTags($word, $keyword, $qt);
 	if (($keyword ? $keyword == "topic" : isset($this->fields["topic"]))) {
 	    $type = "topic";
 	    $value = null;

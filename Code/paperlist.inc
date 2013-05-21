@@ -400,11 +400,12 @@ class PaperList extends BaseList {
 	    }
 	    $t .= "tag<span class='fn99'>(s)</span> &nbsp;<input id='plact${nlll}_d' class='textlite' type='text' name='tag' value=\"" . htmlspecialchars(defval($_REQUEST, "tag", "")) . "\"' size='15' onfocus='autosub(\"tagact\",this)' /> &nbsp;<input type='submit' class='b' name='tagact' value='Go' />";
 	    if ($this->contact->privChair) {
+		require_once("Code/rank.inc");
 		$t .= "<div class='fx'><div style='margin:2px 0'>"
 		    . tagg_checkbox("tagcr_gapless", 1, defval($_REQUEST, "tagcr_gapless"), array("style" => "margin-left:0"))
 		    . "&nbsp;" . tagg_label("Gapless order") . "</div>"
 		    . "<div style='margin:2px 0'>Using: &nbsp;"
-		    . tagg_select("tagcr_method", PaperRank::methods(), defval($_REQUEST, "tagcr_method"))
+		    . tagg_select("tagcr_method", PaperRank::methods(), defval($_REQUEST, "tagcr_method", $Conf->settingText("rank_alg")))
 		    . "</div>"
 		    . "<div style='margin:2px 0'>Source tag: &nbsp;~<input class='textlite' type='text' name='tagcr_source' value=\"" . htmlspecialchars(defval($_REQUEST, "tagcr_source", "")) . "\" size='15' /></div>"
 		    . "</div>";
@@ -463,6 +464,19 @@ class PaperList extends BaseList {
 		. "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "mail")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Mail</a></td><td class='lld$nlll'><b>:</b> &nbsp;"
 		. tagg_select("recipients", array("au" => "Contact authors", "rev" => "Reviewers"), defval($_REQUEST, "recipients"), array("id" => "plact${nlll}_d"))
 		. " &nbsp;<input type='submit' class='b' name='sendmail' value='Go' /></td>";
+	    $nlll++;
+	}
+
+	// Compare (search+admin only)
+	if ($this->contact->privChair && !$revpref) {
+	    if (isset($_REQUEST["compare"]) || $this->atab == "compare")
+		$whichlll = $nlll;
+	    $t .= $barsep;
+	    $t .= "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "compare")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Compare</a></td><td class='lld$nlll'><b>:</b>";
+	    $t .= "&nbsp; tag &nbsp;~<input class='textlite' type='text' name='comparetag' value=\"" . htmlspecialchars(defval($_REQUEST, "comparetag", "")) . "\" size='10' />";
+	    $t .= "&nbsp; + &nbsp; <input class='textlite' type='text' name='compareoffset' value=\"" . htmlspecialchars(defval($_REQUEST, "compareoffset", "0")) . "\" size='2' />";
+	    $t .= "&nbsp;" . tagg_select("comparator", array("<" => "<", "<=" => "<=", ">" => ">", ">=" => ">=", "=" => "=", "!=" => "!="), defval($_REQUEST, "comparator"), array("id" => "plact${nlll}_d"));
+	    $t .= "&nbsp;<input type='submit' class='b' name='compare' value='Go' /></td>";
 	    $nlll++;
 	}
 
