@@ -182,6 +182,8 @@ function __autoload($class_name) {
         require_once("$ConfSitePATH/lib/mimetype.php");
     else if ($class_name == "DocumentHelper" || $class_name == "ZipDocument")
         require_once("$ConfSitePATH/lib/documenthelper.php");
+    else if ($class_name == "SortHelper")
+        require_once("$ConfSitePATH/lib/sorthelper.php");
     else if ($class_name == "HotCRPDocument")
         require_once("$ConfSitePATH/lib/hotcrpdocument.php");
     else if ($class_name == "Mailer")

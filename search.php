@@ -924,10 +924,10 @@ if (isset($_REQUEST["redisplay"])) {
 displayOptionsSet("pldisplay");
 if (defval($_REQUEST, "scoresort") == "M")
     $_REQUEST["scoresort"] = "C";
-if (isset($_REQUEST["scoresort"]) && isset($scoreSorts[$_REQUEST["scoresort"]]))
+if (isset($_REQUEST["scoresort"]) && isset(SortHelper::$score_sort_algorithms[$_REQUEST["scoresort"]]))
     $_SESSION["scoresort"] = $_REQUEST["scoresort"];
 if (!isset($_SESSION["scoresort"]))
-    $_SESSION["scoresort"] = PaperList::default_score_sort();
+    $_SESSION["scoresort"] = SortHelper::default_score_sort();
 if (isset($_REQUEST["redisplay"]))
     redirectSelf(array("tab" => "display"));
 
@@ -1265,7 +1265,7 @@ if ($pl) {
 	    if ($Me->privChair)
 		$onchange .= ";plinfo.extra()";
 	    displayOptionText("<div style='padding-top:1ex'>Sort by: &nbsp;"
-		. Ht::select("scoresort", $scoreSorts, $_SESSION["scoresort"], array("onchange" => $onchange, "id" => "scoresort", "style" => "font-size: 100%"))
+                              . Ht::select("scoresort", SortHelper::$score_sort_algorithms, $_SESSION["scoresort"], array("onchange" => $onchange, "id" => "scoresort", "style" => "font-size: 100%"))
 		. "<a class='help' href='" . hoturl("help", "t=scoresort") . "' target='_blank' title='Learn more'>?</a></div>", 3);
 	}
 	$anyScores = count($displayOptions) != $n;
@@ -1473,7 +1473,7 @@ if ($pl && $pl->count > 0) {
 	$pld = explode(" ", trim($Conf->settingText("pldisplay_default", " overAllMerit ")));
 	sort($pld);
 	if ($_SESSION["pldisplay"] != " " . ltrim(join(" ", $pld) . " ")
-	    || $_SESSION["scoresort"] != PaperList::default_score_sort(true))
+	    || $_SESSION["scoresort"] != SortHelper::default_score_sort(true))
 	    $Conf->footerScript("plinfo.extra()");
     }
 

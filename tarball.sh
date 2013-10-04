@@ -94,6 +94,7 @@ lib/paperlist.php
 lib/paperoption.php
 lib/qobject.php
 lib/rank.php
+lib/sorthelper.inc
 lib/tagger.php
 lib/text.php
 lib/utf8text.php
@@ -102,7 +103,6 @@ lib/xlsx.php
 Code/.htaccess
 Code/backupdb.sh
 Code/banal
-Code/baselist.inc
 Code/commentview.inc
 Code/conference.inc
 Code/conflict.inc

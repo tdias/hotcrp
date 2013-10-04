@@ -3,9 +3,7 @@
 // HotCRP is Copyright (c) 2006-2011 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
-require_once("baselist.inc");
-
-class ContactList extends BaseList {
+class ContactList {
 
     const FIELD_SELECTOR = 1000;
     const FIELD_SELECTOR_ON = 1001;
@@ -25,6 +23,9 @@ class ContactList extends BaseList {
     const FIELD_LEADS = 13;
     const FIELD_SHEPHERDS = 14;
     const FIELD_TAGS = 15;
+
+    const FIELD_SCORE = 50;
+    const FIELD_NUMSCORES = 11;
 
     var $showHeader;
     var $sortField;
@@ -173,6 +174,11 @@ class ContactList extends BaseList {
 	return $x ? $x : self::_sortBase($a, $b);
     }
 
+    function _sort_score($a, $b) {
+        $x = SortHelper::score_compare($a, $b, $this->_scoresort);
+        return $x ? $x : self::_sortBase($a, $b);
+    }
+
     function _sort($rows) {
 	global $Conf, $reviewScoreNames;
 	switch (self::_normalizeField($this->sortField)) {
@@ -208,12 +214,13 @@ class ContactList extends BaseList {
 	case self::FIELD_SCORE:
 	    $scoreName = $reviewScoreNames[$this->sortField - self::FIELD_SCORE];
 	    $scoreMax = $this->scoreMax[$scoreName];
-	    $scoresort = defval($_SESSION, "pplscoresort", "A");
-	    if ($scoresort != "A" && $scoresort != "V" && $scoresort != "D")
-		$scoresort = "A";
+	    $this->_scoresort = defval($_SESSION, "pplscoresort", "A");
+	    if ($this->_scoresort != "A" && $this->_scoresort != "V"
+                && $this->_scoresort != "D")
+		$this->_scoresort = "A";
 	    foreach ($rows as $row)
-		$this->score_analyze($row, $scoreName, $scoreMax, $scoresort);
-            $this->score_sort($rows, $scoresort);
+		SortHelper::score_analyze($row, $scoreName, $scoreMax, $this->_scoresort);
+            usort($rows, array($this, "_sort_score"));
 	    break;
 	}
 	if ($this->reverseSort)

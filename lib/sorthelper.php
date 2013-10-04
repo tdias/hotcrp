@@ -1,48 +1,44 @@
 <?php
-// baselist.inc -- HotCRP helper class for producing paper lists
+// sorthelper.php -- HotCRP helper class for sorting, particularly scores
 // HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
-global $scoreSorts;
-$scoreSorts = array("C" => "Counts",
+class SortHelper {
+
+    public static $score_sort_algorithms = array("C" => "Counts",
 		    "A" => "Average",
 		    "E" => "Median",
 		    "V" => "Variance",
 		    "D" => "Max &minus; min",
 		    "Y" => "Your score");
 
-class BaseList {
-
-    const FIELD_SCORE = 50;
-    const FIELD_NUMSCORES = 11;
-
-    function _sortBase($a, $b) {
-	return $a->paperId - $b->paperId;
-    }
-
-    public static function score_reset($row) {
+    static function score_reset($row, $algorithm) {
         // $row will compare less than all papers with analyzed scores
-        $row->_sort_info = "//////////////";
+        if ($algorithm == "C" || $algorithm == "Y" || $algorithm == "M")
+            $row->_sort_info = "//////////////";
+        else
+            $row->_sort_info = -1;
         $row->_sort_average = 0;
     }
 
-    public static function score_analyze($row, $scoreName, $scoreMax, $scoresort) {
-	if ($scoresort == "Y" && strlen($scoreName) > 6
-	    && ($v = defval($row, substr($scoreName, 0, -6))) > 0)
+    static function score_analyze($row, $scorename, $scoremax, $algorithm) {
+	if ($algorithm == "Y"
+            && substr($scorename, -6) === "Scores"
+	    && ($v = defval($row, substr($scorename, 0, -6))) > 0)
 	    $row->_sort_info = ":" . $v;
-	else if ($scoresort == "M" || $scoresort == "C" || $scoresort == "Y") {
+	else if ($algorithm == "C" || $algorithm == "Y" || $algorithm == "M") {
 	    $x = array();
-	    foreach (preg_split('/[\s,]+/', $row->$scoreName) as $i)
+	    foreach (preg_split('/[\s,]+/', $row->$scorename) as $i)
 		if (($i = cvtint($i)) > 0)
 		    $x[] = chr($i + 48);
 	    rsort($x);
 	    $x = (count($x) == 0 ? "0" : implode($x));
 	    $x = str_pad($x, 14, chr(ord($x[strlen($x) - 1]) - 1));
 	    $row->_sort_info = $x;
-	} else if ($scoresort == "E") {
+	} else if ($algorithm == "E") {
 	    $x = array();
 	    $sum = 0;
-	    foreach (preg_split('/[\s,]+/', $row->$scoreName) as $i)
+	    foreach (preg_split('/[\s,]+/', $row->$scorename) as $i)
 		if (($i = cvtint($i)) > 0) {
 		    $x[] = $i;
 		    $sum += $i;
@@ -57,8 +53,8 @@ class BaseList {
 	    $row->_sort_average = $n ? $sum / $n : 0;
 	} else {
 	    $sum = $sum2 = $n = $max = 0;
-	    $min = $scoreMax;
-	    foreach (preg_split('/[\s,]+/', $row->$scoreName) as $i)
+	    $min = $scoremax;
+	    foreach (preg_split('/[\s,]+/', $row->$scorename) as $i)
 		if (($i = cvtint($i)) > 0) {
 		    $sum += $i;
 		    $sum2 += $i * $i;
@@ -68,9 +64,9 @@ class BaseList {
 		}
 	    if ($n == 0)
 		$row->_sort_info = 0;
-	    else if ($scoresort == "A")
+	    else if ($algorithm == "A")
 		$row->_sort_info = $sum / $n;
-	    else if ($scoresort == "V") {
+	    else if ($algorithm == "V") {
 		if ($n == 1)
 		    $row->_sort_info = 0;
 		else
@@ -81,25 +77,17 @@ class BaseList {
 	}
     }
 
-    function score_compar($a, $b) {
-	$x = strcmp($b->_sort_info, $a->_sort_info);
-	return $x ? $x : $this->_sortBase($a, $b);
+    static function score_compare($a, $b, $algorithm) {
+        if (is_string($a->_sort_info))
+            return strcmp($b->_sort_info, $a->_sort_info);
+        else {
+            $x = $b->_sort_info - $a->_sort_info;
+            $x = $x ? $x : $b->_sort_average - $a->_sort_average;
+            return $x < 0 ? -1 : ($x == 0 ? 0 : 1);
+        }
     }
 
-    function score_numeric_compar($a, $b) {
-	$x = $b->_sort_info - $a->_sort_info;
-	$x = $x ? $x : $b->_sort_average - $a->_sort_average;
-	return $x ? ($x < 0 ? -1 : 1) : $this->_sortBase($a, $b);
-    }
-
-    public function score_sort(&$rows, $scoresort) {
-        if ($scoresort == "M" || $scoresort == "C" || $scoresort == "Y")
-            usort($rows, array($this, "score_compar"));
-        else
-            usort($rows, array($this, "score_numeric_compar"));
-    }
-
-    public static function default_score_sort($nosession = false) {
+    static function default_score_sort($nosession = false) {
         global $Conf, $Opt;
         if (isset($_SESSION["scoresort"]) && !$nosession)
             return $_SESSION["scoresort"];
@@ -109,8 +97,7 @@ class BaseList {
             return defval($Opt, "defaultScoreSort", "C");
     }
 
-    public static function parse_sorter($text) {
-        global $scoreSorts;
+    static function parse_sorter($text) {
         $sort = (object) array("type" => null,
                                "reverse" => false,
                                "score" => self::default_score_sort(),
@@ -129,7 +116,7 @@ class BaseList {
                     $sort->reverse = false;
                 else if ($x == "M")
                     $sort->score = "C";
-                else if (isset($scoreSorts[$x]))
+                else if (isset(self::$score_sort_algorithms[$x]))
                     $sort->score = $x;
             }
         return $sort;

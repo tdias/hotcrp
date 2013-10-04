@@ -919,24 +919,16 @@ class ScorePaperColumn extends PaperColumn {
     }
     public function sort_prepare($pl, &$rows) {
         $scoreName = $this->score . "Scores";
+        $this->_algorithm = $pl->sorter->score;
         foreach ($rows as $row)
             if ($pl->contact->canViewReview($row, $this->viewscore, null))
-                $pl->score_analyze($row, $scoreName, $this->max_score,
-                                   $pl->sorter->score);
+                SortHelper::score_analyze($row, $scoreName, $this->max_score,
+                                          $this->_algorithm);
             else
-                $pl->score_reset($row);
-        $this->_textual_sort =
-            ($pl->sorter->score == "M" || $pl->sorter->score == "C"
-             || $pl->sorter->score == "Y");
+                SortHelper::score_reset($row, $this->_algorithm);
     }
     public function score_sorter($a, $b) {
-        if ($this->_textual_sort)
-            return strcmp($b->_sort_info, $a->_sort_info);
-        else {
-            $x = $b->_sort_info - $a->_sort_info;
-            $x = $x ? $x : $b->_sort_average - $a->_sort_average;
-            return $x < 0 ? -1 : ($x == 0 ? 0 : 1);
-        }
+        return SortHelper::score_compare($a, $b, $this->_algorithm);
     }
     public function header($pl, $row, $ordinal) {
         return $pl->rf->field($this->score)->web_abbreviation();

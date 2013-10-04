@@ -3,10 +3,7 @@
 // HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
-global $ConfSitePATH;
-require_once("$ConfSitePATH/Code/baselist.inc");
-
-class PaperList extends BaseList {
+class PaperList {
 
     // creator can set to change behavior
     public $papersel;
@@ -41,9 +38,9 @@ class PaperList extends BaseList {
 
 	if (($this->sortable = !!defval($args, "sort"))
             && isset($_REQUEST["sort"]))
-            $this->sorter = BaseList::parse_sorter($_REQUEST["sort"]);
+            $this->sorter = SortHelper::parse_sorter($_REQUEST["sort"]);
         else
-            $this->sorter = BaseList::parse_sorter("");
+            $this->sorter = SortHelper::parse_sorter("");
         $this->subsorter = null;
 
 	$this->_paper_link_page = "";
@@ -959,7 +956,7 @@ class PaperList extends BaseList {
         if (!$special_sort && $this->search->simplePaperList() !== null)
             $special_sort = PaperColumn::lookup("searchsort");
         if ($this->viewmap->sort
-            && ($new_sorter = BaseList::parse_sorter($this->viewmap->sort))
+            && ($new_sorter = SortHelper::parse_sorter($this->viewmap->sort))
             && ($new_sort_field = PaperColumn::lookup($new_sorter->type))
             && $new_sort_field->prepare($this, $queryOptions, -1)) {
             if ($this->sorter->empty) {
