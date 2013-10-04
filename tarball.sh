@@ -85,18 +85,18 @@ lib/csv.php
 lib/documenthelper.php
 lib/hotcrpdocument.php
 lib/ht.php
-lib/formula.php
 lib/ldaplogin.php
 lib/login.php
 lib/mimetype.php
 lib/papercolumn.php
+lib/paperformula.php
 lib/paperlist.php
 lib/paperoption.php
 lib/qobject.php
 lib/rank.php
 lib/tagger.php
 lib/text.php
-lib/unicodehelper.php
+lib/utf8text.php
 lib/xlsx.php
 
 Code/.htaccess

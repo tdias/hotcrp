@@ -486,7 +486,7 @@ class PaperTable {
 	$data = $this->entryData("abstract", "p");
 	if ($this->allFolded && strlen($data) > 190) {
 	    $shortdata = trim(preg_replace(",</?p.*?>,", "\n", $data));
-	    $shortdata = preg_replace("/\\S+(<[^>]+)?\\Z/", "", utf8_substr($shortdata, 0, 180));
+	    $shortdata = preg_replace("/\\S+(<[^>]+)?\\Z/", "", Utf8Text::substr($shortdata, 0, 180));
 	    if ($shortdata != "") { /* "" might happen if really long word */
                 echo "<div class='pg pgtop'>",
                     $this->papt("abstract", "Abstract",

@@ -186,8 +186,8 @@ function __autoload($class_name) {
         require_once("$ConfSitePATH/lib/hotcrpdocument.php");
     else if ($class_name == "Mailer")
         require_once("$ConfSitePATH/Code/mailer.php");
-    else if ($class_name == "UnicodeHelper")
-        require_once("$ConfSitePATH/lib/unicodehelper.php");
+    else if ($class_name == "Utf8Text")
+        require_once("$ConfSitePATH/lib/utf8text.php");
     else if ($class_name == "Qobject")
         require_once("$ConfSitePATH/lib/qobject.php");
     else if ($class_name == "PaperList")
@@ -213,7 +213,7 @@ function __autoload($class_name) {
     else if ($class_name == "Countries")
         require_once("$ConfSitePATH/lib/countries.php");
     else if ($class_name == "Formula")
-        require_once("$ConfSitePATH/lib/formula.php");
+        require_once("$ConfSitePATH/lib/paperformula.php");
     else if ($class_name == "Ht")
         require_once("$ConfSitePATH/lib/ht.php");
 }

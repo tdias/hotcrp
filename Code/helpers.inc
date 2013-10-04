@@ -145,81 +145,6 @@ function mkarray($value) {
 	return array($value);
 }
 
-if (function_exists("mb_check_encoding")) {
-    function is_valid_utf8($str) {
-	return @mb_check_encoding($str, "UTF-8");
-    }
-} else if (function_exists("iconv")) {
-    // Aren't these hoops delicious?
-    function _is_valid_utf8_error_handler($errno, $errstr) {
-	global $_is_valid_utf8_result;
-	$_is_valid_utf8_result = false;
-	return false;
-    }
-    function is_valid_utf8($str) {
-	global $_is_valid_utf8_result;
-	$_is_valid_utf8_result = true;
-	set_error_handler("_is_valid_utf8_error_handler");
-	@iconv("UTF-8", "UTF-8", $str); // possible E_NOTICE captured above
-	restore_error_handler();
-	return $_is_valid_utf8_result;
-	// While it might also work to compare iconv's return value to the
-	// original string, who knows whether iconv canonicalizes composed
-	// Unicode character sequences or something?  Safer to check for
-	// errors.
-    }
-} else {
-    function is_valid_utf8($str) {
-	return true;		// give up
-    }
-}
-
-if (function_exists("iconv")) {
-    function windows_1252_to_utf8($str) {
-	return iconv("Windows-1252", "UTF-8//IGNORE", $str);
-    }
-    function mac_os_roman_to_utf8($str) {
-        return iconv("Mac", "UTF-8//IGNORE", $str);
-    }
-} else {
-    function windows_1252_to_utf8($str) {
-	return $str;		// give up
-    }
-    function mac_os_roman_to_utf8($str) {
-        return $str;		// give up
-    }
-}
-
-function convert_to_utf8($str) {
-    if (substr_count(substr($str, 0, 5000), "\r")
-        > 1.5 * substr_count(substr($str, 0, 5000), "\n"))
-        return mac_os_roman_to_utf8($str);
-    else
-        return windows_1252_to_utf8($str);
-}
-
-if (function_exists("iconv")) {
-    function utf8_substr($str, $off, $len) {
-	return iconv_substr($str, $off, $len, "UTF-8");
-    }
-} else if (function_exists("mb_substr")) {
-    function utf8_substr($str, $off, $len) {
-	return mb_substr($str, $off, $len, "UTF-8");
-    }
-} else {
-    function utf8_substr($str, $off, $len) {
-	$x = substr($str, $off, $len);
-	$poff = 0;
-	while (($n = preg_match_all("/[\200-\277]/", $x, $m, PREG_PATTERN_ORDER, $poff))) {
-	    $poff = strlen($x);
-	    $x .= substr($str, $poff, $n);
-	}
-	if (preg_match("/\\A([\200-\277]+)/", substr($str, strlen($x)), $m))
-	    $x .= $m[1];
-	return $x;
-    }
-}
-
 
 // web helpers
 
@@ -1397,7 +1322,7 @@ function titleWords($title, $chars = 40) {
     if (strlen($title) <= $chars)
 	return $title;
     // don't over-shorten due to UTF-8
-    $xtitle = utf8_substr($title, 0, $chars);
+    $xtitle = Utf8Text::substr($title, 0, $chars);
     if (($pos = strrpos($xtitle, " ")) > 0
 	&& substr($title, strlen($xtitle), 1) != " ")
 	$xtitle = substr($xtitle, 0, $pos);

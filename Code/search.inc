@@ -2095,7 +2095,7 @@ class PaperSearch {
         $field_deaccent = $field . "_deaccent";
         if (!isset($row->$field_deaccent)) {
             if (preg_match('/[\x80-\xFF]/', $row->$field))
-                $row->$field_deaccent = UnicodeHelper::deaccent($row->$field);
+                $row->$field_deaccent = Utf8Text::deaccent($row->$field);
             else
                 $row->$field_deaccent = false;
         }

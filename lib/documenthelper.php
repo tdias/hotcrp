@@ -307,7 +307,7 @@ class DocumentHelper {
             return set_error_html($doc, "The uploaded file was empty. Please try again.");
 	if (isset($_FILES[$uploadId]["name"])
 	    && strlen($_FILES[$uploadId]["name"]) <= 255
-	    && is_valid_utf8($_FILES[$uploadId]["name"]))
+	    && Utf8Text::is_valid($_FILES[$uploadId]["name"]))
 	    $doc->filename = $_FILES[$uploadId]["name"];
         else
             $doc->filename = null;

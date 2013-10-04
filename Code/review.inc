@@ -565,8 +565,8 @@ class ReviewForm {
 		    // Check for valid UTF-8.  Re-encode invalid UTF-8 as if
 		    // it were Windows-1252, which is a superset of
 		    // ISO-8859-1.
-		    if (!is_valid_utf8($fval))
-			$req[$field] = $fval = windows_1252_to_utf8($fval);
+		    if (!Utf8Text::is_valid($fval))
+			$req[$field] = $fval = Utf8Text::from_windows_1252($fval);
 		}
 		$q[] = "$field='" . sqlq($fval) . "'";
 	    }
@@ -875,7 +875,7 @@ $blind\n";
 
     function _prettyPaperTitle($prow, &$l) {
 	$n = "Paper #" . $prow->paperId . ": ";
-	$l = max(14, (int) ((75.5 - strlen(UnicodeHelper::deaccent($prow->title)) - strlen($n)) / 2) + strlen($n));
+	$l = max(14, (int) ((75.5 - strlen(Utf8Text::deaccent($prow->title)) - strlen($n)) / 2) + strlen($n));
 	return wordWrapIndent($prow->title, $n, $l) . "\n";
     }
 
@@ -964,7 +964,7 @@ $blind\n";
 	    else
 		$n .= Text::user_text($crow);
 	}
-	$x .= str_pad($n, (int) (37.5 + strlen(UnicodeHelper::deaccent($n)) / 2), " ", STR_PAD_LEFT) . "\n";
+	$x .= str_pad($n, (int) (37.5 + strlen(Utf8Text::deaccent($n)) / 2), " ", STR_PAD_LEFT) . "\n";
 	$x .= $this->_prettyPaperTitle($prow, $l);
 	// $n = "Updated " . $Conf->printableTime($crow->timeModified);
 	// $x .= str_pad($n, (int) (37.5 + strlen($n) / 2), " ", STR_PAD_LEFT) . "\n";

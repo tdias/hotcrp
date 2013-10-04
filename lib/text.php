@@ -194,7 +194,7 @@ class Text {
             $match = $match->preg_utf8;
             $flags = "ui";
         } else if (preg_match('/[\x80-\xFF]/', $text)) {
-            list($mtext, $offsetmap) = UnicodeHelper::deaccent_offsets($mtext);
+            list($mtext, $offsetmap) = Utf8Text::deaccent_offsets($mtext);
             $match = $match->preg_utf8;
             $flags = "ui";
         } else {
@@ -213,7 +213,7 @@ class Text {
             for ($i = $b = $o = 0; $i < count($s); ++$i)
                 if ($s[$i] !== "") {
                     $o += strlen($s[$i]);
-                    $e = UnicodeHelper::deaccent_translate_offset($offsetmap, $o);
+                    $e = Utf8Text::deaccent_translate_offset($offsetmap, $o);
                     $s[$i] = substr($text, $b, $e - $b);
                     $b = $e;
                 }

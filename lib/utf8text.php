@@ -1,5 +1,5 @@
 <?php
-// unicodehelper.php -- helper data tables and functions for Unicode transformations
+// utf8text.php -- helper data tables and functions for Unicode transformations
 // HotCRP is Copyright (c) 2006-2013 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
 
@@ -11,7 +11,7 @@ define("UTF8_ALPHA_TRANS_3", "\xE1\xB8\x80\xE1\xB8\x81\xE1\xB8\x82\xE1\xB8\x83\x
 
 define("UTF8_ALPHA_TRANS_3_OUT", "A a B b B b B b D d D d D d D d D d E e E e F f G g H h H h H h H h H h I i K k K k K k L l L l L l M m M m M m N n N n N n N n P p P p R r R r R r S s S s T t T t T t T t U u U u U u V v V v W w W w W w W w W w X x X x Y y Z z Z z Z z h t w y A a A a E e E e E e I i I i O o O o U u U u Y y Y y Y y Y y - - - - K ");
 
-class UnicodeHelper {
+class Utf8Text {
 
     private static function _utf8FindTransPos($trans, $look) {
         $len = strlen($look);
@@ -30,7 +30,7 @@ class UnicodeHelper {
         return false;
     }
 
-    public static function deaccent($x) {
+    static function deaccent($x) {
         if (preg_match_all("/[\xC0-\xFF]/", $x, $m, PREG_OFFSET_CAPTURE)) {
             $first = 0;
             $len = strlen($x);
@@ -59,7 +59,7 @@ class UnicodeHelper {
         return $x;
     }
 
-    public static function deaccent_offsets($x) {
+    static function deaccent_offsets($x) {
         $offsetmap = array(0, 0);
         if (preg_match_all("/[\xC0-\xFF]/", $x, $m, PREG_OFFSET_CAPTURE)) {
             $first = 0;
@@ -91,10 +91,84 @@ class UnicodeHelper {
         return array($x, $offsetmap);
     }
 
-    public static function deaccent_translate_offset($offsetmap, $offset) {
+    static function deaccent_translate_offset($offsetmap, $offset) {
         for ($i = 1; $i < count($offsetmap) && $offsetmap[$i][0] <= $offset; ++$i)
             /* do nothing */;
         return $offsetmap[$i - 1][1] + ($offset - $offsetmap[$i - 1][0]);
     }
 
+
+    static function is_valid($str) {
+        return is_valid_utf8($str);
+    }
+
+    static function from_windows_1252($str) {
+        return windows_1252_to_utf8($str);
+    }
+
+    static function substr($str, $off, $len) {
+        return utf8_substr($str, $off, $len);
+    }
+
+}
+
+if (function_exists("mb_check_encoding")) {
+    function is_valid_utf8($str) {
+	return @mb_check_encoding($str, "UTF-8");
+    }
+} else if (function_exists("iconv")) {
+    // Aren't these hoops delicious?
+    function _is_valid_utf8_error_handler($errno, $errstr) {
+	global $_is_valid_utf8_result;
+	$_is_valid_utf8_result = false;
+	return false;
+    }
+    function is_valid_utf8($str) {
+	global $_is_valid_utf8_result;
+	$_is_valid_utf8_result = true;
+	set_error_handler("_is_valid_utf8_error_handler");
+	@iconv("UTF-8", "UTF-8", $str); // possible E_NOTICE captured above
+	restore_error_handler();
+	return $_is_valid_utf8_result;
+	// While it might also work to compare iconv's return value to the
+	// original string, who knows whether iconv canonicalizes composed
+	// Unicode character sequences or something?  Safer to check for
+	// errors.
+    }
+} else {
+    function is_valid_utf8($str) {
+	return true;		// give up
+    }
+}
+
+if (function_exists("iconv")) {
+    function windows_1252_to_utf8($str) {
+	return iconv("Windows-1252", "UTF-8//IGNORE", $str);
+    }
+} else {
+    function windows_1252_to_utf8($str) {
+	return $str;		// give up
+    }
+}
+
+if (function_exists("iconv")) {
+    function utf8_substr($str, $off, $len) {
+	return iconv_substr($str, $off, $len, "UTF-8");
+    }
+} else if (function_exists("mb_substr")) {
+    function utf8_substr($str, $off, $len) {
+	return mb_substr($str, $off, $len, "UTF-8");
+    }
+} else {
+    function utf8_substr($str, $off, $len) {
+	$x = substr($str, $off, $len);
+	$poff = 0;
+	while (($n = preg_match_all("/[\200-\277]/", $x, $m, PREG_PATTERN_ORDER, $poff))) {
+	    $poff = strlen($x);
+	    $x .= substr($str, $poff, $n);
+	}
+	if (preg_match("/\\A([\200-\277]+)/", substr($str, strlen($x)), $m))
+	    $x .= $m[1];
+	return $x;
+    }
 }
