@@ -1784,33 +1784,40 @@ class Conference {
 
 	echo "<div id='prebody'>\n";
 
-	echo "<div id='header'>\n<div id='header_left_conf'><h1>";
-	if ($title && $showTitle && $title == "Home")
-	    echo "<a class='q' href='", hoturl("index"), "' title='Home'>", htmlspecialchars($Opt["shortName"]), "</a>";
-	else
-	    echo "<a class='x' href='", hoturl("index"), "' title='Home'>", htmlspecialchars($Opt["shortName"]), "</a></h1></div><div id='header_left_page'><h1>", $title;
-	echo "</h1></div><div id='header_right'>";
+        // new header
+        echo "<div id=\"hdr\">",
+            "<a class=\"qq\" href=\"",
+            hoturl("index"), "\" title=\"Home\">",
+            htmlspecialchars($Opt["shortName"]),
+            "</a>";
+	echo "<div id=\"hdr_right\">";
 	if ($Me && $Me->is_known_user()) {
 	    $xsep = " <span class='barsep'>&nbsp;|&nbsp;</span> ";
 	    if ($Me->contactId > 0) {
-		echo "<a class='q' href='", hoturl("profile"), "'><strong>",
+		echo "<a class='qq' href='", hoturl("profile"), "'><strong>",
 		    htmlspecialchars($Me->email),
-		    "</strong></a> &nbsp; <a href='", hoturl("profile"), "'>Profile</a>",
+		    "</strong></a> &nbsp; <a class=\"qq\" href='", hoturl("profile"), "'>Profile</a>",
 		    $xsep;
 	    }
 	    if (@$_SESSION["adminuser"]) {
 		if (!$Me->privChair)
-		    echo "<a href=\"", selfHref(array("actas" => "admin")), "\">Admin&nbsp;<img src='${ConfSiteBase}images/viewas.png' alt='[Return to administrator view]' /></a>", $xsep;
+		    echo "<a class=\"qq\" href=\"", selfHref(array("actas" => "admin")), "\">Admin&nbsp;<img src='${ConfSiteBase}images/viewas.png' alt='[Return to administrator view]' /></a>", $xsep;
 		else if (@$_SESSION["actasuser"])
-		    echo "<a href=\"", selfHref(array("actas" => $_SESSION["actasuser"])), "\">", htmlspecialchars($_SESSION["actasuser"]), "&nbsp;<img src='${ConfSiteBase}images/viewas.png' alt='[Unprivileged view]' /></a>", $xsep;
+		    echo "<a class=\"qq\" href=\"", selfHref(array("actas" => $_SESSION["actasuser"])), "\">", htmlspecialchars($_SESSION["actasuser"]), "&nbsp;<img src='${ConfSiteBase}images/viewas.png' alt='[Unprivileged view]' /></a>", $xsep;
 	    }
 	    $x = ($id == "search" ? "t=$id" : ($id == "settings" ? "t=chair" : ""));
-	    echo "<a href='", hoturl("help", $x), "'>Help</a>", $xsep;
+	    echo "<a class=\"qq\" href='", hoturl("help", $x), "'>Help</a>", $xsep;
 	    if ($Me->contactId > 0 || isset($Opt["httpAuthLogin"]))
-		echo "<a href='", hoturl("index", "signout=1"), "'>Sign&nbsp;out</a>";
+		echo "<a class=\"qq\" href='", hoturl("index", "signout=1"), "'>Sign&nbsp;out</a>";
 	    else
-		echo "<a href='", hoturl("index", "signin=1"), "'>Sign&nbsp;in</a>";
+		echo "<a class=\"qq\" href='", hoturl("index", "signin=1"), "'>Sign&nbsp;in</a>";
 	}
+        echo "</div></div>";
+
+	echo "<div id='header'>\n";
+	if (!($title && $showTitle && $title == "Home"))
+	    echo "<div id='header_left_page'><h1>", $title, "</h1></div>";
+	echo "<div id='header_right'>";
 	echo "<div id='maindeadline' style='display:none'>";
 
 	// This is repeated in script.js:hotcrp_deadlines
