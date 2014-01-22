@@ -88,6 +88,17 @@ if (isset($_REQUEST["rankctx"]) && $prow && check_post()) {
     PaperActions::rankContext($prow);
     loadRows();
 }
+if (isset($_REQUEST["status"])) {
+    if ($prow && ($pj = PaperStatus::row_to_json($prow, $Me, array()))) {
+        $pj->ok = true;
+        $Conf->ajaxExit($pj);
+    } else if ($prow)
+        $Conf->ajaxExit(array("ok" => false, "errdesc" => "permission",
+                              "error" => "You don’t have permission to view that paper."));
+    else
+        $Conf->ajaxExit(array("ok" => false, "errdesc" => "nonexistent",
+                              "error" => "That paper doesn’t exist."));
+}
 
 
 // check paper action
@@ -175,6 +186,137 @@ if (isset($_REQUEST["revive"]) && !$newPaper && check_post()) {
 
 
 // set request authorTable from individual components
+function request_to_json($action) {
+    global $Conf, $Me, $prow;
+
+    if ($prow)
+        $pj = PaperStatus::row_to_json($prow, $Me, array("usenames" => true));
+    else
+        $pj = (object) array();
+
+    // Title, abstract
+    if (isset($_REQUEST["title"]))
+        $pj->title = $_REQUEST["title"];
+    if (isset($_REQUEST["abstract"]))
+        $pj->abstract = $_REQUEST["abstract"];
+    if (isset($_REQUEST["collaborators"]))
+        $pj->collaborators = $_REQUEST["collaborators"];
+
+    // Authors
+    $pj->authors = array();
+    if (!isset($_REQUEST["aueditcount"]))
+        $_REQUEST["aueditcount"] = 100;
+    for ($i = 1; $i == 1 || $i <= $_REQUEST["aueditcount"]; ++$i) {
+        $au = (object) array();
+        $au->name = simplify_whitespace(defval($_REQUEST, "auname$i", ""));
+        $au->email = simplify_whitespace(defval($_REQUEST, "auemail$i", ""));
+        $au->affiliation = simplify_whitespace(defval($_REQUEST, "auaff$i", ""));
+        if ($au->name !== "" || $au->email !== "" || $au->affiliation !== "")
+            $pj->authors[] = $au;
+    }
+
+    // Contacts
+    $pj->contacts = (object) array();
+    foreach ($_REQUEST as $k => $v)
+        if (str_starts_with($k, "contact_")) {
+            $email = html_id_decode(substr($k, 8));
+            $pj->contacts->$email = true;
+        } else if (str_starts_with($k, "newcontact_email")
+                   && trim($v) !== ""
+                   && trim($v) !== "Email") {
+            $suffix = substr($k, strlen("newcontact_email"));
+            $email = trim($_REQUEST[$k]);
+            $name = defval($_REQUEST, "newcontact_name$suffix", "");
+            if ($name === "Name")
+                $name = "";
+            $pj->contacts->$email = (object) array("email" => $email,
+                                                   "name" => $name);
+        }
+
+    // Status
+    if ($action === "submit")
+        $pj->submitted = true;
+    if ($action === "final")
+        $pj->final_submitted = true;
+
+    // Paper upload
+    if ($action === "final"
+        && fileUploaded($_FILES["paperUpload"]))
+        $pj->final = DocumentHelper::file_upload_json("paperUpload");
+    else if (($action === "update" || $action === "submit")
+             && fileUploaded($_FILES["paperUpload"]))
+        $pj->submission = DocumentHelper::file_upload_json("paperUpload");
+    if ($action !== "final" && $Conf->subBlindOptional())
+        $pj->nonblind = (@$_REQUEST["blind"] ? false : true);
+
+    // Topics
+    $topics = array();
+    foreach ($Conf->topic_map() as $tid => $tname)
+        if (@$_REQUEST["top$tid"] > 0)
+            $topics[$tname] = true;
+    $pj->topics = (object) $topics;
+
+    // Options
+    if (!@$pj->options)
+        $pj->options = (object) array();
+    foreach (PaperOption::option_list() as $o) {
+        $okey = $o->abbr;
+        $oreq = "opt$o->id";
+        if (@$o->final && $action !== "final")
+            continue;
+        if ($o->type == "checkbox")
+            $pj->options->$okey = @($_REQUEST[$oreq] > 0);
+        else if ($o->type == "selector"
+                 || $o->type == "radio"
+                 || $o->type == "numeric") {
+            if (isset($_REQUEST[$oreq])) {
+                if (ctype_digit(trim($_REQUEST[$oreq])))
+                    $pj->options->$okey = (int) trim($_REQUEST[$oreq]);
+                else
+                    $pj->options->$okey = $_REQUEST[$oreq];
+            }
+        } else if ($o->type == "text") {
+            if (isset($_REQUEST[$oreq]))
+                $pj->options->$okey = trim($_REQUEST[$oreq]);
+        } else if ($o->type == "attachments") {
+            $attachments = defval(@$pj->options, $okey, array());
+            $opfx = $oreq . "_";
+            foreach ($_FILES as $k => $v)
+                if (str_starts_with($k, $opfx))
+                    $attachments[] = DocumentHelper::file_upload_json($k);
+            for ($i = 0; $i < count($attachments); ++$i)
+                if (@$attachments[$i]->docid
+                    && @$_REQUEST["remove_{$oreq}_{$attachments[$i]->docid}"]) {
+                    array_splice($attachments, $i, 1);
+                    --$i;
+                }
+            $pj->options->$okey = $attachments;
+        } else if ($o->is_document()) {
+            if (fileUploaded($_FILES[$oreq]))
+                $pj->options->$okey = DocumentHelper::file_upload_json($oreq);
+            else if (@$_REQUEST["remove_$oreq"])
+                unset($pj->options->$okey);
+        }
+    }
+
+    // PC conflicts
+    if ($Conf->setting("sub_pcconf")
+        && ($action !== "final" || $Me->privChair)) {
+        $cmax = $Me->privChair ? CONFLICT_CHAIRMARK : CONFLICT_MAXAUTHORMARK;
+        $pj->pc_conflicts = (object) array();
+        foreach (pcMembers() as $pcid => $pc) {
+            $ctype = cvtint(defval($_REQUEST, "pcc$pcid", 0), 0);
+            $ctype = max(min($ctype, $cmax), 0);
+            if ($ctype) {
+                $email = $pc->email;
+                $pj->pc_conflicts->$email = $ctype;
+            }
+        }
+    }
+
+    return $pj;
+}
+
 function set_request_author_table() {
     if (!isset($_REQUEST["aueditcount"]))
 	$_REQUEST["aueditcount"] = 50;
@@ -515,6 +657,7 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
     if (!$isSubmitFinal) {
         if ($Conf->subBlindNever()
             || ($Conf->subBlindOptional() && !defval($_REQUEST, "blind")))
+
             $q[] = "blind=0";
         else
             $q[] = "blind=1";
@@ -764,8 +907,18 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
     return $OK && !count($Error);
 }
 
-if ((isset($_REQUEST["update"]) || isset($_REQUEST["submitfinal"]))
-    && check_post()) {
+if (isset($_REQUEST["update"]) && check_post()) {
+    $old_pj = $prow ? PaperStatus::row_to_json($prow, $Me, array()) : null;
+    $pj = request_to_json(@$_REQUEST["submit"] ? "submit" : "update");
+    // XXX deadlines
+    $ps = new PaperStatus;
+    $ps->save($pj, $old_pj);
+
+    if ($ps->nerrors)
+        $Conf->errorMsg("<ul><li>" . join("</li><li>", $ps->error_messages()) . "</li></ul>");
+
+} else if ((isset($_REQUEST["update"]) || isset($_REQUEST["submitfinal"]))
+           && check_post()) {
     // get missing parts of request
     clean_request($prow, isset($_REQUEST["submitfinal"]));
     $diffs = request_differences($prow, isset($_REQUEST["submitfinal"]));
