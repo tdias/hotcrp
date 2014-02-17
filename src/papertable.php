@@ -352,8 +352,7 @@ class PaperTable {
 	else if ($prow->has_conflict($Me))
 	    $out[] = "You have a <span class='conflict'>conflict</span> with this paper.";
 	if ($Me->isPC && !$prow->has_conflict($Me)
-	    && $Conf->timeUpdatePaper($prow) && $this->mode != "assign"
-	    && $this->mode != "contact")
+	    && $Conf->timeUpdatePaper($prow) && $this->mode != "assign")
 	    $out[] = "<div class='xwarning'>The authors still have <a href='" . hoturl("deadlines") . "'>time</a> to make changes.</div>";
 	if (count($out))
 	    $out[] = "";
@@ -1712,45 +1711,52 @@ class PaperTable {
 	    "</u></a></div>\n";
     }
 
+    function mode_links() {
+        global $Me;
+
+        // supported actions
+        $prow = $this->prow;
+	$can_edit = $Me->canEditPaper($prow);
+	$can_review = $Me->canReview($prow, null);
+	$can_assign = $Me->canAdminister($prow);
+	$can_home = $can_edit || $can_assign;
+
+        $links = array();
+        if ($can_edit || $can_review || $can_assign || $can_home) {
+            // home link
+            $highlight = $this->mode != "assign" && $this->mode != "pe"
+                && $this->mode != "re";
+            $a = ($this->mode == "pe" || $this->mode == "re" ? "&amp;m=p" : "");
+            $links[] = array(hoturl("paper", "p=$prow->paperId$a"), "Main", $highlight, "view18.png");
+
+            if ($can_edit)
+                $links[] = array(hoturl("paper", "p=$prow->paperId&amp;m=pe"), "Edit", $this->mode == "pe", "edit18.png");
+
+            if ($can_review)
+                $links[] = array(hoturl("review", "p=$prow->paperId&amp;m=re"), "Review", $this->mode == "re" && (!$this->editrrow || $this->editrrow->contactId == $Me->contactId), "review18.png");
+
+            if ($can_assign)
+                $links[] = array(hoturl("assign", "p=$prow->paperId"), "Assign", $this->mode == "assign", "assign18.png");
+        }
+        return $links;
+    }
+
     function _paptabBeginKnown() {
-	global $Conf, $Me;
-	$prow = $this->prow;
-
-	// what actions are supported?
-	$canEdit = $Me->canEditPaper($prow);
-	$canReview = $Me->canReview($prow, null);
-	$canAssign = $Me->canAdminister($prow);
-	$canHome = ($canEdit || $canAssign || $this->mode == "contact");
-
 	echo "<div class='pban'>";
-
-	// paper tabs
-	if ($canEdit || $canReview || $canAssign || $canHome) {
+        $links = $this->mode_links();
+        if (count($links)) {
 	    echo "<div class='psmodec'><div class='psmode'>";
-
-	    // home link
-	    $highlight = ($this->mode != "assign" && $this->mode != "pe"
-			  && $this->mode != "contact" && $this->mode != "re");
-	    $a = ($this->mode == "pe" || $this->mode == "re" ? "&amp;m=p" : "");
-	    $this->_paptabTabLink("Main", hoturl("paper", "p=$prow->paperId$a"), "view18.png", $highlight);
-
-	    if ($canEdit)
-		$this->_paptabTabLink("Edit", hoturl("paper", "p=$prow->paperId&amp;m=pe"), "edit18.png", $this->mode == "pe");
-
-	    if ($canReview)
-		$this->_paptabTabLink("Review", hoturl("review", "p=$prow->paperId&amp;m=re"), "review18.png", $this->mode == "re" && (!$this->editrrow || $this->editrrow->contactId == $Me->contactId));
-
-	    if ($canAssign)
-		$this->_paptabTabLink("Assign", hoturl("assign", "p=$prow->paperId"), "assign18.png", $this->mode == "assign");
-
+            foreach ($links as $link)
+                $this->_paptabTabLink($link[1], $link[0], $link[3], $link[2]);
 	    echo "<div class='clear'></div></div></div>\n";
 	}
 
 	// paper number
-	$pa = "<a href='" . hoturl("paper", "p=$prow->paperId") . "' class='q'>";
+        $pid = $this->prow->paperId;
+	$pa = "<a href='" . hoturl("paper", "p=$pid") . "' class='q'>";
 	echo "<table class='pban'><tr>
     <td class='pboxi'><div class='papnum'>",
-	    "<h2>", $pa, "#", $prow->paperId, "</a></h2></div></td>\n";
+	    "<h2>", $pa, "#", $pid, "</a></h2></div></td>\n";
 
 	// paper title
 	echo "    <td class='pboxt'><h2>", $pa;
