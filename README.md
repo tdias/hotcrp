@@ -1,5 +1,5 @@
-HotCRP Conference Review Software
-=================================
+HotCRP Conference Review Software - pt-br
+=========================================
 
 HotCRP is the best available software for managing the conference
 review process, including paper submission, review and comment
@@ -12,6 +12,11 @@ at several large companies.
 HotCRP also has weaknesses. It requires that you run your own server,
 and it does not natively support multitrack conferences (although you
 can hack something together).
+
+Main changes from original HotCRP
+---------------------------------
+
+*** Language translation for brazilian portuguese. ***
 
 Prerequisites
 -------------
