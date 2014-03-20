@@ -104,20 +104,20 @@ function searchbar() {
 
     echo "<form method='get' action='", hoturl("log"), "' accept-charset='UTF-8'>
 <table id='searchform'><tr>
-  <td class='lxcaption", $Eclass['q'], "'>With <b>any</b> of the words</td>
+  <td class='lxcaption", $Eclass['q'], "'>Por <b>quaisquer</b> palavras</td>
   <td class='lentry", $Eclass['q'], "'><input class='textlite' type='text' size='40' name='q' value=\"", htmlspecialchars(defval($_REQUEST, "q", "")), "\" /><span class='sep'></span></td>
-  <td rowspan='3'><input type='submit' name='search' value='Search' /></td>
+  <td rowspan='3'><input type='submit' name='search' value='Buscar' /></td>
 </tr><tr>
-  <td class='lxcaption", $Eclass['pap'], "'>Concerning paper(s)</td>
+  <td class='lxcaption", $Eclass['pap'], "'>Por trabalho(s)</td>
   <td class='lentry", $Eclass['pap'], "'><input class='textlite' type='text' size='40' name='pap' value=\"", htmlspecialchars(defval($_REQUEST, "pap", "")), "\" /></td>
 </tr><tr>
-  <td class='lxcaption", $Eclass['acct'], "'>Concerning account(s)</td>
+  <td class='lxcaption", $Eclass['acct'], "'>Por conta(s) de usuário(s)</td>
   <td class='lentry'><input class='textlite' type='text' size='40' name='acct' value=\"", htmlspecialchars(defval($_REQUEST, "acct", "")), "\" /></td>
 </tr><tr>
-  <td class='lxcaption", $Eclass['n'], "'>Show</td>
-  <td class='lentry", $Eclass['n'], "'><input class='textlite' type='text' size='3' name='n' value=\"", htmlspecialchars($_REQUEST["n"]), "\" /> &nbsp;records at a time</td>
+  <td class='lxcaption", $Eclass['n'], "'>Mostrar</td>
+  <td class='lentry", $Eclass['n'], "'><input class='textlite' type='text' size='3' name='n' value=\"", htmlspecialchars($_REQUEST["n"]), "\" /> &nbsp;registros por página</td>
 </tr><tr>
-  <td class='lxcaption", $Eclass['date'], "'>Starting at</td>
+  <td class='lxcaption", $Eclass['date'], "'>Iniciado em</td>
   <td class='lentry", $Eclass['date'], "'><input class='textlite' type='text' size='40' name='date' value=\"", htmlspecialchars($_REQUEST["date"]), "\" /></td>
 </tr></table></form>";
 
@@ -130,10 +130,10 @@ function searchbar() {
 	$url = hoturl("log", join("&amp;", $urls));
 	echo "<table class='lognav'><tr><td id='newest'><div>";
 	if ($page > 1)
-	    echo "<a href='$url&amp;page=1'><strong>Newest</strong></a> &nbsp;|&nbsp;&nbsp;";
+	    echo "<a href='$url&amp;page=1'><strong>Mais novo</strong></a> &nbsp;|&nbsp;&nbsp;";
 	echo "</div></td><td id='newer'><div>";
 	if ($page > 1)
-	    echo "<a href='$url&amp;page=", ($page - 1), "'><strong>", $Conf->cacheableImage("_.gif", "&lt;-", null, "prev"), " Newer</strong></a>";
+	    echo "<a href='$url&amp;page=", ($page - 1), "'><strong>", $Conf->cacheableImage("_.gif", "&lt;-", null, "prev"), " Mais novo</strong></a>";
 	echo "</div></td><td id='newnum'><div>";
 	if ($page - $nlinks > 1)
 	    echo "&nbsp;...";
@@ -147,10 +147,10 @@ function searchbar() {
 	    echo "...&nbsp;";
 	echo "</div></td><td id='older'><div>";
 	if ($nrows > $count)
-	    echo "<a href='$url&amp;page=", ($page + 1), "'><strong>Older ", $Conf->cacheableImage("_.gif", "-&gt;", null, "next"), "</strong></a>";
+	    echo "<a href='$url&amp;page=", ($page + 1), "'><strong>Mais antigo ", $Conf->cacheableImage("_.gif", "-&gt;", null, "next"), "</strong></a>";
 	echo "</div></td><td id='oldest'><div>";
 	if ($nrows > $count)
-	    echo "&nbsp;&nbsp;|&nbsp; <a href='$url&amp;page=earliest'><strong>Oldest</strong></a>";
+	    echo "&nbsp;&nbsp;|&nbsp; <a href='$url&amp;page=earliest'><strong>Mais antigos</strong></a>";
 	/* echo "</div></td><td id='gopage'><div>";
 	if ($page > 1 || $nrows > $count) {
 	    echo "&nbsp;&nbsp;|&nbsp; Page: <form method='get' action='", hoturl("log"), "' accept-charset='UTF-8'>";
@@ -248,10 +248,10 @@ if (count($trs)) {
   <col width='0*' /><col width='0*' /><col width='0*' /><col width='0*' />
   <thead><tr class='al_headrow'>
     <th class='pl_id'>#</th>
-    <th class='al_time'>Time</th>
+    <th class='al_time'>Data e hora</th>
     <th class='al_ip'>IP</th>
-    <th class='pl_name'>Account</th>
-    <th class='al_act'>Action</th>
+    <th class='pl_name'>Conta</th>
+    <th class='al_act'>Ação</th>
   </tr></thead>
   <tfoot><tr class='pl_footgap k", (count($trs) - 1) % 2, "'><td colspan='5'></td></tr></tfoot>
   <tbody>\n";

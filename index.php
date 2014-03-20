@@ -153,7 +153,7 @@ if (isset($_REQUEST["cleartokens"]))
     $Me->change_review_token(false, false);
 
 
-$title = ($Me->is_empty() || isset($_REQUEST["signin"]) ? "Sign in" : "Home");
+$title = ($Me->is_empty() || isset($_REQUEST["signin"]) ? "Entrar" : "Home");
 $Conf->header($title, "home", actionBar());
 $xsep = " <span class='barsep'>&nbsp;|&nbsp;</span> ";
 
@@ -172,20 +172,20 @@ echo "<noscript><div class='homeinside'>",
 // Conference management
 if ($Me->privChair) {
     echo "<div id='homemgmt' class='homeinside'>
-  <h4>Administration</h4>
+  <h4>Adminstração</h4>
   <ul>
-    <li><a href='", hoturl("settings"), "'>Settings</a></li>
-    <li><a href='", hoturl("users", "t=all"), "'>Users</a></li>
-    <li><a href='", hoturl("autoassign"), "'>Assign reviews</a></li>
-    <li><a href='", hoturl("mail"), "'>Send mail</a></li>
-    <li><a href='", hoturl("log"), "'>Action log</a></li>
+    <li><a href='", hoturl("settings"), "'>Configurações</a></li>
+    <li><a href='", hoturl("users", "t=all"), "'>Usuários</a></li>
+    <li><a href='", hoturl("autoassign"), "'>Atribuir revisões</a></li>
+    <li><a href='", hoturl("mail"), "'>Enviar e-mail</a></li>
+    <li><a href='", hoturl("log"), "'>Log de ações</a></li>
   </ul>
 </div>\n";
 }
 
 // Conference info sidebar
 echo "<div class='homeinside'><div id='homeinfo'>
-  <h4>Conference information</h4>
+  <h4>Informações da conferência</h4>
   <ul>\n";
 // Any deadlines set?
 $sep = "";
@@ -193,11 +193,11 @@ if ($Conf->setting('sub_reg') || $Conf->setting('sub_update') || $Conf->setting(
     || ($Me->is_author() && $Conf->setting('resp_open') > 0 && $Conf->setting('resp_done'))
     || ($Me->isPC && $Conf->setting('rev_open') && $Conf->setting('pcrev_hard'))
     || ($Me->is_reviewer() && $Conf->setting('rev_open') && $Conf->setting('extrev_hard'))) {
-    echo "    <li><a href='", hoturl("deadlines"), "'>Deadlines</a></li>\n";
+    echo "    <li><a href='", hoturl("deadlines"), "'>Datas limite</a></li>\n";
 }
-echo "    <li><a href='", hoturl("users", "t=pc"), "'>Program committee</a></li>\n";
+echo "    <li><a href='", hoturl("users", "t=pc"), "'>Comissão científica</a></li>\n";
 if (isset($Opt['conferenceSite']) && $Opt['conferenceSite'] != $Opt['paperSite'])
-    echo "    <li><a href='", $Opt['conferenceSite'], "'>Conference site</a></li>\n";
+    echo "    <li><a href='", $Opt['conferenceSite'], "'>Site da conferência</a></li>\n";
 if ($Conf->timeAuthorViewDecision()) {
     $dl = $Conf->deadlines();
     $dlt = max($dl["sub_sub"], $dl["sub_close"]);
@@ -208,7 +208,7 @@ if ($Conf->timeAuthorViewDecision()) {
 	if ($row[0] > 0)
 	    $nyes += $row[1];
     }
-    echo "    <li>", plural($nyes, "paper"), " were accepted out of ", $n, " submitted.</li>\n";
+    echo "    <li>", plural($nyes, "paper"), " foram aceitos de ", $n, " submetidos.</li>\n";
 }
 echo "  </ul>\n</div>\n";
 
@@ -227,10 +227,10 @@ if (!$Me->is_known_user() || isset($_REQUEST["signin"])) {
     if ($Opt["shortName"] && $Opt["shortName"] != $Opt["longName"])
 	$confname .= " (" . $Opt["shortName"] . ")";
     echo "<div class='homegrp'>
-Welcome to the ", htmlspecialchars($confname), " submissions site.
-Sign in to submit or review papers.";
+Bem vindo ao site de submissões da(o) ", htmlspecialchars($confname), 
+". Faça o login para submter ou revisar um trabalho.";
     if (isset($Opt["conferenceSite"]))
-	echo " For general information about ", htmlspecialchars($Opt["shortName"]), ", see <a href=\"", htmlspecialchars($Opt["conferenceSite"]), "\">the conference site</a>.";
+	echo " Para maiores informações sobre a(o) ", htmlspecialchars($Opt["shortName"]), ", veja o site da conferência <a href=\"", htmlspecialchars($Opt["conferenceSite"]), "\"></a>.";
     $passwordFocus = ($email_class == "" && $password_class != "");
     echo "</div>
 <hr class='home' />
@@ -251,7 +251,7 @@ Sign in to submit or review papers.";
     echo " /></div>
 </div>
 <div class='f-i'>
-  <div class='f-c", $password_class, "'>Password</div>
+  <div class='f-c", $password_class, "'>Senha</div>
   <div class='f-e'><input",
 	($passwordFocus ? " id='login_d'" : ""),
 	" type='password' class='textlite' name='password' size='36' tabindex='1' value='' /></div>
@@ -261,11 +261,11 @@ Sign in to submit or review papers.";
     else {
 	echo "<div class='f-i'>\n  ",
 	    Ht::radio("action", "login", true, array("tabindex" => 2)),
-	    "&nbsp;", Ht::label("<b>Sign me in</b>"), "<br />\n";
+	    "&nbsp;", Ht::label("<b>Entrar</b>"), "<br />\n";
 	echo Ht::radio("action", "forgot", false, array("tabindex" => 2)),
-	    "&nbsp;", Ht::label("I forgot my password"), "<br />\n";
+	    "&nbsp;", Ht::label("Esqueci a senha"), "<br />\n";
 	echo Ht::radio("action", "new", false, array("tabindex" => 2)),
-	    "&nbsp;", Ht::label("I’m a new user and want to create an account using this email address");
+	    "&nbsp;", Ht::label("Sou um novo usuário e gostaria de criar uma nova conta utilizando este endereço de email");
 	echo "\n</div>\n";
     }
     echo "<div class='f-i'>
@@ -284,7 +284,7 @@ if ($homelist) {
     echo "<div class='homegrp' id='homelist'>\n";
 
     // Lists
-    echo "<table><tr><td><h4>Search: &nbsp;&nbsp;</h4></td>\n";
+    echo "<table><tr><td><h4>Procurar: &nbsp;&nbsp;</h4></td>\n";
 
     $tOpt = PaperSearch::searchTypes($Me);
     $q = defval($_REQUEST, "q", "(All)");
@@ -293,12 +293,12 @@ if ($homelist) {
 	($q == "(All)" ? "" : "off"),
 	"' type='text' size='32' name='q' value=\"",
 	htmlspecialchars($q),
-	"\" title='Enter paper numbers or search terms' />
+	"\" title='Digite o número do trabalho ou busque por termos' />
     &nbsp;in&nbsp; ",
 	PaperSearch::searchTypeSelector($tOpt, key($tOpt), 0), "
-    &nbsp; <input type='submit' value='Search' />
+    &nbsp; <input type='submit' value='Procurar' />
     <div id='taghelp_homeq' class='taghelp_s'></div>
-    <div style='font-size:85%'><a href='", hoturl("help", "t=search"), "'>Search help</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Search keywords</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("search", "tab=advanced"), "'>Advanced search</a></div>
+    <div style='font-size:85%'><a href='", hoturl("help", "t=search"), "'>Ajuda da busca</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Buscar palavras-chave</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("search", "tab=advanced"), "'>Busca avançada</a></div>
   </div></form>
   </td></tr></table>
 </div>
@@ -340,7 +340,7 @@ if ($Me->is_reviewer() && ($Me->privChair || $papersub)) {
     echo "<div class='homegrp' id='homerev'>\n";
 
     // Overview
-    echo "<h4>Reviews: &nbsp;</h4> ";
+    echo "<h4>Revisões: &nbsp;</h4> ";
     $result = $Conf->qe("select PaperReview.contactId, count(reviewSubmitted), count(if(reviewNeedsSubmit=0,reviewSubmitted,1)), group_concat(overAllMerit), PCMember.contactId as pc from PaperReview join Paper using (paperId) left join PCMember on (PaperReview.contactId=PCMember.contactId) where Paper.timeSubmitted>0 group by PaperReview.contactId", "while fetching review status");
     $rf = reviewForm();
     $maxOverAllMerit = $rf->maxNumericScore("overAllMerit");
@@ -386,22 +386,22 @@ if ($Me->is_reviewer() && ($Me->privChair || $papersub)) {
 	    if ($d == "N/A")
 		$d = $Conf->printableTimeSetting("${rtyp}hard", "span");
 	    if ($d != "N/A")
-		echo "  <span class='deadline'>Please submit your ", ($myrow[2] == 1 ? "review" : "reviews"), " by $d.</span><br />\n";
+		echo "  <span class='deadline'>Por favor, submeta sua(s) ", ($myrow[2] == 1 ? "revisão" : "revisões"), " para $d.</span><br />\n";
 	} else if ($Conf->time_review($Me->isPC, true))
-	    echo "  <span class='deadline'><strong class='overdue'>Reviews are overdue.</strong>  They were requested by " . $Conf->printableTimeSetting("${rtyp}soft", "span") . ".</span><br />\n";
+	    echo "  <span class='deadline'><strong class='overdue'>As revisões estão atrasadas.</strong>  Elas foram requisitadas por " . $Conf->printableTimeSetting("${rtyp}soft", "span") . ".</span><br />\n";
 	else if (!$Conf->time_review($Me->isPC, true, true))
-	    echo "  <span class='deadline'>The <a href='", hoturl("deadlines"), "'>deadline</a> for submitting " . ($Me->isPC ? "PC" : "external") . " reviews has passed.</span><br />\n";
+	    echo "  <span class='deadline'>A <a href='", hoturl("deadlines"), "'>data limite</a> para submeter revisões " . ($Me->isPC ? "CF" : "externa") . " se encerrou.</span><br />\n";
 	else
-	    echo "  <span class='deadline'>The site is not open for reviewing.</span><br />\n";
+	    echo "  <span class='deadline'>O sistema não está aberto para revisões.</span><br />\n";
     } else if ($Me->isPC && $Me->can_review_any()) {
 	$d = $Conf->printableTimeSetting("pcrev_soft", "span");
 	if ($d != "N/A")
-	    echo "  <span class='deadline'>The review deadline is $d.</span><br />\n";
+	    echo "  <span class='deadline'>A data limite para revisões é $d.</span><br />\n";
     }
     if ($Me->isPC && $Me->can_review_any())
-	echo "  <span class='hint'>As a PC member, you may review <a href='", hoturl("search", "q=&amp;t=s"), "'>any submitted paper</a>.</span><br />\n";
+	echo "  <span class='hint'>Como membro da CC, você pode revisar <a href='", hoturl("search", "q=&amp;t=s"), "'>qualquer trabalho submetido</a>.</span><br />\n";
     else if ($Me->privChair)
-	echo "  <span class='hint'>As an administrator, you may review <a href='", hoturl("search", "q=&amp;t=s"), "'>any submitted paper</a>.</span><br />\n";
+	echo "  <span class='hint'>Como administrador, você pode revisar <a href='", hoturl("search", "q=&amp;t=s"), "'>qualquer trabalho submetido</a>.</span><br />\n";
 
     if (($myrow || $Me->privChair) && $npc)
 	echo "</div>\n<div id='foldre' class='homegrp foldo'>";
@@ -409,7 +409,7 @@ if ($Me->is_reviewer() && ($Me->privChair || $papersub)) {
     // Actions
     $sep = "";
     if ($myrow) {
-	echo $sep, foldbutton("re", "review list"), "<a href=\"", hoturl("search", "q=re%3Ame"), "\" title='Search in your reviews (more display and download options)'><strong>Your Reviews</strong></a>";
+	echo $sep, foldbutton("re", "review list"), "<a href=\"", hoturl("search", "q=re%3Ame"), "\" title='Buscar nas suas revisões'><strong>Suas revisões</strong></a>";
 	$sep = $xsep;
     }
     if ($Me->isPC && $Conf->setting("paperlead") > 0
@@ -418,15 +418,15 @@ if ($Me->is_reviewer() && ($Me->privChair || $papersub)) {
 	$sep = $xsep;
     }
     if ($Me->isPC && $Conf->timePCReviewPreferences()) {
-	echo $sep, "<a href='", hoturl("reviewprefs"), "'>Review preferences</a>";
+	echo $sep, "<a href='", hoturl("reviewprefs"), "'>Preferências de revisão</a>";
 	$sep = $xsep;
     }
     if ($Conf->deadlinesAfter("rev_open") || $Me->privChair) {
-	echo $sep, "<a href='", hoturl("offline"), "'>Offline reviewing</a>";
+	echo $sep, "<a href='", hoturl("offline"), "'>Revisar offline</a>";
 	$sep = $xsep;
     }
     if ($Me->is_requester()) {
-	echo $sep, "<a href='", hoturl("mail", "monreq=1"), "'>Monitor external reviews</a>";
+	echo $sep, "<a href='", hoturl("mail", "monreq=1"), "'>Monitorar revisões externas</a>";
 	$sep = $xsep;
     }
 
@@ -481,9 +481,9 @@ if ($Me->is_reviewer() && ($Me->privChair || $papersub)) {
 	    $fold20 = defval($_SESSION, "foldhomeactivity", 1) ? "fold20c" : "fold20o";
 	    echo "<div class='homegrp $fold20 fold21c' id='homeactivity'>",
 		foldbutton("homeactivity", "recent activity", 20),
-		"<h4><a href=\"javascript:void fold('homeactivity',null,20)\" class='x homeactivity'>Recent activity<span class='fx20'>:</span></a></h4>";
+		"<h4><a href=\"javascript:void fold('homeactivity',null,20)\" class='x homeactivity'>Atividade recente<span class='fx20'>:</span></a></h4>";
 	    if (count($entries) > 10)
-		echo "&nbsp; <a href=\"javascript:void fold('homeactivity',null,21)\" class='fx20'><span class='fn21'>More &#187;</span><span class='fx21'>&#171; Fewer</span></a>";
+		echo "&nbsp; <a href=\"javascript:void fold('homeactivity',null,21)\" class='fx20'><span class='fn21'>More &#187;</span><span class='fx21'>&#171; Menos</span></a>";
 	    echo foldsessionpixel("homeactivity20", "foldhomeactivity"),
 		"<div class='fx20' style='overflow:hidden;padding-top:3px'><table><tbody>";
 	    foreach ($entries as $which => $xr) {
@@ -507,17 +507,17 @@ if ($Me->is_author() || $Conf->timeStartPaper() > 0 || $Me->privChair
 
     // Overview
     if ($Me->is_author())
-	echo "<h4>Your Submissions: &nbsp;</h4> ";
+	echo "<h4>Suas submissões: &nbsp;</h4> ";
     else
-	echo "<h4>Submissions: &nbsp;</h4> ";
+	echo "<h4>Submissões: &nbsp;</h4> ";
 
     $startable = $Conf->timeStartPaper();
     if ($startable && !$Me->is_known_user())
-	echo "<span class='deadline'>", $Conf->printableDeadlineSetting("sub_reg", "span"), "</span><br />\n<small>You must sign in to register papers.</small>";
+	echo "<span class='deadline'>", $Conf->printableDeadlineSetting("sub_reg", "span"), "</span><br />\n<small>Você deve entrar no sistema para registrar trabalhos.</small>";
     else if ($startable || $Me->privChair) {
-	echo "<strong><a href='", hoturl("paper", "p=new"), "'>Start new paper</a></strong> <span class='deadline'>(", $Conf->printableDeadlineSetting("sub_reg", "span"), ")</span>";
+	echo "<strong><a href='", hoturl("paper", "p=new"), "'>Enviar um novo trabalho</a></strong> <span class='deadline'>(", $Conf->printableDeadlineSetting("sub_reg", "span"), ")</span>";
 	if ($Me->privChair)
-	    echo "<br />\n<span class='hint'>As an administrator, you can start a paper regardless of deadlines and on behalf of others.</span>";
+	    echo "<br />\n<span class='hint'>Como administrador você pode enviar um trabalho independente da data limite ou em nome de terceiros.</span>";
     }
 
     $plist = null;
@@ -534,32 +534,32 @@ if ($Me->is_author() || $Conf->timeStartPaper() > 0 || $Me->privChair
 	    // Be careful not to refer to a future deadline; perhaps an admin
 	    // just turned off submissions.
 	    if ($Conf->deadlinesBetween("", "sub_sub", "sub_grace"))
-		$deadlines[] = "The site is not open for submissions at the moment.";
+		$deadlines[] = "O sistema não está aberto para submissões no momento.";
 	    else
-		$deadlines[] = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for submitting papers has passed.";
+		$deadlines[] = "A data limite <a href='" . hoturl("deadlines") . "'></a> para submissão de trabalhos se encerrou.";
 	} else if (!$Conf->timeUpdatePaper()) {
-	    $deadlines[] = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for updating papers has passed, but you can still submit.";
-	    $time = $Conf->printableTimeSetting("sub_sub", "span", " to submit papers");
+	    $deadlines[] = "A data limite <a href='" . hoturl("deadlines") . "'></a> para edição de trabalhos se encerrou, mas você ainda pode submeter.";
+	    $time = $Conf->printableTimeSetting("sub_sub", "span", " para submeter trabalhos");
 	    if ($time != "N/A")
-		$deadlines[] = "You have until $time.";
+		$deadlines[] = "Você tem até $time.";
 	} else {
-            $time = $Conf->printableTimeSetting("sub_update", "span", " to submit papers");
+            $time = $Conf->printableTimeSetting("sub_update", "span", " para submeter trabalhos");
             if ($time != "N/A")
-                $deadlines[] = "You have until $time.";
+                $deadlines[] = "Você tem até $time.";
         }
     }
     if (!$startable && !count($deadlines)) {
 	if ($Conf->deadlinesAfter("sub_open"))
-	    $deadlines[] = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for registering new papers has passed.";
+	    $deadlines[] = "A data limete <a href='" . hoturl("deadlines") . "'></a> para submeter novos trabalhos se encerrou.";
 	else
-	    $deadlines[] = "The site is not open for submissions at the moment.";
+	    $deadlines[] = "O sistema não está aberto para submissões no momento.";
     }
     if ($plist && $Conf->timeSubmitFinalPaper() && $plist->any->accepted) {
 	$time = $Conf->printableTimeSetting("final_soft");
 	if ($Conf->deadlinesAfter("final_soft") && $plist->any->need_final)
-	    $deadlines[] = "<strong class='overdue'>Final versions are overdue.</strong>  They were requested by $time.";
+	    $deadlines[] = "<strong class='overdue'>As revisões finais estão atrasadas.</strong>  Elas foram solicitadas desde $time.";
 	else if ($time != "N/A")
-	    $deadlines[] = "Submit final versions of your accepted papers by $time.";
+	    $deadlines[] = "Submeta a versão final de seus trabalhos aceitos até $time.";
     }
     if (count($deadlines) > 0) {
 	if ($plist && $plist->count > 0)

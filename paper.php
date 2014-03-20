@@ -30,15 +30,15 @@ function confHeader() {
     else
 	$mode = "p";
     if ($paperId <= 0)
-	$title = ($newPaper ? "New Paper" : "Paper View");
+	$title = ($newPaper ? "Novo trabalho" : "Visualizar trabalho");
     /* else if ($mode == "pe")
 	$title = "Edit Paper #$paperId";
     else if ($mode == "r")
 	$title = "Paper #$paperId Reviews"; */
     else
-	$title = "Paper #$paperId";
+	$title = "Trabalho #$paperId";
 
-    $Conf->header($title, "paper_" . ($mode == "pe" ? "edit" : "view"), actionBar($mode, $prow), false);
+    $Conf->header($title, "paper_" . ($mode == "pe" ? "editar" : "visualizar"), actionBar($mode, $prow), false);
 }
 
 function errorMsgExit($msg) {
@@ -57,7 +57,7 @@ $paperId = -1;
 
 // general error messages
 if (isset($_REQUEST["post"]) && $_REQUEST["post"] && !count($_POST))
-    $Conf->errorMsg("It looks like you tried to upload a gigantic file, larger than I can accept. Any changes were lost.");
+    $Conf->errorMsg("Você está tentando enviar um arquivo muito grande. Qualquer modificação será perdida.");
 
 
 // grab paper row
@@ -80,7 +80,7 @@ if (isset($_REQUEST["clickthrough"]) && check_post()) {
     if (@$_REQUEST["clickthrough_accept"])
         $Me->save_data("clickthrough_" . $_REQUEST["clickthrough"], $Now);
     else if (@$_REQUEST["clickthrough_decline"])
-        $Conf->errorMsg("You can’t edit a paper until you accept the current submission terms.");
+        $Conf->errorMsg("Você não pode editar um trabalho antes de os termos de submissão.");
 }
 if (isset($_REQUEST["setrevpref"]) && $prow && check_post()) {
     PaperActions::setReviewPreference($prow);
@@ -396,19 +396,19 @@ function check_contacts($prow) {
     if ($new_email == "" && $new_name == "")
         /* no new contact */;
     else if (!validateEmail($new_email))
-        $errs[] = "Enter a valid email address for the new contact.";
+        $errs[] = "Entre com um email válido para o novo contato.";
     else {
         if (($new_contact = Contact::find_by_email($new_email, array("name" => $new_name), true)))
             $ncau[$new_contact->email] = $new_contact->contactId;
         else
-            $errs[] = "Couldn’t create an account for the new contact.";
+            $errs[] = "Não foi possivel criar uma conta para o novo contato.";
     }
 
     // Check for zero contacts
     if (!$prow && (!count($ncau) || !$Me->privChair))
         $ncau[$Me->email] = $Me->contactId;
     if (!$Me->privChair && !count($ncau))
-        $errs[] = "Every paper must have at least one contact.";
+        $errs[] = "Todo trabalho deve ter ao menos um contato.";
 
     // Report delta
     if (!count($errs)) {
@@ -472,7 +472,7 @@ function report_update_paper_errors() {
             foreach ($v as $x)
                 $m[] = "<li>$x</li>";
         }
-    $Conf->errorMsg("There were errors in saving your paper. Please fix them and try again." . (count($m) ? "<ul>" . join("", $m) . "</ul>" : ""));
+    $Conf->errorMsg("Ocorreram erros ao salvar seu trabalho. Por favor, corrija-os e tente novamente." . (count($m) ? "<ul>" . join("", $m) . "</ul>" : ""));
 }
 
 // send watch messages
@@ -503,17 +503,17 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
         if ($_REQUEST[$x] != "" || $x == "collaborators")
             $q[] = "$x='" . sqlq($_REQUEST[$x]) . "'";
         else if ($x == "authorInformation")
-            $Error[$x] = "Each paper must have at least one author.";
+            $Error[$x] = "Cada trabalho deve ter ao menos um autor.";
         else if ($x == "title")
-            $Error[$x] = "Each paper must have a title.";
+            $Error[$x] = "Cada trabalho deve ter um título.";
         else
-            $Error[$x] = "Each paper must have an abstract.";
+            $Error[$x] = "Cada trabalho deve ter um resumo.";
     }
 
     // exit early on error for initial registration
     if (!$prow && count($Error)) {
         if (fileUploaded($_FILES["paperUpload"]))
-            $Error["paper"] = "<strong>The submission you tried to upload was ignored.</strong>";
+            $Error["paper"] = "<strong>A submissão que você tentou fazer o upload foi ignorada.</strong>";
         return false;
     }
 
@@ -560,7 +560,7 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
             if ($_REQUEST[$oname] !== false)
                 $opt_data[] = "$o->id, " . $_REQUEST[$oname] . ", null";
             else
-                $Error[$oname] = htmlspecialchars($o->name) . " must be an integer.";
+                $Error[$oname] = htmlspecialchars($o->name) . " deve ser um número inteiro.";
         } else if ($o->type == "text") {
             if ($_REQUEST[$oname] !== "")
                 $opt_data[] = "$o->id, 1, '" . sqlq($_REQUEST[$oname]) . "'";
@@ -596,8 +596,8 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
 
     // special handling for collaborators (missing == warning)
     if ($_REQUEST["collaborators"] == "" && $Conf->setting("sub_collab")) {
-        $field = ($Conf->setting("sub_pcconf") ? "Other conflicts" : "Potential conflicts");
-        $Warning["collaborators"] = "Please enter the authors’ potential conflicts in the $field field. If none of the authors have potential conflicts, just enter “None”.";
+        $field = ($Conf->setting("sub_pcconf") ? "Outros conflitos" : "Conflitos em potencial");
+        $Warning["collaborators"] = "Por favor, entre com os potenciais conflitos dos autores no $field campo. Se nenhum dos autores possuir nenhum conflito em potencial, apenas escreva “Nenhum”.";
     }
 
     // Commit accumulated changes
@@ -606,7 +606,7 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
         $Conf->qe("update Paper set " . join(", ", $q) . " where paperId=$paperId and timeWithdrawn<=0", "while updating paper");
     else {
         if (!($result = $Conf->qe("insert into Paper set " . join(", ", $q), "while creating paper"))) {
-            $Conf->errorMsg("Could not create paper.");
+            $Conf->errorMsg("Não foi possível criar o trabalho.");
             return false;
         }
         if (!($result = $Conf->lastInsertId("while creating paper")))
@@ -689,16 +689,16 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
 
     // confirmation message
     if ($isSubmitFinal) {
-	$actiontext = "Updated final version of";
+	$actiontext = "Versão final atualizada de";
 	$template = "@submitfinalpaper";
     } else if ($didSubmit && $isSubmit && !$wasSubmitted) {
-	$actiontext = "Submitted";
+	$actiontext = "Submetido";
 	$template = "@submitpaper";
     } else if ($newPaper) {
-	$actiontext = "Registered new";
+	$actiontext = "Registrado novo";
 	$template = "@registerpaper";
     } else {
-	$actiontext = "Updated";
+	$actiontext = "Atualizado";
 	$template = "@updatepaper";
     }
 
@@ -706,30 +706,30 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
     $notes = array();
     if ($isSubmitFinal) {
         if ($prow->$submitkey === null || $prow->$submitkey <= 0)
-            $notes[] = "The final version has not yet been submitted.";
+            $notes[] = "A versão final ainda não foi submetida.";
 	$deadline = $Conf->printableTimeSetting("final_soft", "span");
 	if ($deadline != "N/A" && $Conf->deadlinesAfter("final_soft"))
-	    $notes[] = "<strong>The deadline for submitting final versions was $deadline.</strong>";
+	    $notes[] = "<strong>A data limite para submissão das versões finais era $deadline.</strong>";
 	else if ($deadline != "N/A")
-	    $notes[] = "You have until $deadline to make further changes.";
+	    $notes[] = "Você tem até $deadline para fazer outras modificações.";
     } else {
 	if ($isSubmit || $prow->timeSubmitted > 0)
-	    $notes[] = "You will receive email when reviews are available.";
+	    $notes[] = "Você receberá um email assim que as revisões estiverem disponíveis.";
 	else if ($prow->size == 0 && !defval($Opt, "noPapers"))
-	    $notes[] = "The paper has not yet been uploaded.";
+	    $notes[] = "O trabalho ainda não foi enviado.";
 	else if ($Conf->setting("sub_freeze") > 0)
-	    $notes[] = "The paper has not yet been submitted.";
+	    $notes[] = "O trabalho ainda não foi submetido.";
 	else
-	    $notes[] = "The paper is marked as not ready for review.";
+	    $notes[] = "O trabalho está marcado como ainda não finalizado, para os revisores.";
 	$deadline = $Conf->printableTimeSetting("sub_update", "span");
 	if ($deadline != "N/A" && ($prow->timeSubmitted <= 0 || $Conf->setting("sub_freeze") <= 0))
-	    $notes[] = "Further updates are allowed until $deadline.";
+	    $notes[] = "Demais modificações são permitidas até $deadline.";
 	$deadline = $Conf->printableTimeSetting("sub_sub", "span");
 	if ($deadline != "N/A" && $prow->timeSubmitted <= 0)
-	    $notes[] = "<strong>If the paper "
-                . ($Conf->setting("sub_freeze") > 0 ? "has not been submitted"
-                   : "is not ready for review")
-                . " by $deadline, it will not be considered.</strong>";
+	    $notes[] = "<strong>Se o trabalho "
+                . ($Conf->setting("sub_freeze") > 0 ? "não for submetido"
+                   : "não estiver pronto para revisão")
+                . " até $deadline, ele não será considerado.</strong>";
     }
     $notes = join(" ", $notes);
 
@@ -738,15 +738,15 @@ function update_paper($Me, $isSubmit, $isSubmitFinal, $diffs) {
         $webnotes = " <ul><li>" . join("</li><li>", array_values($Warning)) . "</li></ul>";
 
     if (!count($diffs)) {
-        $Conf->warnMsg("There were no changes to paper #$paperId. " . $notes . $webnotes);
+        $Conf->warnMsg("Não há modificações para o trabalho #$paperId. " . $notes . $webnotes);
         return $OK && !count($Error);
     }
 
     // HTML confirmation
     if ($prow->$submitkey > 0)
-	$Conf->confirmMsg($actiontext . " paper #$paperId. " . $notes . $webnotes);
+	$Conf->confirmMsg($actiontext . " trabalho #$paperId. " . $notes . $webnotes);
     else
-	$Conf->warnMsg($actiontext . " paper #$paperId. " . $notes . $webnotes);
+	$Conf->warnMsg($actiontext . " trabalho #$paperId. " . $notes . $webnotes);
 
     // mail confirmation to all contact authors
     if (!$Me->privChair || defval($_REQUEST, "doemail") > 0) {
@@ -823,9 +823,9 @@ if (isset($_REQUEST["updatecontacts"]) && check_post() && !$newPaper) {
 // delete action
 if (isset($_REQUEST["delete"]) && check_post()) {
     if ($newPaper)
-	$Conf->confirmMsg("Paper deleted.");
+	$Conf->confirmMsg("Trabalho excluído.");
     else if (!$Me->privChair)
-	$Conf->errorMsg("Only the program chairs can permanently delete papers. Authors can withdraw papers, which is effectively the same.");
+	$Conf->errorMsg("Apenas os diretores da comissão científica podem excluir trabalho permanentemente. Autores podem retirar trabalhos duplicados.");
     else {
 	// mail first, before contact info goes away
 	if (!$Me->privChair || defval($_REQUEST, "doemail") > 0)
@@ -839,11 +839,11 @@ if (isset($_REQUEST["delete"]) && check_post()) {
 	    $error |= ($result == false);
 	}
 	if (!$error) {
-	    $Conf->confirmMsg("Paper #$paperId deleted.");
+	    $Conf->confirmMsg("Trabalho #$paperId excluído.");
 	    $Conf->updatePapersubSetting(false);
 	    if ($prow->outcome > 0)
 		$Conf->updatePaperaccSetting(false);
-	    $Conf->log("Deleted", $Me, $paperId);
+	    $Conf->log("Excluído", $Me, $paperId);
 	}
 
 	$prow = null;
