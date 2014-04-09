@@ -280,7 +280,7 @@ class PaperTable {
 	$t = array();
 	$tm = defval($data, "timestamp", defval($data, "timeSubmitted", 0));
 	if ($tm > 0)
-	    $t[] = "<span class='nowrap' title='Time of most recent update'>" . $Conf->cacheableImage("_.gif", "Updated", "Time of most recent update", "timestamp12") . " " . $Conf->printableTimestamp($tm) . "</span>";
+	    $t[] = "<span class='nowrap' title='Data da atualização mais recente'>" . $Conf->cacheableImage("_.gif", "Updated", "Data da atualização mais recente", "timestamp12") . " " . $Conf->printableTimestamp($tm) . "</span>";
 	$sha1 = defval($data, "sha1");
 	if ($sha1)
 	    $t[] = "<span class='nowrap' title='SHA-1 checksum'>" . $Conf->cacheableImage("_.gif", "SHA-1", "SHA-1 checksum", "checksum12") . " " . bin2hex($sha1) . "</span>";
@@ -307,7 +307,7 @@ class PaperTable {
 	    $dprefix = "";
 	    if ($final && $prow->finalPaperStorageId > 1) {
 		$data = paperDocumentData($prow, DTYPE_FINAL);
-		$dprefix = "Final version: &nbsp;";
+		$dprefix = "Versão Final: &nbsp;";
 	    } else
 		$data = paperDocumentData($prow, DTYPE_SUBMISSION);
 	    if ($data) {
@@ -337,7 +337,7 @@ class PaperTable {
                                       "documentType" => DTYPE_SUBMISSION);
 		$pdfs[] = "<small><a class='u' href=\""
 		    . HotCRPDocument::url($doc)
-		    . "\">Submission version</a></small>";
+		    . "\">Versão de Submissão</a></small>";
             }
 
 	    $t .= "<td>";
@@ -348,13 +348,13 @@ class PaperTable {
 
 	// conflicts
 	if ($prow->has_author($Me))
-	    $out[] = "You are an <span class='author'>author</span> of this paper.";
+	    $out[] = "Você é o um <span class='author'>autor </span> deste artigo.";
 	else if ($prow->has_conflict($Me))
-	    $out[] = "You have a <span class='conflict'>conflict</span> with this paper.";
+	    $out[] = "Você tem um conflito <span class='conflict'>conflict</span> com este artigo.";
 	if ($Me->isPC && !$prow->has_conflict($Me)
 	    && $Conf->timeUpdatePaper($prow) && $this->mode != "assign"
 	    && $this->mode != "contact")
-	    $out[] = "<div class='xwarning'>The authors still have <a href='" . hoturl("deadlines") . "'>time</a> to make changes.</div>";
+	    $out[] = "<div class='xwarning'>Os autores ainda terão um <a href='" . hoturl("deadlines") . "'>tempo</a> para realizar modificações.</div>";
 	if (count($out))
 	    $out[] = "";
 
@@ -406,7 +406,7 @@ class PaperTable {
 	$uploader = "";
 	if (count($accepts)) {
 	    if ($doc)
-		$uploader .= "<div class='g'></div><div id='removable_$inputid' class='foldo'><span class='fx'>Replace:&nbsp; ";
+		$uploader .= "<div class='g'></div><div id='removable_$inputid' class='foldo'><span class='fx'>Substituir:&nbsp; ";
 	    $uploader .= "<input id='$inputid' type='file' name='$inputid'";
 	    if (count($accepts) == 1)
 		$uploader .= " accept='" . $accepts[0]->mimetype . "'";
@@ -418,17 +418,17 @@ class PaperTable {
 	    $uploader .= "' />";
 	    if ($doc && $optionType)
 		$uploader .= " &nbsp;<span class='barsep'>|</span>&nbsp; "
-		    . "<a id='remover_$inputid' href='#remover_$inputid' onclick='return doremovedocument(this)'>Delete</a>";
+		    . "<a id='remover_$inputid' href='#remover_$inputid' onclick='return doremovedocument(this)'>Remover</a>";
 	    $uploader .= "</span>";
 	    if ($doc && $optionType)
-		$uploader .= "<span class='fn'><em>Marked for deletion</em></span>";
+		$uploader .= "<span class='fn'><em>Marcado para remoção</em></span>";
 	    if ($doc)
 		$uploader .= "</div>";
 	}
 
 	if ($prow && $storageId > 1 && $banal
 	    && defval($prow, "mimetype", "application/pdf") == "application/pdf") {
-	    echo "<div id='foldcheckformat$documentType' class='foldc'><div id='checkformatform${documentType}result' class='fx'><div class='xinfo'>Checking format, please wait (this can take a while)...</div></div></div>";
+	    echo "<div id='foldcheckformat$documentType' class='foldc'><div id='checkformatform${documentType}result' class='fx'><div class='xinfo'>Verificando formato, por favor aguarde (isto pode levar algum tempo)...</div></div></div>";
 	    $Conf->footerHtml("<form id='checkformatform$documentType' class='fold7o' method='post' action='" . hoturl_post("paper", "p=$prow->paperId&amp;dt=$documentType") . "' enctype='multipart/form-data' accept-charset='UTF-8' onsubmit='return Miniajax.submit(\"checkformatform$documentType\")'><input type='hidden' name='checkformat' value='1' /></form>");
 	}
 
@@ -451,10 +451,10 @@ class PaperTable {
 		"'$s><table class='fx'><tr><td class='nowrap'>",
 		Ht::checkbox_h("submit", 1, $checked, array("id" => "paperisready")), "&nbsp;";
 	    if ($Conf->setting('sub_freeze'))
-		echo "</td><td>", Ht::label("<strong>This is the final submission.</strong>"),
-		    "</td></tr><tr><td></td><td><small>You must submit a final version before the deadline or your paper will not be reviewed.  Once you submit a final version you will not be able to make further changes.</small>";
+		echo "</td><td>", Ht::label("<strong>Esta é a submissão final.</strong>"),
+		    "</td></tr><tr><td></td><td><small>Você deve submeter uma versão final antes do prazo de entrega ou seu artigo não será revisado.  Uma vez que envie uma versão final não poderá realizar alterações posteriores.</small>";
 	    else
-		echo Ht::label("The paper is ready for review.");
+		echo Ht::label("Este artigo está pronto para revisão.");
 	    echo "</td></tr></table></div>\n";
 	    $Conf->footerScript("hotcrp_onload.push(function(){var x=\$\$(\"paperUpload\");if(x&&x.value)fold(\"isready\",0)})");
 	} else if ($documentType == DTYPE_FINAL)
@@ -509,12 +509,12 @@ class PaperTable {
 	global $Conf;
         cleanAuthor($this->prow);
 
-	echo $this->editable_papt("authorInformation", "Authors <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>More</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Fewer</a>)</span>"),
-	    "<div class='paphint'>List the paper&rsquo;s authors one per line, including their email addresses and affiliations.";
+	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>More</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Fewer</a>)</span>"),
+	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus e-mails e afiliações.";
 	if ($Conf->subBlindAlways())
-	    echo " Submission is blind, so reviewers will not be able to see author information.";
-	echo "  Any author with an account on this site can edit the paper.</div>",
-	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Name</th><th>Email</th><th>Affiliation</th></tr>\n";
+	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
+	echo " Qualquer autor com uma conta neste site pode editar este artigo.</div>",
+	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Nome</th><th>Email</th><th>Associação</th></tr>\n";
 
 	$blankAu = array("", "", "", "");
 	if ($this->useRequest && isset($_REQUEST["authorTable"]))
@@ -636,8 +636,8 @@ class PaperTable {
 	$viewable = $Me->canViewAuthors($this->prow, false);
 	if (!$viewable && !$Me->canViewAuthors($this->prow, true)) {
 	    echo "<div class='pg pgtop'>",
-                $this->papt("authorInformation", "Authors"),
-                "<div class='pavb'><i>Hidden for blind review</i></div>",
+                $this->papt("authorInformation", "Autores"),
+                "<div class='pavb'><i>Oculto para revisão cega</i></div>",
                 "</div>\n\n";
 	    return;
 	}
@@ -674,8 +674,8 @@ class PaperTable {
 	    echo $this->papt("authorInformation", $auname,
 			     array("fold" => "paper", "foldnum" => 9,
 				   "foldsession" => "foldpaperp",
-				   "showtitle" => "Show full authors",
-				   "hidetitle" => "Show abbreviated authors")),
+				   "showtitle" => "Exibir todos os autores",
+				   "hidetitle" => "Exibir autores abreviadamente")),
                 "<div class='pavb'><span class='fn9'>",
 		$this->authorData($autable, "last", null, $inauthors1),
 		" <a class='fn9' href='javascript:void fold(\"paper\", 0, 9)'>[details]</a>",
@@ -693,7 +693,7 @@ class PaperTable {
 
 	if (count($contacts) > 0 && !$skip_contacts) {
             echo "<div class='pg fx9", ($viewable ? "" : " fx8"), "'>",
-		$this->papt("authorInformation", pluralx(count($contacts), "Contact")),
+		$this->papt("authorInformation", pluralx(count($contacts), "Contatos")),
                 "<div class='pavb'>",
 		$this->authorData($contacts, "col", $Me),
 		"</div></div>\n\n";
@@ -785,19 +785,19 @@ class PaperTable {
 	if ($topicdata != "" || count($optionhtml)) {
 	    $infotypes = array();
 	    if ($ndocuments > 0)
-		$infotypes[] = "Attachments";
+		$infotypes[] = "Anexos";
 	    if (count($optionhtml) != $ndocuments)
-		$infotypes[] = "Options";
+		$infotypes[] = "Opções";
 	    $options_name = commajoin($infotypes);
 	    if ($topicdata != "")
-		array_unshift($infotypes, "Topics");
+		array_unshift($infotypes, "Tópicos");
 	    $tanda = commajoin($infotypes);
 
 	    if ($this->allFolded) {
 		$extra = array("fold" => "paper", "foldnum" => 5,
 			       "foldsession" => "foldpapert",
-			       "showtitle" => "Show " . strtolower($tanda),
-			       "hidetitle" => "Hide " . strtolower($tanda));
+			       "showtitle" => "Exibir " . strtolower($tanda),
+			       "hidetitle" => "Ocultar " . strtolower($tanda));
 		$eclass = " fx5";
 	    } else {
 		$extra = null;
@@ -806,7 +806,7 @@ class PaperTable {
 
 	    if ($topicdata != "") {
                 echo "<div class='pg'>",
-                    $this->papt("topics", array("Topics", $tanda), $extra),
+                    $this->papt("topics", array("Tópicos", $tanda), $extra),
                     "<div class='pavb$eclass'>", $topicdata, "</div></div>\n\n";
                 $extra = null;
 		$tanda = $options_name;
@@ -825,8 +825,8 @@ class PaperTable {
 	global $Me, $Conf, $Opt;
         if (!$Me->privChair)
             return;
-	echo $this->editable_papt("contactAuthor", "Contact"),
-	    "<div class='paphint'>You can add more contacts after you register the paper.</div>",
+	echo $this->editable_papt("contactAuthor", "Contato"),
+	    "<div class='paphint'>Você poderá adicionar mais contatos depois do registro do artigo.</div>",
 	    "<div class='papv'>";
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
         $name = $name == "Name" ? "" : $name;
@@ -834,8 +834,8 @@ class PaperTable {
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Name", "Email", "textlite temptext");
-        echo '<table><tr><td class="lcaption">Add</td>',
+            : array("Nome", "E-mail", "textlite temptext");
+        echo '<table><tr><td class="lcaption">Adicionar</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
                       array("id" => "newcontact_name", "size" => 30,
@@ -863,7 +863,7 @@ class PaperTable {
             "onclick=\"\$\$('setcontacts').value=2;return foldup(this,event)\"",
             '><span class="papfn"><a class="q" href="#" ',
             "onclick=\"\$\$('setcontacts').value=2;return foldup(this,event)\"",
-            ' title="Edit contacts">', expander(true), 'Contacts</a></span><div class="clear"></div></div>',
+            ' title="Edit contacts">', expander(true), 'Contatos</a></span><div class="clear"></div></div>',
             '<div class="papt fx0',
             (@$Error["contactAuthor"] ? " error" : ""),
             '"><span class="papfn">',
@@ -889,7 +889,7 @@ class PaperTable {
 
         // Editable version
         echo '<div class="paphint fx0">',
-            'Contacts are HotCRP users who can edit paper information and view reviews. Paper authors with HotCRP accounts are always contacts, but you can add additional contacts who aren’t in the author list or create accounts for authors who haven’t yet logged in.',
+            'Contatos são usuário HotCRP que podem editar informações e revisões de artigos. Autores de artigos com contas HotCRP são sempre considerados contatos, mas você pode adiconar contatos que não estão na lista do autor ou criar contas para autores que ainda não se logaram.',
             '</div>';
         echo '<div class="papv fx0">';
         echo '<table>';
@@ -909,7 +909,7 @@ class PaperTable {
                 '</td></tr>';
             $title = "";
         }
-        $title = "Non-authors";
+        $title = "Não-Autores";
         foreach ($contacts as $au) {
             $control = "contact_" . html_id_encode($au->email);
             $checked = $this->useRequest ? @$_REQUEST[$control] : true;
@@ -926,7 +926,7 @@ class PaperTable {
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Name", "Email", "textlite temptext");
+            : array("Nome", "E-mail", "textlite temptext");
         echo '<tr><td class="lcaption">Add</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -946,8 +946,8 @@ class PaperTable {
 	$blind = ($this->useRequest ? isset($_REQUEST['blind']) : (!$this->prow || $this->prow->blind));
 	assert(!!$this->editable);
 	echo $this->editable_papt("blind", Ht::checkbox_h("blind", 1, $blind)
-                                  . "&nbsp;" . Ht::label("Anonymous submission")),
-	    "<div class='paphint'>", htmlspecialchars($Opt["shortName"]), " allows either anonymous or named submission.  Check this box to submit the paper anonymously (reviewers won&rsquo;t be shown the author list).  Make sure you also remove your name from the paper itself!</div>\n",
+                                  . "&nbsp;" . Ht::label("Submissão Anônima")),
+	    "<div class='paphint'>", htmlspecialchars($Opt["shortName"]), " permitir subissões anônimas ou registradas.  Marque para submeter anônimamente (revisores won&rsquo;t serão exibis na lista do autor).  Certifique-se de que também tenha removido seu nome do artigo!</div>\n",
 	    "<div class='papv'></div>\n\n";
     }
 
@@ -958,19 +958,17 @@ class PaperTable {
 	$sub_pcconf = $Conf->setting("sub_pcconf");
 	assert(!!$this->editable);
 
-	echo $this->editable_papt("collaborators", ($sub_pcconf ? "Other conflicts" : "Potential conflicts")),
+	echo $this->editable_papt("collaborators", ($sub_pcconf ? "Outros conflitos" : "Potencias conflitos")),
 	    "<div class='paphint'>";
 	if ($Conf->setting("sub_pcconf"))
-	    echo "List <em>other</em> people and institutions with which
-	the authors have conflicts of interest.  This will help us avoid
-	conflicts when assigning external reviews.  No need to list people
-	at the authors’ own institutions.";
+	    echo "Lista <em>other</em> pessoas e instituições com as quais
+	os autores possuem conflitos de interesse.  Isto irá nos ajudar a evitar
+	conflitos ao atribuir revisões externas. Não é necessário listar pessoas aos autores’ ou suas instituições.";
 	else
-	    echo "List people and institutions with which the authors have
-	conflicts of interest. ", $Conf->message_html("conflictdef"), "
-	Be sure to include conflicted <a href='", hoturl("users", "t=pc"), "'>PC members</a>.
-	We use this information when assigning PC and external reviews.";
-	echo "  List one conflict per line.  For example: &ldquo;<tt>Jelena Markovic (EPFL)</tt>&rdquo; or, for a whole institution, &ldquo;<tt>EPFL</tt>&rdquo;.</div>",
+	    echo "Lista pessoas e instituições com a qual o autor possui conflitos de interesse. ", $Conf->message_html("conflictdef"), "
+	Certifique-se de incluir <a href='", hoturl("users", "t=pc"), "'> membros da comissão de pesquisa conflituosos</a>.
+	Nós utilizamos esta informação quando atribuímos revisores externos e da comissão científica.";
+	echo "  Exibi um conflito por linha.  Por exemplo: &ldquo;<tt>Jelena Markovic (EPFL)</tt>&rdquo; ou, para toda a instituição, &ldquo;<tt>EPFL</tt>&rdquo;.</div>",
 	    "<div class='papv'>",
 	    $this->entryData("collaborators"),
 	    "</div>\n\n";
@@ -999,7 +997,7 @@ class PaperTable {
 	if (!$Conf->setting("sub_collab") || !$this->prow->collaborators
 	    || strcasecmp(trim($this->prow->collaborators), "None") == 0)
 	    return;
-	$name = $Conf->setting("sub_pcconf") ? "Other conflicts" : "Potential conflicts";
+	$name = $Conf->setting("sub_pcconf") ? "Outros conflitos" : "Potenciais conflitos";
 	$fold = defval($_SESSION, "foldpscollab", 1) ? 1 : 0;
 
 	$data = $this->entryData("collaborators", "col");
@@ -1020,8 +1018,8 @@ class PaperTable {
 	assert(!!$this->editable);
 	$topicMode = (int) $this->useRequest;
 	if (($topicTable = topicTable($this->prow, $topicMode))) {
-	    echo $this->editable_papt("topics", "Topics"),
-		"<div class='paphint'>Select any topics that apply to your paper.</div>",
+	    echo $this->editable_papt("topics", "Tópicos"),
+		"<div class='paphint'>Selecione qualquer tópico que for aplicável ao seu artigo.</div>",
 		"<div class='papv'>", $topicTable, "</div>\n\n";
 	}
     }
@@ -1040,7 +1038,7 @@ class PaperTable {
                     echo "<div id='removable_$oname' class='foldo'><table id='current_$oname'><tr>",
                         "<td class='nowrap'>", documentDownload($doc, "dlimg", htmlspecialchars($doc->filename)), "</td>",
                         "<td class='fx'><span class='sep'></span></td>",
-                        "<td class='fx'><a id='remover_$oname' href='#remover_$oname' onclick='return doremovedocument(this)'>Delete</a></td>";
+                        "<td class='fx'><a id='remover_$oname' href='#remover_$oname' onclick='return doremovedocument(this)'>Remover</a></td>";
                     if (($stamps = self::pdfStamps($doc)))
                         echo "<td class='fx'><span class='sep'></span></td><td class='fx'>$stamps</td>";
                     echo "</tr></table></div>\n";
@@ -1152,10 +1150,10 @@ class PaperTable {
 		$c = "<tr><td class='pctbname0 pctbl'>". Text::name_html($p) . "</td><td class='pctbconfsel'>";
 		$ct = defval($conflict, $id, $nonct);
 		if ($ct->is_author())
-		    $c .= "<strong>Author</strong>";
+		    $c .= "<strong>Autor</strong>";
 		else if ($ct->is_conflict() && !$ct->is_author_mark()) {
                     if (!$this->admin)
-                        $c .= "<strong>Conflict</strong>";
+                        $c .= "<strong>Conflito</strong>";
                     else
                         $c .= Ht::select("pcc$id", $ctypes, CONFLICT_CHAIRMARK, $extra);
 		} else
@@ -1189,8 +1187,8 @@ class PaperTable {
 	    $tswitch = "</td><td class='rpad'>";
 	}
 
-	echo $this->editable_papt("pcconf", "PC conflicts"),
-	    "<div class='paphint'>Select the PC members who have conflicts of interest with this paper. ", $Conf->message_html("conflictdef"), "</div>\n",
+	echo $this->editable_papt("pcconf", "conflitos da Comissão Científica"),
+	    "<div class='paphint'>Selecione os membros da comissão científica que possuem conflitos de interesse com este artigo. ", $Conf->message_html("conflictdef"), "</div>\n",
 	    "<div class='papv'", $tclass, "><tr>", $topen;
 	$n = ($selectors
 	      ? intval((count($pcconfs) + 1) / 2)
@@ -1242,7 +1240,7 @@ class PaperTable {
             $this->papt($type, $name, array("type" => "ps", "fold" => $editable ? $type : false, "folded" => true)),
             "<div class='psv'><p class='fn odname'>";
         if ($value)
-            echo isset($pc[$value]) ? Text::name_html($pc[$value]) : "Unknown!";
+            echo isset($pc[$value]) ? Text::name_html($pc[$value]) : "Desconhecido!";
         else
             echo "None";
         echo "</p>";
@@ -1272,15 +1270,15 @@ class PaperTable {
     }
 
     private function papstripLead($showedit) {
-	$this->_papstripLeadShepherd("lead", "Discussion lead", $showedit || defval($_REQUEST, "atab") == "lead", false);
+	$this->_papstripLeadShepherd("lead", "Líder de discussão", $showedit || defval($_REQUEST, "atab") == "lead", false);
     }
 
     private function papstripShepherd($showedit, $fold) {
-	$this->_papstripLeadShepherd("shepherd", "Shepherd", $showedit || defval($_REQUEST, "atab") == "shepherd", $fold);
+	$this->_papstripLeadShepherd("shepherd", "Mediador", $showedit || defval($_REQUEST, "atab") == "shepherd", $fold);
     }
 
     private function papstripManager($showedit) {
-	$this->_papstripLeadShepherd("manager", "Paper administrator", $showedit || defval($_REQUEST, "atab") == "manager", false);
+	$this->_papstripLeadShepherd("manager", "Administrador de Artigo", $showedit || defval($_REQUEST, "atab") == "manager", false);
     }
 
     private function papstripTags($site = null) {
@@ -1325,7 +1323,7 @@ class PaperTable {
 		    "<input class='bsm' type='submit' name='cancelsettags' value='Cancel' onclick='return fold(\"tags\",1)' />",
 		    " &nbsp;<input class='bsm' type='submit' value='Save' />",
                     "</div>",
-		    "<span class='hint'><a href='", hoturl("help", "t=tags"), "'>Learn more</a> &nbsp;<span class='barsep'>|</span>&nbsp; <strong>Tip:</strong> Twiddle tags like &ldquo;~tag&rdquo; are visible only to you.</span>",
+		    "<span class='hint'><a href='", hoturl("help", "t=tags"), "'>Aprenda mais</a> &nbsp;<span class='barsep'>|</span>&nbsp; <strong>Dica:</strong> Tags como &ldquo;~tag&rdquo; são visíveis somente à você.</span>",
 		    "</div>";
                 $Conf->footerScript("taghelp(\"foldtags_d\",\"taghelp_p\",taghelp_tset)");
 	    } else
@@ -1343,7 +1341,7 @@ class PaperTable {
     function papstripOutcomeSelector() {
 	global $Conf, $Error;
 	echo $this->_papstripBegin("decision", defval($_REQUEST, "atab") != "decision"),
-	    $this->papt("decision", "Decision", array("type" => "ps", "fold" => "decision")),
+	    $this->papt("decision", "Decisão", array("type" => "ps", "fold" => "decision")),
 	    "<div class='psv'><form id='decisionform' class='fx fold7o' method='post' action='", hoturl_post("review", "p=" . $this->prow->paperId), "' enctype='multipart/form-data' accept-charset='UTF-8' onsubmit='return dosubmitstripselector(\"decision\")'>",
 	    "<div class='inform'>",
 	    "<input type='hidden' name='setdecision' value='1' />";
@@ -1362,7 +1360,7 @@ class PaperTable {
     function papstripReviewPreference() {
 	global $Conf, $CurrentList;
 	echo $this->_papstripBegin(),
-	    $this->papt("revpref", "Review preference", array("type" => "ps")),
+	    $this->papt("revpref", "Preferência de revisão", array("type" => "ps")),
 	    "<div class='psv'><form id='revprefform' class='fold7o' method='post' action='", hoturl_post("review", "p=" . $this->prow->paperId), "' enctype='multipart/form-data' accept-charset='UTF-8' onsubmit='return Miniajax.submit(\"revprefform\")'>",
 	    "<div class='aahc inform'>",
 	    "<input type='hidden' name='setrevpref' value='1' />";
@@ -1396,7 +1394,7 @@ class PaperTable {
 	$Conf->footerHtml("<form id='rankctxform' class='fold7o' method='post' action='" . hoturl_post("paper", "p=" . $this->prow->paperId) . "' enctype='multipart/form-data' accept-charset='UTF-8' onsubmit='return Miniajax.submit(\"rankctxform\")'><div class='aahc'><input type='hidden' name='rankctx' value='1' /></div></form>");
 
 	echo $this->_papstripBegin("rank", true, "fold2c"),
-	    $this->papt("rank", "Your rank", array("type" => "ps", "editfolder" => "rank")),
+	    $this->papt("rank", "Sua classificação", array("type" => "ps", "editfolder" => "rank")),
 	    "<div class='psv'><form id='rankform' class='fx fold7o' method='post' action='" . hoturl_post("review", "p=" . $this->prow->paperId) . "' enctype='multipart/form-data' accept-charset='UTF-8' onsubmit='return Miniajax.submit(\"rankform\")'>",
 	    "<div class='inform'>",
 	    "<input type='hidden' name='setrank' value='1' />";
@@ -1459,7 +1457,8 @@ class PaperTable {
 					     "style" => "padding-left:0;margin-left:0"))
 			 . "&nbsp;" . Ht::label("Email notification"),
 			 array("type" => "ps")),
-	    "<div class='pshint'>Select to receive email on updates to reviews and comments. <span id='watchformresult'></span>",
+	    // "<div class='pshint'>Select to receive email on updates to reviews and comments. <span id='watchformresult'></span>"
+	    "<div class='pshint'>Selecione para receber e-mails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
 	    "<input class='fx7' type='submit' value='Save' />",
 	    "</div></div></form></div>\n\n";
 
@@ -1475,9 +1474,9 @@ class PaperTable {
 	if ($deadline == "N/A")
 	    return "";
 	else if (time() < $Conf->setting($dname))
-	    return "  The deadline is $deadline.";
+	    return "  A data final é  $deadline.";
 	else
-	    return "  The deadline was $deadline.";
+	    return "  A data final era $deadline.";
     }
 
     function editMessage() {
@@ -1485,25 +1484,26 @@ class PaperTable {
 	$prow = $this->prow;
 	$m = "";
 
-	$override = ($this->admin ? "  As an administrator, you can override this deadline using the “Override deadlines” checkbox." : "");
+	$override = ($this->admin ? " Como administrador, voce pode ignorar esta data marcando Ignorar data final" : "");
 	if (!$prow) {
 	    $timeStart = $Conf->timeStartPaper();
 	    $startDeadline = $this->deadlineSettingIs("sub_reg");
 	    if (!$timeStart) {
 		if ($Conf->setting("sub_open") <= 0)
-		    $msg = "You can’t register new papers because the conference site has not been opened for submissions.$override";
+		    $msg = "Você não pode registrar novos artigos porque o site de conferencia não foi aberto para submissoes .$override";
 		else
-		    $msg = "You can’t register new papers since the <a href='" . hoturl("deadlines") . "'>deadline</a> has passed.$startDeadline$override";
+		    $msg = "Você não pode registrar novos artigos a partir de quando ultrapassou <a href='" . hoturl("deadlines") . "'>a data máxima</a>.$startDeadline$override";
 		if (!$this->admin)
 		    errorMsgExit($msg);
 		$m .= "<div class='xinfo'>" . $msg . "</div>";
 	    } else {
-		$m .= "<div class='xinfo'>" . "Enter information about your paper.  ";
+		$m .= "<div class='xinfo'>" . "Insira informações sobre seu artigo.  ";
 		if ($startDeadline && !$Conf->setting("sub_freeze"))
 		    $m .= "You can make changes until the deadline, but thereafter ";
 		else
-		    $m .= "You don’t have to upload the paper itself right away, but ";
-		$m .= "incomplete submissions will not be considered.$startDeadline" . "</div>";
+		    $m .= "Você não tem que enviar o artigo propriamente";
+		//$m .= "You don’t have to upload the paper itself right away, but ";
+		$m .= "mas submissões incompletas não serão consideradas.$startDeadline" . "</div>";
 	    }
 	} else if ($prow->has_author($Me)
 		   && ($Conf->timeUpdatePaper($prow)

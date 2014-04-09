@@ -71,8 +71,10 @@ class CommentView {
 	    $sep = $xsep;
 	} else if ($crow && $Me->allowAdminister($prow)) {
 	    echo $sep, "<span id='foldcid$crow->commentId' class='cmtname fold4c'>",
-		"<a class='q fn4' href=\"javascript:void fold('cid$crow->commentId', 0, 4)\" title='Show author'>+&nbsp;<i>Hidden for blind review</i></a>",
-		"<span class='fx4'><a class='fx4' href=\"javascript:void fold('cid$crow->commentId', 1, 4)\" title='Hide author'>[blind]</a> ", Text::user_html($crow), "</span>",
+		//"<a class='q fn4' href=\"javascript:void fold('cid$crow->commentId', 0, 4)\" title='Show author'>+&nbsp;<i>Hidden for blind review</i></a>",
+		"<a class='q fn4' href=\"javascript:void fold('cid$crow->commentId', 0, 4)\" title='Exibir autor'>+&nbsp;<i>Oculto para revisão cega</i></a>",
+		//"<span class='fx4'><a class='fx4' href=\"javascript:void fold('cid$crow->commentId', 1, 4)\" title='Hide author'>[blind]</a> ", Text::user_html($crow), "</span>",		
+"<span class='fx4'><a class='fx4' href=\"javascript:void fold('cid$crow->commentId', 1, 4)\" title='Ocultar Autor'>[blind]</a> ", Text::user_html($crow), "</span>",
 		"</span>";
 	    $sep = $xsep;
 	}
@@ -96,11 +98,14 @@ class CommentView {
             if ($crow->commentType >= COMMENTTYPE_AUTHOR)
                 $x = "";
             else if ($crow->commentType >= COMMENTTYPE_REVIEWER)
-                $x = "hidden from authors";
+                //$x = "hidden from authors";
+		 $x = "oculto pelos autores";
             else if ($crow->commentType >= COMMENTTYPE_PCONLY)
-                $x = "shown only to PC reviewers";
+                //$x = "shown only to PC reviewers";
+		 $x = "exibidos somente para revisores PC";
             else
-                $x = "shown only to administrators";
+               //$x = "shown only to administrators";
+		 $x = "exibido somente para administradores";	  
 	    if ($x)
 		echo "<span class='cmtvis'>(", $x, ")</span>";
 	}
@@ -122,7 +127,8 @@ class CommentView {
 
 	if ($this->mode != 1) {
 	    $this->table_begin("");
-            echo "<h3>Comments</h3>";
+            //echo "<h3>Comments</h3>";
+	    echo "<h3>Comentários</h3>";	
             $this->table_tobody();
         }
 	$this->ncomment_in_table++;
@@ -162,13 +168,15 @@ class CommentView {
 		    selfHref(array("c" => "new")),
 		    "\" onclick='return open_new_comment(1)'>+&nbsp;Add Comment</a><span class='fx'>Add Comment</span></h3>";
 	    else
-		echo "<h3>Add Comment</h3>";
+		//echo "<h3>Add Comment</h3>";
+		echo "<h3>Criar Comentário</h3>";
 	    $Conf->footerScript("hotcrp_load('opencomment')");
 	}
 	$this->_commentIdentityTime($prow, $crow, false);
 
 	if ($crow && $editMode && $crow->contactId != $Me->contactId)
-	    echo "<div class='hint'>You didn’t write this comment, but as an administrator you can still make changes.</div>\n";
+	    //echo "<div class='hint'>You didn’t write this comment, but as an administrator you can still make changes.</div>\n";
+		echo "<div class='hint'>Você não escreveu este comentário, porém como administrador você ainda pode efetuar modificações.</div>\n";
 
 	echo "</div><div class='cmtv", (!$crow && $editMode && $foldnew ? " fx" : ""), "'>";
 
@@ -197,43 +205,55 @@ class CommentView {
             echo "<table style=\"float:right\"><tr><td>Tags: &nbsp; </td>
   <td>", Ht::entry("commenttags", $crow ? @$crow->commentTags : "", array("size" => 40, "onchange" => "hiliter(this)")), "</td></tr></table>";
         // visibility
-        echo "<table><tr><td>Show to: &nbsp; </td>
+        //echo "<table><tr><td>Show to: &nbsp; </td>
+	echo "<table><tr><td>Exibir: &nbsp; </td>
     <td><table id='foldcmtvis' class='fold2o'>";
         $ctype = $crow ? $crow->commentType : COMMENTTYPE_REVIEWER | COMMENTTYPE_BLIND;
 	echo "<tr><td>", Ht::radio_h("visibility", "a", ($useRequest ? defval($_REQUEST, "visibility") == "a" : $ctype >= COMMENTTYPE_AUTHOR), array("id" => "cmtvis_a", "onchange" => "docmtvis(this)")),
-	    "&nbsp;</td><td>", Ht::label("Authors and reviewers" . ($Conf->review_blindness() == Conference::BLIND_ALWAYS ? " (anonymous to authors)" : ""));
+	//"&nbsp;</td><td>", Ht::label("Authors and reviewers" . ($Conf->review_blindness() == Conference::BLIND_ALWAYS ? " (anonymous to authors)" : ""));
+	    "&nbsp;</td><td>", Ht::label("Autores e revisores" . ($Conf->review_blindness() == Conference::BLIND_ALWAYS ? " (anônimo para autores)" : ""));
 	// blind?
 	if ($Conf->review_blindness() == Conference::BLIND_OPTIONAL)
 	    echo " &nbsp; (",
 		Ht::checkbox_h("blind", 1, ($useRequest ? defval($_REQUEST, "blind") : $ctype & COMMENTTYPE_BLIND)),
 		"&nbsp;", Ht::label("Anonymous to authors"), ")";
 	if ($Conf->timeAuthorViewReviews())
-	    echo "<br /><span class='fx2 hint'>Authors will be notified immediately.</span>";
+	    //echo "<br /><span class='fx2 hint'>Authors will be notified immediately.</span>";
+	 echo "<br /><span class='fx2 hint'>Autores serão notificados automaticamente.</span>";
 	else
-	    echo "<br /><span class='fx2 hint'>Authors cannot view comments at the moment.</span>";
+	   // echo "<br /><span class='fx2 hint'>Authors cannot view comments at the moment.</span>";
+	 echo "<br /><span class='fx2 hint'>Os Autores não podem visualizar comentários neste momento.</span>";
 	echo "</td></tr>\n";
 	echo "<tr><td>", Ht::radio_h("visibility", "r", ($useRequest ? defval($_REQUEST, "visibility") == "r" : ($ctype & COMMENTTYPE_VISIBILITY) == COMMENTTYPE_REVIEWER), array("onchange" => "docmtvis(this)")),
-	    "&nbsp;</td><td>", Ht::label("PC and external reviewers"), "</td></tr>\n";
+	//  "&nbsp;</td><td>", Ht::label("PC and external reviewers"), "</td></tr>\n";
+	    "&nbsp;</td><td>", Ht::label("Revisores externos e PC"), "</td></tr>\n";
 	echo "<tr><td>", Ht::radio_h("visibility", "p", ($useRequest ? defval($_REQUEST, "visibility") == "p" : ($ctype & COMMENTTYPE_VISIBILITY) == COMMENTTYPE_PCONLY), array("onchange" => "docmtvis(this)")),
-	    "&nbsp;</td><td>", Ht::label("PC reviewers only"), "</td></tr>\n";
+	// "&nbsp;</td><td>", Ht::label("PC reviewers only"), "</td></tr>\n";
+	    "&nbsp;</td><td>", Ht::label("Somente revisores PC"), "</td></tr>\n";
 	echo "<tr><td>", Ht::radio_h("visibility", "admin", ($useRequest ? defval($_REQUEST, "visibility") == "admin" : ($ctype & COMMENTTYPE_VISIBILITY) == COMMENTTYPE_ADMINONLY), array("onchange" => "docmtvis(this)")),
-	    "&nbsp;</td><td>", Ht::label("Administrators only"), "</td></tr>\n";
+	    //"&nbsp;</td><td>", Ht::label("Administrators only"), "</td></tr>\n";
+	"&nbsp;</td><td>", Ht::label("Somente Administradores"), "</td></tr>\n";
 	echo "</table></td></tr></table>\n";
 	$Conf->footerScript("docmtvis(false)");
 
 	// actions
         echo "<div class=\"clear\"></div>\n";
         $buttons = array();
-        $buttons[] = Ht::submit("submit", "Save", array("class" => "bb"));
+	//$buttons[] = Ht::submit("submit", "Save", array("class" => "bb"));
+        $buttons[] = Ht::submit("submit", "Salvar", array("class" => "bb"));
         if ($crow) {
-            $buttons[] = Ht::submit("cancel", "Cancel");
+            //$buttons[] = Ht::submit("cancel", "Cancel");
+	    $buttons[] = Ht::submit("cancel", "Cancelar");
             $buttons[] = "";
-            $buttons[] = Ht::submit("delete", "Delete comment");
+          //  $buttons[] = Ht::submit("delete", "Delete comment");
+	  $buttons[] = Ht::submit("delete", "Remover Comentário");
         } else
-            $buttons[] = "<button type='button' onclick='cancel_comment()'>Cancel</button>";
+	 // $buttons[] = "<button type='button' onclick='cancel_comment()'>Cancel</button>";	
+            $buttons[] = "<button type='button' onclick='cancel_comment()'>Cancelar</button>";
         $post = "";
 	if (!$Me->timeReview($prow, null))
-	    $post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Override&nbsp;deadlines");
+	   //  $post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Override&nbsp;deadlines");	
+	    $post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Ignorar&nbsp;avisos");
         echo Ht::actions($buttons, null, $post);
 
 	echo "</div></div></form>\n\n";
@@ -264,14 +284,16 @@ class CommentView {
 	    echo "<div class='floatright'>",
 		"<a href='", hoturl("paper", "p=$prow->paperId&amp;c=$crow->commentId#comment$crow->commentId") . "' class='xx'>",
 		$Conf->cacheableImage("edit.png", "[Edit]", null, "b"),
-		"&nbsp;<u>Edit</u></a></div>";
+		//"&nbsp;<u>Edit</u></a></div>";
+		"&nbsp;<u>Editar</u></a></div>";
 
 	echo "<h3";
 	if ($crow)
 	    echo " id='comment$crow->commentId'";
 	else
 	    echo " id='response'";
-	echo ">Response</h3>";
+//	echo ">Response</h3>";
+	echo ">Responder</h3>";	
 	$this->_commentIdentityTime($prow, $crow, true);
 
 	$this->table_tobody();
@@ -280,15 +302,18 @@ class CommentView {
 	    && isset($_SESSION["comment_msgs"][$crow->commentId]))
 	    echo $_SESSION["comment_msgs"][$crow->commentId];
         else if ($editMode && $crow && ($crow->commentType & COMMENTTYPE_DRAFT))
-            echo "<div class='xwarning'>This is a draft response. Reviewers won’t see it until you submit.</div>";
+           // echo "<div class='xwarning'>This is a draft response. Reviewers won’t see it until you submit.</div>";
+	   echo "<div class='xwarning'>Este é um rascunho de resposta. Revisores não irão ve-lo até que você o envie.</div>";
 
 	if (!$editMode) {
 	    echo "<div class='cmtg cmtg1'>";
 	    if ($Me->allowAdminister($prow)
                 && ($crow->commentType & COMMENTTYPE_DRAFT))
-		echo "<i>The <a href='", hoturl("comment", "c=$crow->commentId"), "'>authors’ response</a> is not yet ready for reviewers to view.</i>";
+//		echo "<i>The <a href='", hoturl("comment", "c=$crow->commentId"), "'>authors’ response</a> is not yet ready for reviewers to view.</i>";
+		echo "<i>Os(as) <a href='", hoturl("comment", "c=$crow->commentId"), "'>autores’ resposta</a> não está pronto para ser visto pelos revisores.</i>";
 	    else if (!$Me->canViewComment($prow, $crow, null))
-		echo "<i>The authors’ response is not yet ready for reviewers to view.</i>";
+		//echo "<i>The authors’ response is not yet ready for reviewers to view.</i>";
+		echo "<i>A resposta dos autores ainda não está pronta para ser vista pelos revisores</i>";
 	    else
 		echo htmlWrapText(htmlspecialchars($crow->comment));
 	    echo "</div>";
@@ -301,7 +326,8 @@ class CommentView {
             $Conf->message_html("responseinstructions", array("wordlimit" => $wordlimit)),
             "</div>\n";
         if (!$prow->has_author($Me))
-            echo "<div class='hint'>Although you aren’t a contact for this paper, as an administrator you can edit the authors’ response.</div>\n";
+	   // echo "<div class='hint'>Although you aren’t a contact for this paper, as an administrator you can edit the authors’ response.</div>\n";
+            echo "<div class='hint'>Apesar de não ser um contato deste artigo, como administrador você pode alterar a resposta dos autores’ response.</div>\n";
 
 	// From here on, edit mode.
 	// form body
@@ -313,13 +339,16 @@ class CommentView {
 
 	// actions
         $buttons = array();
-        $buttons[] = Ht::submit("submitresponse", "Submit", array("class" => "bb"));
+        //$buttons[] = Ht::submit("submitresponse", "Submit", array("class" => "bb"));
+	$buttons[] = Ht::submit("submitresponse", "Enviar", array("class" => "bb"));
         if ($Me->allowAdminister($prow) || !$crow
             || ($crow->commentType & COMMENTTYPE_DRAFT))
-            $buttons[] = Ht::submit("savedraft", "Save as draft");
+           // $buttons[] = Ht::submit("savedraft", "Save as draft");
+	 $buttons[] = Ht::submit("savedraft", "Salvar como rascunho");		
         if ($crow) {
             $buttons[] = "";
-            $buttons[] = Ht::submit("delete", "Delete response");
+	    // $buttons[] = Ht::submit("delete", "Delete response");
+            $buttons[] = Ht::submit("delete", "Apagar Resposta");
         }
         if ($wordlimit > 0) {
             $buttons[] = "";
@@ -333,7 +362,8 @@ class CommentView {
         }
         $post = "";
         if (!$Conf->timeAuthorRespond())
-            $post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Override&nbsp;deadlines");
+            //$post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Override&nbsp;deadlines");
+	    $post = Ht::checkbox("override") . "&nbsp;" . Ht::label("Ignorar&nbsp;avisos");
         echo Ht::actions($buttons, null, $post);
 
         $this->table_end();
@@ -354,8 +384,10 @@ class CommentView {
 	    $t .= "...";
 	$t .= "</a>";
 	if ($contact->canViewCommentIdentity($crow, $crow, false))
-	    $t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>comment by</span> " . Text::user_html($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
-	$t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>posted</span> " . $Conf->parseableTime($crow->timeModified, false);
+	   // $t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>comment by</span> " . Text::user_html($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
+	    $t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>comentado por</span> " . Text::user_html($crow->reviewFirstName, $crow->reviewLastName, $crow->reviewEmail);
+	//$t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>posted</span> " . $Conf->parseableTime($crow->timeModified, false);
+	$t .= " &nbsp;<span class='barsep'>|</span>&nbsp; <span class='hint'>postado</span> " . $Conf->parseableTime($crow->timeModified, false);
 	$t .= "</small><br /><a class='q'" . substr($a, 3)
 	    . htmlspecialchars($crow->shortComment);
 	if (strlen($crow->shortComment) < strlen($crow->comment))

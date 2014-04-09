@@ -111,11 +111,13 @@ function rf_update() {
     }
 
     if ($shortNameError)
-	$Conf->errorMsg("Each review field should have a name.  Please fix the highlighted fields and save again.");
+	//$Conf->errorMsg("Each review field should have a name.  Please fix the highlighted fields and save again.");
+	$Conf->errorMsg("Cada revisão deve ter um nome.  Por favor corriga os campos destacados e salve novamente.");
     if ($optionError)
-	$Conf->errorMsg("Review fields with options must have at least two choices, numbered sequentially from 1 (higher numbers are better) or lettered with consecutive uppercase letters (lower letters are better). Example: <pre>1. Low quality
-2. Medium quality
-3. High quality</pre>  Please fix the highlighted errors and save again.");
+	//$Conf->errorMsg("Review fields with options must have at least two choices, numbered sequentially from 1 (higher numbers are better) or lettered with consecutive uppercase letters (lower letters are better). Example: <pre>1. Low quality 2. Medium quality 3. High quality</pre>  Please fix the highlighted errors and save again.");
+	$Conf->errorMsg("Campos de revisão com opções devem ter ao menos duas escolhas, numeradas sequenciamente de 1(números grandes são melhores) ou letras consecutivas em maiúsculo(letras inicias são melhores). Exemplo: <pre>1. Baixa Qualidade
+2. Média Qualidade
+3. Alta Qualidade</pre>  Por favor corriga os erros destacados e salve novamente.");
     if (!$shortNameError && !$optionError) {
         $Conf->save_setting("review_form", 1, $nrfj);
         foreach ($nrfj as $fid => $fj)
@@ -128,9 +130,11 @@ function rf_update() {
             foreach ($review_form_setting_prefixes as $fx)
                 unset($_REQUEST["$fx$fid"]);
         }
-        $Conf->confirmMsg("Review form updated.");
+        //$Conf->confirmMsg("Review form updated.");
+	$Conf->confirmMsg("Formulário de Revisão Atualizado.");
         if (count($scoreModified))
-            $Conf->warnMsg("Your changes invalidated some existing review scores.  The invalid scores have been reset to “Unknown”.  The relevant fields were: " . join(", ", $scoreModified) . ".");
+           // $Conf->warnMsg("Your changes invalidated some existing review scores.  The invalid scores have been reset to “Unknown”.  The relevant fields were: " . join(", ", $scoreModified) . ".");
+	 $Conf->warnMsg("Suas alterações invalidaram algumas pontuações de revisão.  As pontuações foram redefinidas para "'Desconhecido'".  Os campos reelevantes eram: " . join(", ", $scoreModified) . ".");
     }
 
     $Conf->invalidateCaches(array("rf" => true));
@@ -158,21 +162,23 @@ function rf_show() {
     $Conf->footerHtml
         ("<div id='revfield_template' style='display:none'>"
          . "<table id='revfield_\$' class='setreviewform foldo errloc_\$' style='width:100%'>"
-         . "<tbody><tr class='errloc_shortName_\$'><td class='rxcaption nowrap'>Field name</td>"
+	//         . "<tbody><tr class='errloc_shortName_\$'><td class='rxcaption nowrap'>Field name</td>"
+         . "<tbody><tr class='errloc_shortName_\$'><td class='rxcaption nowrap'>Nome do Campo</td>"
          .   "<td colspan='3' class='entry'>" . Ht::entry("shortName_\$", "", array("size" => 50, "class" => "textlite", "style" => "font-weight:bold", "id" => "shortName_\$")) . "</td></tr>"
-         . "<tr><td class='rxcaption nowrap'>Form position</td>"
+	. "<tr><td class='rxcaption nowrap'>Posicionamento do Formulário</td>"
+         //. "<tr><td class='rxcaption nowrap'>Form position</td>"
          .   "<td class='entry'>" . Ht::select("order_\$", array(), array("class" => "reviewfield_order", "id" => "order_\$"))
-         .   "<span class='sep'></span><span class='fx'>Visibility &nbsp;"
-         .   Ht::select("authorView_\$", array("author" => "Authors &amp; reviewers", "pc" => "Reviewers only", "admin" => "Administrators only"), array("class" => "reviewfield_authorView", "id" => "authorView_\$")) . "</span>"
-         .   "<span class='fn'>" . Ht::button("Revert", array("class" => "revfield_revert", "id" => "revert2_\$")) . "</span>"
+         .   "<span class='sep'></span><span class='fx'>Visibilidade &nbsp;"
+         .   Ht::select("authorView_\$", array("author" => "Autores &amp; revisores", "pc" => "Somente revisores", "admin" => "Somente Administradores"), array("class" => "reviewfield_authorView", "id" => "authorView_\$")) . "</span>"
+         .   "<span class='fn'>" . Ht::button("Desfazer", array("class" => "revfield_revert", "id" => "revert2_\$")) . "</span>"
          . "</td></tr>"
-         . "<tr class='errloc_description_\$ fx'><td class='rxcaption textarea'>Description</td>"
+         . "<tr class='errloc_description_\$ fx'><td class='rxcaption textarea'>Descrição</td>"
          .   "<td class='entry'>" . Ht::textarea("description_\$", null, array("class" => "reviewtext", "rows" => 6, "id" => "description_\$")) . "</td></tr>"
-         . "<tr class='errloc_options_\$ fx reviewrow_options'><td class='rxcaption textarea'>Options</td>"
+         . "<tr class='errloc_options_\$ fx reviewrow_options'><td class='rxcaption textarea'>Opções</td>"
          .   "<td class='entry'>" . Ht::textarea("options_\$", null, array("class" => "reviewtext", "rows" => 6, "id" => "options_\$")) . "</td></tr>"
          . "<tr class='fx'><td class='rxcaption'></td>"
          .   "<td class='entry'>" . Ht::select("samples_\$", array(), array("class" => "revfield_samples", "id" => "samples_\$"))
-         .   "<span class='sep'></span>" . Ht::button("Revert", array("class" => "revfield_revert", "id" => "revert_\$", "style" => "display:none")) . "</td></tr>"
+         .   "<span class='sep'></span>" . Ht::button("Desfazer", array("class" => "revfield_revert", "id" => "revert_\$", "style" => "display:none")) . "</td></tr>"
          . "</tbody></table></div>");
 
     $req = array();
@@ -191,19 +197,19 @@ function rf_show() {
                         . json_encode($req) . ")");
 
     $captions = array
-	("description" => "Enter an HTML description for the review field here,
-	including any guidance you’d like to provide to reviewers and authors.
-	(Note that complex HTML will not appear on offline review forms.)",
-	 "options" => "Enter one option per line, numbered starting from 1 (higher numbers are better).  For example:
-	<pre class='entryexample'>1. Reject
-2. Weak reject
-3. Weak accept
-4. Accept</pre> Or use consecutive capital letters (lower letters are better).");
-
+	//("description" => "Enter an HTML description for the review field here,	including any guidance you’d like to provide to reviewers and authors.	(Note that complex HTML will not appear on offline review forms.)",	 "options" => "Enter one option per line, numbered starting from 1 (higher numbers are better).  For example:	<pre class='entryexample'>1. Reject 2. Weak reject 3. Weak accept 4. Accept</pre> Or use consecutive capital letters (lower letters are better).");
+("description" => "Insira aqui uma descrição HTML para o campo de revisão,
+	inclua qualquer ajuda que queira prover aos revisores e autores.
+	(notações HTML complexas não apareceram nos formulários de revisão offline.)",
+	 "options" => "Insira uma opção por linha, numeradas iniciando por 1 (números grandes são melhores).  Por exemplo:
+	<pre class='entryexample'>1. Rejeitado
+2. Rejeição Fraca
+3. Aceitação Fraca
+4. Aceito</pre> Ou use letras maísculas (letras iniciais são melhores).");
     echo "<div id=\"reviewform_container\">",
         Ht::hidden("has_reviewform", 1),
         "</div>";
-    echo Ht::button("Add score field", array("onclick" => "review_form_settings.add(1)")),
+    echo Ht::button("Adicionar campo de classificação", array("onclick" => "review_form_settings.add(1)")),
         "<span class='sep'></span>",
-        Ht::button("Add text field", array("onclick" => "review_form_settings.add(0)"));
+        Ht::button("Adicionar campo de texto", array("onclick" => "review_form_settings.add(0)"));
 }

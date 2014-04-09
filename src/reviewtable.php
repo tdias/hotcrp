@@ -8,7 +8,8 @@ function _retract_review_request_form($prow, $rr) {
         . Ht::form(hoturl_post("assign", "p=$prow->paperId"))
         . '<div class="inform">'
         . Ht::hidden("retract", $rr->email)
-        . Ht::submit("Retract", array("title" => "Retract this review request", "style" => "font-size:smaller"))
+	// . Ht::submit("Retract", array("title" => "Retract this review request", "style" => "font-size:smaller"))
+        . Ht::submit("Retract", array("title" => "Ocultar esta requisição de revisão", "style" => "font-size:smaller"))
         . '</div></form></small>';
 }
 
@@ -155,7 +156,8 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode, $proposals = null) {
             $t = "";
 
             // review ID
-            $t = "<td>Proposed review</td>";
+	    //  $t = "<td>Proposed review</td>";
+            $t = "<td>Revisão Proposta</td>";
 
             // reviewer identity
             $t .= "<td>" . Text::user_html($rr);
@@ -166,9 +168,9 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode, $proposals = null) {
                     . Ht::hidden("name", $rr->name)
                     . Ht::hidden("email", $rr->email)
                     . Ht::hidden("reason", $rr->reason)
-                    . Ht::submit("add", "Approve", array("style" => "font-size:smaller"))
+                    . Ht::submit("add", "Aprovar", array("style" => "font-size:smaller"))
                     . ' '
-                    . Ht::submit("deny", "Deny", array("style" => "font-size:smaller"))
+                    . Ht::submit("deny", "Negar", array("style" => "font-size:smaller"))
                     . '</div></form>';
             else if ($rr->reqEmail == $Me->email)
                 $t .= " " . _retract_review_request_form($prow, $rr);
@@ -179,9 +181,9 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode, $proposals = null) {
             if ($conflictType <= 0 || $admin) {
                 $reqt = '<td class="empty"></td>'
                     . '<td style="font-size:smaller" colspan="2">—'
-                    . 'requested by ';
+                    . 'requisitado por ';
                 if ($rr->reqEmail == $Me->email)
-                    $reqt .= 'you';
+                    $reqt .= 'você';
                 else
                     $reqt .= Text::user_html($rr->reqFirstName, $rr->reqLastName, $rr->reqEmail);
                 $reqt .= '</td>';
@@ -204,10 +206,12 @@ function reviewTable($prow, $rrows, $crows, $rrow, $mode, $proposals = null) {
 	&& $Me->canViewReview($prow, null, null)) {
 	$qualifier = (count($subrev) + count($nonsubrev) ? " additional" : "");
 	if ($notShown == 1)
-	    $t = "1$qualifier review remains outstanding.";
+	    //$t = "1$qualifier review remains outstanding.";
+	    $t = "1$qualifier revisão restante marcada .";
 	else
-	    $t = "$notShown$qualifier reviews remain outstanding.";
-	$t .= "<br /><span class='hint'>You will be emailed if$qualifier reviews are submitted or existing reviews are changed.</span>";
+	    $t = "$notShown$qualifier revisão restante marcada.";
+	//$t .= "<br /><span class='hint'>You will be emailed if$qualifier reviews are submitted or existing reviews are changed.</span>";
+	$t .= "<br /><span class='hint'>Você receberá um e-mail se $qualifier revisões forem enviadas ou caso revisões existentes sejam alteradas.</span>";
 	$notetxt = "<div class='revnotes'>" . $t . "</div>";
     }
 
@@ -262,11 +266,12 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
 		    $n .= "anonymous";
 		if ($cr->commentType & COMMENTTYPE_RESPONSE)
                     $n .= ($cr->commentType & COMMENTTYPE_DRAFT
-                           ? " (Response in progress)" : " (Response)");
+			//    ? " (Response in progress)" : " (Response)");
+                           ? " (Resposta em andamento)" : " (Response)");
 		$cnames[] = $n . "</a>";
 	    }
 	if (count($cids) > 0)
-	    $pret = "<div class='revnotes'><a href='#comment$cids[0]'><strong>" . plural(count($cids), "Comment") . "</strong></a> by " . join(", ", $cnames) . "</div>";
+	    $pret = "<div class='revnotes'><a href='#comment$cids[0]'><strong>" . plural(count($cids), "Comentário") . "</strong></a> by " . join(", ", $cnames) . "</div>";
     }
 
     $t = "";
@@ -277,7 +282,7 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
 	&& ($mode != "r" || $rrow)) {
 	$allreviewslink = true;
 	$x = "<a href='" . hoturl("review", "p=$prow->paperId&amp;m=r") . "' class='xx'>"
-	    . $Conf->cacheableImage("view24.png", "[All reviews]", null, "dlimg") . "&nbsp;<u>All reviews</u></a>";
+	    . $Conf->cacheableImage("view24.png", "[All reviews]", null, "dlimg") . "&nbsp;<u>Todas Revisões</u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     }
 
@@ -285,7 +290,7 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
     if ($mode != "pe" && $prow->conflictType >= CONFLICT_AUTHOR
 	&& !$Me->canAdminister($prow)) {
 	$x = "<a href='" . hoturl("paper", "p=$prow->paperId&amp;m=pe") . "' class='xx'>"
-	    . $Conf->cacheableImage("edit24.png", "[Edit paper]", null, "dlimg") . "&nbsp;<u><strong>Edit paper</strong></u></a>";
+	    . $Conf->cacheableImage("edit24.png", "[Edit paper]", null, "dlimg") . "&nbsp;<u><strong>Editar Artigo</strong></u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     }
 
@@ -296,13 +301,13 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
 	$myrlink = unparseReviewOrdinal($myrr);
 	$a = "<a href='" . hoturl("review", "r=$myrlink") . "' class='xx'>";
 	if ($Me->canReview($prow, $myrr))
-	    $x = $a . $Conf->cacheableImage("review24.png", "[Edit review]", null, "dlimg") . "&nbsp;<u><b>Edit your review</b></u></a>";
+	    $x = $a . $Conf->cacheableImage("review24.png", "[Edit review]", null, "dlimg") . "&nbsp;<u><b>Edite suas revisões</b></u></a>";
 	else
-	    $x = $a . $Conf->cacheableImage("review24.png", "[Your review]", null, "dlimg") . "&nbsp;<u><b>Your review</b></u></a>";
+	    $x = $a . $Conf->cacheableImage("review24.png", "[Your review]", null, "dlimg") . "&nbsp;<u><b>Suas revisões</b></u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     } else if (!$myrr && !$rrow && $Me->canReview($prow, null)) {
 	$x = "<a href='" . hoturl("review", "p=$prow->paperId&amp;m=re") . "' class='xx'>"
-	    . $Conf->cacheableImage("review24.png", "[Write review]", null, "dlimg") . "&nbsp;<u><b>Write review</b></u></a>";
+	    . $Conf->cacheableImage("review24.png", "[Write review]", null, "dlimg") . "&nbsp;<u><b>Crie revisões</b></u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     }
 
@@ -310,7 +315,7 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
     if ($mode != "assign"
 	&& ($prow->reviewType >= REVIEW_SECONDARY || $admin)) {
 	$x = "<a href='" . hoturl("assign", "p=$prow->paperId") . "' class='xx'>"
-	    . $Conf->cacheableImage("assign24.png", "[Assign]", null, "dlimg") . "&nbsp;<u>" . ($admin ? "Assign reviews" : "External reviews") . "</u></a>";
+	    . $Conf->cacheableImage("assign24.png", "[Assign]", null, "dlimg") . "&nbsp;<u>" . ($admin ? "Atribuir revisões" : "Revisões Externas") . "</u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     }
 
@@ -318,7 +323,7 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
     if (!$allreviewslink && $mode != "assign" && $mode != "contact"
 	&& $Me->canComment($prow, null)) {
 	$x = "<a href=\"" . selfHref(array("c" => "new")) . "#commentnew\" onclick='return open_new_comment(1)' class='xx'>"
-	    . $Conf->cacheableImage("comment24.png", "[Add comment]", null, "dlimg") . "&nbsp;<u>Add comment</u></a>";
+	    . $Conf->cacheableImage("comment24.png", "[Add comment]", null, "dlimg") . "&nbsp;<u>Adicionar Comentário</u></a>";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     }
 
@@ -345,10 +350,11 @@ function reviewLinks($prow, $rrows, $crows, $rrow, $mode, &$allreviewslink) {
     // override conflict
     if ($allow_admin && !$admin) {
 	$x = "<a href=\"" . selfHref(array("forceShow" => 1)) . "\" class='xx'>"
-	    . $Conf->cacheableImage("override24.png", "[Override]", null, "dlimg") . "&nbsp;<u>Override conflict</u></a> to show reviewers and allow editing";
+	    . $Conf->cacheableImage("override24.png", "[Override]", null, "dlimg") . "&nbsp;<u>Ignorar conflitos</u></a> para exibir revisões e permitir edição";
 	$t .= ($t == "" ? "" : $xsep) . $x;
     } else if ($Me->privChair && !$allow_admin) {
-        $x = "You can’t override your conflict because this paper has an administrator.";
+	// $x = "You can’t override your conflict because this paper has an administrator.";
+        $x = "Você não pode ignorar estes avisos porque este artigo tem um administrador";
         $t .= ($t == "" ? "" : $xsep) . $x;
     }
 

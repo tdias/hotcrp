@@ -89,13 +89,13 @@ class PaperRank {
 	if (!$this->info_printed) {
 	    if ($this->header_title)
 		$Conf->header($this->header_title, $this->header_id, actionBar());
-	    echo "<div id='foldrankcalculation' class='foldc'><div class='fn info'>Calculating ranks; this can take a while.  <span id='rankpercentage'>$pct</span>% of ranks assigned<span id='rankdeletedpref'></span>.</div></div>";
+	    echo "<div id='foldrankcalculation' class='foldc'><div class='fn info'>Calculando classificações; isto poderá levar algum tempo.  <span id='rankpercentage'>$pct</span>% de classificações atribuídas<span id='rankdeletedpref'></span>.</div></div>";
 	    $this->info_printed = true;
 	}
 	if ($n < count($this->papersel)) {
 	    echo "<script type='text/javascript'>document.getElementById('rankpercentage').innerHTML = '$pct'";
 	    if ($this->deletedpref > 0)
-		echo ";document.getElementById('rankdeletedpref').innerHTML = ', ", round(($this->totalpref - $this->deletedpref) / $this->totalpref * 100), "% of preferences remain'";
+		echo ";document.getElementById('rankdeletedpref').innerHTML = ', ", round(($this->totalpref - $this->deletedpref) / $this->totalpref * 100), "% das preferências restantes'";
 	    echo "</script>\n";
 	} else
 	    echo "<script type='text/javascript'>document.getElementById('foldrankcalculation').className = 'foldo'</script>\n";
@@ -725,7 +725,7 @@ class PaperRank {
 	    $values[] = "($p, '$sqltag', $rank)";
 	$result = $Conf->qe("insert into PaperTag (paperId, tag, tagIndex) values " . join(", ", $values), "while saving ranks");
 	if ($result) {
-	    $Conf->confirmMsg("Ranks saved.");
+	    $Conf->confirmMsg("Classificações salvas.");
 	    $Conf->log("Tag calculate rank: " . $this->dest_tag, $Me, array_keys($this->rank));
 	}
     }

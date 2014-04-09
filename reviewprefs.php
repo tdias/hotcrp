@@ -42,9 +42,11 @@ function savePreferences($reviewer) {
 	}
 
     if ($error)
-	$Conf->errorMsg("Preferences must be small positive or negative integers.");
+	//$Conf->errorMsg("Preferences must be small positive or negative integers.");
+	$Conf->errorMsg("Preferências devem ser números pequenos positivos ou negativos.");
     if ($pmax == 0 && !$error)
-	$Conf->errorMsg("No reviewer preferences to update.");
+	//$Conf->errorMsg("No reviewer preferences to update.");
+	$Conf->errorMsg("Nenhuma preferência de revisão para ser atualizada.");
     if ($pmax == 0)
 	return;
 
@@ -71,7 +73,8 @@ function savePreferences($reviewer) {
     PaperActions::save_review_preferences($q);
 
     if ($OK) {
-	$Conf->confirmMsg("Preferences saved.");
+	//$Conf->confirmMsg("Preferences saved.");
+	$Conf->confirmMsg("Preferências salvas.");
 	redirectSelf();
     }
 }
@@ -83,7 +86,8 @@ if (isset($_REQUEST["update"]) && check_post())
 if (isset($_REQUEST["setpaprevpref"]) || isset($_REQUEST["get"])) {
     PaperSearch::parsePapersel();
     if (!isset($papersel))
-	$Conf->errorMsg("No papers selected.");
+	//$Conf->errorMsg("No papers selected.");
+	$Conf->errorMsg("Nenhum artigo selecionado.");
 }
 PaperSearch::clearPaperselRequest();
 
@@ -91,7 +95,9 @@ PaperSearch::clearPaperselRequest();
 // Set multiple paper preferences
 if (isset($_REQUEST["setpaprevpref"]) && isset($papersel) && check_post()) {
     if (!parse_preference($_REQUEST["paprevpref"]))
-	$Conf->errorMsg("Preferences must be small positive or negative integers.");
+	//$Conf->errorMsg("Preferences must be small positive or negative integers.");
+	$Conf->errorMsg("As preferências devem ser números inteiros positivos ou negativos.");
+ 
     else {
 	foreach ($papersel as $p)
 	    $_REQUEST["revpref$p"] = $_REQUEST["paprevpref"];
@@ -104,7 +110,8 @@ if (isset($_REQUEST["setpaprevpref"]) && isset($papersel) && check_post()) {
 function parseUploadedPreferences($filename, $printFilename, $reviewer) {
     global $Conf;
     if (($text = file_get_contents($filename)) === false)
-	return $Conf->errorMsg("Cannot read uploaded file.");
+	//return $Conf->errorMsg("Cannot read uploaded file.");
+	return $Conf->errorMsg("Não foi possível ler o arquivo enviado.");
     $printFilename = htmlspecialchars($printFilename);
     $text = cleannl($text);
     $lineno = 0;
@@ -121,19 +128,22 @@ function parseUploadedPreferences($filename, $printFilename, $reviewer) {
 		$_REQUEST["revpref$m[1]"] = $m[2];
 		$successes++;
 	    } else if (strcasecmp($m[2], "conflict") != 0)
-		$errors[] = "<span class='lineno'>$printFilename:$lineno:</span> bad review preference, should be integer";
+		//$errors[] = "<span class='lineno'>$printFilename:$lineno:</span> bad review preference, should be integer";
+		$errors[] = "<span class='lineno'>$printFilename:$lineno:</span> preferencia de revisão incorreta, deve ser um inteiro";
 	} else if (preg_match('/^\s*paper(?:id)?\s*[\t,]\s*preference/i', $line))
             /* header; no error */;
         else if (count($errors) < 20)
-	    $errors[] = "<span class='lineno'>$printFilename:$lineno:</span> syntax error, expected <code>paper,preference[,title]</code>";
+	//$errors[] = "<span class='lineno'>$printFilename:$lineno:</span> syntax error, expected <code>paper,preference[,title]</code>";
+	    $errors[] = "<span class='lineno'>$printFilename:$lineno:</span> erro de síntaxe, era esperado um <code>artigo, preferencia[,title]</code>";
 	else {
-	    $errors[] = "<span class='lineno'>$printFilename:$lineno:</span> too many syntax errors, giving up";
+	    $errors[] = "<span class='lineno'>$printFilename:$lineno:</span> muitos erros de síntaxe, abortando";
 	    break;
 	}
     }
 
     if (count($errors) > 0)
-	$Conf->errorMsg("There were some errors while parsing the uploaded preferences file. <div class='parseerr'><p>" . join("</p>\n<p>", $errors) . "</p></div>");
+	//$Conf->errorMsg("There were some errors while parsing the uploaded preferences file. <div class='parseerr'><p>" . join("</p>\n<p>", $errors) . "</p></div>");
+	$Conf->errorMsg("Ocorreram alguns erros enquanto o arquivo de preferências enviado era lido. <div class='parseerr'><p>" . join("</p>\n<p>", $errors) . "</p></div>");
     if ($successes > 0)
 	savePreferences($reviewer);
 }
@@ -141,7 +151,8 @@ if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["uploadedFile"])
     && check_post())
     parseUploadedPreferences($_FILES["uploadedFile"]["tmp_name"], $_FILES["uploadedFile"]["name"], $reviewer);
 else if (isset($_REQUEST["upload"]))
-    $Conf->errorMsg("Select a preferences file to upload.");
+    //$Conf->errorMsg("Select a preferences file to upload.");
+	 $Conf->errorMsg("Selecione um arquivo de preferencias para enviar");
 
 
 // Search actions
@@ -163,7 +174,7 @@ $pldisplay = displayOptionsSet("pfdisplay");
 
 
 // Header and body
-$Conf->header("Review Preferences", "revpref", actionBar());
+$Conf->header("Preferências de Revisão", "revpref", actionBar());
 
 
 $rf = reviewForm();
@@ -238,7 +249,7 @@ if (!$Conf->subBlindNever() && $Me->privChair) {
 		      array("disabled" => !$pl->any->anonau,
 			    "onchange" => (!$Conf->subBlindAlways() ? "" : "plinfo('au',this);") . "plinfo('anonau',this)",
 			    "id" => (!$Conf->subBlindAlways() ? "showanonau" : "showau"))),
-	"&nbsp;", Ht::label(!$Conf->subBlindAlways() ? "Anonymous authors" : "Authors"),
+	"&nbsp;", Ht::label(!$Conf->subBlindAlways() ? "Autor anônimo" : "Autores"),
         (!$Conf->subBlindAlways() ? "</span>" : "");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='anonauloadformresult'></div>";
@@ -247,7 +258,7 @@ if (!$Conf->subBlindAlways() || $Me->privChair) {
     echo "<span class='fx10'>", $sep,
 	Ht::checkbox("showaufull", 1, strpos($pldisplay, " aufull ") !== false,
 		      array("onchange" => "plinfo('aufull',this)")),
-	"&nbsp;", Ht::label("Full author info"), "</span>";
+	"&nbsp;", Ht::label("Informação inteira do autor"), "</span>";
     $Conf->footerScript("plinfo.extra=function(type,dofold){var x=(type=='au'?!dofold:(\$\$('showau')||{}).checked);fold('redisplayform',!x,10)};");
     $loadforms .= "<div id='aufullloadformresult'></div>";
 }
@@ -255,7 +266,7 @@ if ($pl->any->abstract) {
     echo $sep,
 	Ht::checkbox("showabstract", 1, strpos($pldisplay, " abstract ") !== false,
 		      array("onchange" => "plinfo('abstract',this)")),
-	"&nbsp;", Ht::label("Abstracts");
+	"&nbsp;", Ht::label("Resumos");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='abstractloadformresult'></div>";
 }
@@ -263,7 +274,7 @@ if ($pl->any->topics) {
     echo $sep,
 	Ht::checkbox("showtopics", 1, strpos($pldisplay, " topics ") !== false,
 		      array("onchange" => "plinfo('topics',this)")),
-	"&nbsp;", Ht::label("Topics");
+	"&nbsp;", Ht::label("Tópicos");
     $sep = "<span class='sep'></span>\n";
     $loadforms .= "<div id='topicsloadformresult'></div>";
 }

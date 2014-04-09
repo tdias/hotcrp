@@ -20,7 +20,7 @@ class UserActions {
             if ($sendtype && $Acct->password != "" && !$Acct->disabled)
                 $Acct->sendAccountInfo($sendtype, false);
             else if ($sendtype)
-                $j->warnings[] = "Not sending mail to disabled account " . htmlspecialchars($Acct->email) . ".";
+                $j->warnings[] = "E-mails não serão enviados para contas desativadas " . htmlspecialchars($Acct->email) . ".";
         }
         return $j;
     }
@@ -31,7 +31,7 @@ class UserActions {
 	if ($result && edb_nrows_affected($result))
             return (object) array("ok" => true);
 	else if ($result)
-            return (object) array("ok" => true, "warnings" => array("Those accounts were already disabled."));
+            return (object) array("ok" => true, "warnings" => array("Estas contas já foram desativadas."));
         else
             return (object) array("error" => true);
     }
@@ -43,7 +43,7 @@ class UserActions {
 	if ($result && edb_nrows_affected($result))
             return self::modify_password_mail("password='' and contactId!=" . $contact->cid, true, "create", $ids);
         else if ($result)
-            return (object) array("ok" => true, "warnings" => array("Those accounts were already enabled."));
+            return (object) array("ok" => true, "warnings" => array("Estas contas já foram ativadas."));
         else
             return (object) array("error" => true);
     }
@@ -51,13 +51,13 @@ class UserActions {
     static function reset_password($ids, $contact) {
         global $Conf;
         return self::modify_password_mail("contactId!=" . $contact->cid, true, false, $ids);
-	$Conf->confirmMsg("Passwords reset. To send mail with the new passwords, <a href='" . hoturl_post("users", "modifygo=1&amp;modifytype=sendaccount&amp;pap[]=" . (is_array($ids) ? join("+", $ids) : $ids)) . "'>click here</a>.");
+	$Conf->confirmMsg("Redefinição de senha. Para enviar um email com uma nova senha, <a href='" . hoturl_post("users", "modifygo=1&amp;modifytype=sendaccount&amp;pap[]=" . (is_array($ids) ? join("+", $ids) : $ids)) . "'>clique aqui</a>.");
     }
 
     static function send_account_info($ids, $contact) {
         global $Conf;
         return self::modify_password_mail("true", false, "send", $ids);
-	$Conf->confirmMsg("Account information sent.");
+	$Conf->confirmMsg("Informações de conta enviadas.");
     }
 
 }

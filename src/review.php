@@ -12,10 +12,12 @@ global $scoreHelps;
 $scoreHelps = array();
 
 global $ratingTypes;
-$ratingTypes = array("n" => "average", 1 => "very helpful",
-		     0 => "too short", -1 => "too vague",
-		     -4 => "too narrow",
-		     -2 => "not constructive", -3 => "not correct");
+//$ratingTypes = array("n" => "average", 1 => "very helpful",		     0 => "too short", -1 => "too vague",		     -4 => "too narrow",		     -2 => "not constructive", -3 => "not correct");
+
+$ratingTypes = array("n" => "média", 1 => "muito útil",
+		     0 => "muito pequeno", -1 => "muito vago",
+		     -4 => "muito restrito",
+		     -2 => "não construtivo", -3 => "incorreto");
 
 class ReviewField {
     public $id;
@@ -425,11 +427,13 @@ class ReviewForm {
 	    $n = $f->name_html;
 	    $c = "<span class='revfn'>" . $n . "</span>";
 	    if ($f->view_score < VIEWSCORE_REVIEWERONLY)
-		$c .= "<div class='revevis'>(secret)</div>";
+		//$c .= "<div class='revevis'>(secret)</div>";
+		$c .= "<div class='revevis'>(secreto)</div>";
 	    else if ($f->view_score < VIEWSCORE_PC)
 		$c .= "<div class='revevis'>(shown only to chairs)</div>";
 	    else if ($f->view_score < VIEWSCORE_AUTHOR)
-		$c .= "<div class='revevis'>(hidden from authors)</div>";
+		//$c .= "<div class='revevis'>(hidden from authors)</div>";
+		$c .= "<div class='revevis'>(oculto pelos autores)</div>";
 
 	    $x .= "<div class='revt";
 	    if (isset($ReviewFormError[$field]))
@@ -441,7 +445,8 @@ class ReviewForm {
 	    if ($f->has_options) {
 		$x .= "<select name='$field' onchange='hiliter(this)'>\n";
 		if (!$f->parse_value($fval, true))
-		    $x .= "    <option value='0' selected='selected'>(Your choice here)</option>\n";
+		   //  $x .= "    <option value='0' selected='selected'>(Your choice here)</option>\n";
+		    $x .= "    <option value='0' selected='selected'>(Faça uma escolha)</option>\n";
 		foreach ($f->options as $num => $what) {
 		    $x .= "    <option value='$num'";
 		    if ($num == $fval)
@@ -498,16 +503,19 @@ class ReviewForm {
 		$nokfields++;
 	}
 	if (isset($missing) && $tf)
-	    self::tfError($tf, false, commajoin($missing) . " " . pluralx($missing, "field") . " missing from form.  Preserving any existing values.");
+	   //self::tfError($tf, false, commajoin($missing) . " " . pluralx($missing, "field") . " missing from form.  Preserving any existing values.");
+	    self::tfError($tf, false, commajoin($missing) . " " . pluralx($missing, "field") . " faltando no formulário. Mantendo qualquer valor existe.");
 	if ($rrow && defval($rrow, "reviewEditVersion", 0) > defval($req, "version", 0)
 	    && $nokfields > 0 && $tf && isset($tf["text"])) {
-	    self::tfError($tf, true, "This review has been edited online since you downloaded this offline form, so for safety I am not replacing the online version.  If you want to override your online edits, add a line &ldquo;<code>==+==&nbsp;Version&nbsp;" . $rrow->reviewEditVersion . "</code>&rdquo; to your offline review form for paper #" . $req["paperId"] . " and upload the form again.");
+	//self::tfError($tf, true, "This review has been edited online since you downloaded this offline form, so for safety I am not replacing the online version.  If you want to override your online edits, add a line &ldquo;<code>==+==&nbsp;Version&nbsp;" . $rrow->reviewEditVersion . "</code>&rdquo; to your offline review form for paper #" . $req["paperId"] . " and upload the form again.");
+	    self::tfError($tf, true, "Esta revisão foi editada online desde que você este formulário offline, então por segurança não irei substituir a versão online.  Se você deseja substituir suas edições online, adicione uma linha&ldquo;<code>==+==&nbsp;Version&nbsp;" . $rrow->reviewEditVersion . "</code>&rdquo; ao seu formulário de revisão online para este artigo #" . $req["paperId"] . " e envie o formulário novamente.");
 	    return 0;
 	}
 	if (isset($req["reviewerEmail"]) && $rrow
 	    && $rrow->email != $req["reviewerEmail"]
 	    && (!isset($req["reviewerName"]) || $req["reviewerName"] != trim("$rrow->firstName $rrow->lastName"))) {
-	    self::tfError($tf, true, "This review form claims to be written by " . htmlspecialchars($req["reviewerEmail"]) . " rather than the review&rsquo;s owner, " . Text::user_html($rrow) . ".  If you want to upload it anyway, remove the &ldquo;<code>==+==&nbsp;Reviewer</code>&rdquo; line from the form and try again.", "reviewerEmail");
+	   // self::tfError($tf, true, "This review form claims to be written by " . htmlspecialchars($req["reviewerEmail"]) . " rather than the review&rsquo;s owner, " . Text::user_html($rrow) . ".  If you want to upload it anyway, remove the &ldquo;<code>==+==&nbsp;Reviewer</code>&rdquo; line from the form and try again.", "reviewerEmail");
+	  self::tfError($tf, true, "This review form claims to be written by " . htmlspecialchars($req["reviewerEmail"]) . " rather than the review&rsquo;s owner, " . Text::user_html($rrow) . ".  If you want to upload it anyway, remove the &ldquo;<code>==+==&nbsp;Reviewer</code>&rdquo; line from the form and try again.", "reviewerEmail");
 	    return 0;
 	}
 	if (isset($outofrange)) {

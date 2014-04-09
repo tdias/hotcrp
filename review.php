@@ -38,9 +38,11 @@ else if (defval($_REQUEST, "mode") == "view")
 function confHeader() {
     global $prow, $Conf;
     if ($prow)
-	$title = "Paper #$prow->paperId";
+	//$title = "Paper #$prow->paperId";
+         $title = "Artigo #$prow->paperId";
     else
-	$title = "Paper Reviews";
+	//$title = "Paper Reviews";
+	$title = "Revisão de Artigos";
     $Conf->header($title, "review", actionBar("r", $prow), false);
 }
 
@@ -61,9 +63,9 @@ function loadRows() {
     $paperTable->resolveReview();
 
     if ($paperTable->editrrow && $paperTable->editrrow->contactId == $Me->contactId)
-	$editRrowLogname = "Review " . $paperTable->editrrow->reviewId;
+	$editRrowLogname = "Revisão " . $paperTable->editrrow->reviewId;
     else if ($paperTable->editrrow)
-	$editRrowLogname = "Review " . $paperTable->editrrow->reviewId . " by " . $paperTable->editrrow->email;
+	$editRrowLogname = "Revisão " . $paperTable->editrrow->reviewId . " por " . $paperTable->editrrow->email;
     if (isset($Error["paperId"]) && $Error["paperId"] != $prow->paperId)
 	$Error = array();
 }
@@ -73,7 +75,8 @@ loadRows();
 
 // general error messages
 if (isset($_REQUEST["post"]) && $_REQUEST["post"] && !count($_POST))
-    $Conf->errorMsg("It looks like you tried to upload a gigantic file, larger than I can accept.  The file was ignored.");
+    $Conf->errorMsg("O arquivo enviado excedeu o tamanho máximo aceito. O arquivo foi ignorado!.");	
+    //$Conf->errorMsg("It looks like you tried to upload a gigantic file, larger than I can accept.  The file was ignored.");
 else if (isset($_REQUEST["post"]) && isset($_REQUEST["default"])) {
     if (fileUploaded($_FILES["uploadedFile"]))
 	$_REQUEST["uploadForm"] = 1;
@@ -97,31 +100,37 @@ if (isset($_REQUEST["uploadForm"])
     if (!($req = $rf->parseTextForm($tf)))
 	/* error already reported */;
     else if (isset($req['paperId']) && $req['paperId'] != $prow->paperId)
-	$rf->tfError($tf, true, "This review form is for paper #" . $req['paperId'] . ", not paper #$prow->paperId; did you mean to upload it here?  I have ignored the form.<br /><a class='button_small' href='" . hoturl("review", "p=" . $req['paperId']) . "'>Review paper #" . $req['paperId'] . "</a> <a class='button_small' href='" . hoturl("offline") . "'>General review upload site</a>");
+	//$rf->tfError($tf, true, "This review form is for paper #" . $req['paperId'] . ", not paper #$prow->paperId; did you mean to upload it here?  I have ignored the
+//ignored the form.<br /><a class='button_small' href='" . hoturl("review", "p=" . $req['paperId']) . "'>Review paper #" . $req['paperId'] . "</a> <a class='button_small'
+//class='button_small' href='" . hoturl("offline") . "'>General review upload site</a>");
+	$rf->tfError($tf, true, "Esta é uma visualização do artigo #" . $req['paperId'] . ", not paper #$prow->paperId; está certo que deseja enviar o arquivo aqui ?  O formulário foi ignorado.<br /><a class='button_small' href='" . hoturl("review", "p=" . $req['paperId']) . "'>Revisar Artigo #" . $req['paperId'] . "</a> <a class='button_small' href='" . hoturl("offline") . "'>Página de Revisão Geral de Artigos</a>");
     else if (!$Me->canSubmitReview($prow, $paperTable->editrrow, $whyNot))
 	$rf->tfError($tf, true, whyNotText($whyNot, "review"));
     else {
 	$req['paperId'] = $prow->paperId;
 	if ($rf->checkRequestFields($req, $paperTable->editrrow, $tf)) {
 	    if ($rf->saveRequest($req, $paperTable->editrrow, $prow, $Me))
-		$tf['confirm'][] = "Uploaded review for paper #$prow->paperId.";
+		//$tf['confirm'][] = "Uploaded review for paper #$prow->paperId.";
+		$tf['confirm'][] = "Revisão enviada para o Artigo #$prow->paperId.";
 	}
     }
 
     if (count($tf['err']) == 0 && $rf->parseTextForm($tf))
-	$rf->tfError($tf, false, "Only the first review form in the file was parsed.  <a href='" . hoturl("offline") . "'>Upload multiple-review files here.</a>");
+	//$rf->tfError($tf, false, "Only the first review form in the file was parsed.  <a href='" . hoturl("offline") . "'>Upload multiple-review files here.</a>");
+	$rf->tfError($tf, false, "Somente a primeiro formulário de revisão foi analisado.  <a href='" . hoturl("offline") . "'>Envie múltiplos arquivos de revisão aqui.</a>");
 
     $rf->textFormMessages($tf);
     loadRows();
 } else if (isset($_REQUEST["uploadForm"]))
-    $Conf->errorMsg("Select a review form to upload.");
-
+    //$Conf->errorMsg("Select a review form to upload.");
+    $Conf->errorMsg("Selecione um formulário de revisão para enviar.");	
 
 // check review submit requirements
 if (isset($_REQUEST["unsubmit"]) && $paperTable->editrrow
     && $paperTable->editrrow->reviewSubmitted && $Me->canAdminister($prow)
     && check_post()) {
-    $while = "while unsubmitting review";
+    //$while = "while unsubmitting review";
+    $while = "while unsubmitting review";	
     $Conf->qe("lock tables PaperReview write", $while);
     $needsSubmit = 1;
     if ($paperTable->editrrow->reviewType == REVIEW_SECONDARY) {
@@ -135,7 +144,8 @@ if (isset($_REQUEST["unsubmit"]) && $paperTable->editrrow
     $Conf->qe("unlock tables", $while);
     if ($result) {
 	$Conf->log("$editRrowLogname unsubmitted", $Me, $prow->paperId);
-	$Conf->confirmMsg("Unsubmitted review.");
+	$Conf->confirmMsg("Revisão não submetida.");
+	//$Conf->confirmMsg("Unsubmitted review.");
     }
     redirectSelf();		// normally does not return
     loadRows();
@@ -148,20 +158,25 @@ if (isset($_REQUEST["unsubmit"]) && $paperTable->editrrow
 if (isset($_REQUEST["rating"]) && $paperTable->rrow && check_post()) {
     if (!$Me->canRateReview($prow, $paperTable->rrow)
 	|| !$Me->canViewReview($prow, $paperTable->rrow, null))
-	$Conf->errorMsg("You can’t rate that review.");
+	//$Conf->errorMsg("You can’t rate that review.");
+	$Conf->errorMsg("Você não pode classificar esta revisão.");
     else if ($Me->contactId == $paperTable->rrow->contactId)
-	$Conf->errorMsg("You can’t rate your own review.");
+	//$Conf->errorMsg("You can’t rate your own review.");
+	$Conf->errorMsg("Você não pode classificar sua própria revisão.");
     else if (!isset($ratingTypes[$_REQUEST["rating"]]))
-	$Conf->errorMsg("Invalid rating.");
+	//$Conf->errorMsg("Invalid rating.");
+	$Conf->errorMsg("Classificação Inválida.");
     else if ($_REQUEST["rating"] == "n")
 	$Conf->qe("delete from ReviewRating where reviewId=" . $paperTable->rrow->reviewId . " and contactId=$Me->contactId", "while updating rating");
     else
 	$Conf->qe("insert into ReviewRating (reviewId, contactId, rating) values (" . $paperTable->rrow->reviewId . ", $Me->contactId, " . $_REQUEST["rating"] . ") on duplicate key update rating=" . $_REQUEST["rating"], "while updating rating");
     if (defval($_REQUEST, "ajax", 0))
 	if ($OK)
-	    $Conf->ajaxExit(array("ok" => 1, "result" => "Thanks! Your feedback has been recorded."));
+	    //$Conf->ajaxExit(array("ok" => 1, "result" => "Thanks! Your feedback has been recorded."));  	
+	    $Conf->ajaxExit(array("ok" => 1, "result" => "Obrigado! Seu comentário foi armazenado."));
 	else
-	    $Conf->ajaxExit(array("ok" => 0, "result" => "There was an error while recording your feedback."));
+	    //$Conf->ajaxExit(array("ok" => 0, "result" => "There was an error while recording your feedback."));
+	   $Conf->ajaxExit(array("ok" => 0, "result" => "Houve um erro enquanto seu comentário era armazenado."));
     if (isset($_REQUEST["allr"])) {
 	$_REQUEST["paperId"] = $paperTable->rrow->paperId;
 	unset($_REQUEST["reviewId"]);
@@ -180,9 +195,11 @@ if (isset($_REQUEST["update"]) && check_post()) {
 	if ($rf->saveRequest($_REQUEST, $paperTable->editrrow, $prow, $Me)) {
             if ((@$_REQUEST["ready"] && !@$_REQUEST["unready"])
                 || ($paperTable->editrrow && $paperTable->editrrow->reviewSubmitted))
-                $Conf->confirmMsg("Review submitted.");
+                //$Conf->confirmMsg("Review submitted.");
+		$Conf->confirmMsg("Revisão Enviada.");
             else
-                $Conf->confirmMsg("Review saved.  However, this version is marked as not ready for others to see.  Please finish the review and submit again.");
+                //$Conf->confirmMsg("Review saved.  However, this version is marked as not ready for others to see.  Please finish the review and submit again.");
+		 $Conf->confirmMsg("Revisão Salva.  De qualquer forma, esta versão esta definida como 'não-finalizada' para outros leitores.  Por favor finalize a revisão e a submeta novamente.");
 	    redirectSelf();		// normally does not return
 	    loadRows();
 	} else
@@ -195,14 +212,16 @@ if (isset($_REQUEST["update"]) && check_post()) {
 // delete review action
 if (isset($_REQUEST["delete"]) && $Me->canAdminister($prow) && check_post())
     if (!$paperTable->editrrow)
-	$Conf->errorMsg("No review to delete.");
+	//$Conf->errorMsg("No review to delete.");
+	$Conf->errorMsg("Nenhuma revisão para ser removida.");
     else {
 	archiveReview($paperTable->editrrow);
 	$while = "while deleting review";
 	$result = $Conf->qe("delete from PaperReview where reviewId=" . $paperTable->editrrow->reviewId, $while);
 	if ($result) {
 	    $Conf->log("$editRrowLogname deleted", $Me, $prow->paperId);
-	    $Conf->confirmMsg("Deleted review.");
+	    //$Conf->confirmMsg("Deleted review.");
+	    //Conf->confirmMsg("Revisão Deletada.")
 	    if (defval($paperTable->editrrow, "reviewToken", 0) != 0)
 		$Conf->updateRevTokensSetting(true);
 
@@ -320,7 +339,8 @@ function refuseReview() {
     Mailer::send("@refusereviewrequest", $reqprow, $Requester, $rrow, array("reason" => $reason));
 
     // confirmation message
-    $Conf->confirmMsg("The request that you review paper #$prow->paperId has been removed.  Mail was sent to the person who originally requested the review.");
+    //$Conf->confirmMsg("The request that you review paper #$prow->paperId has been removed.  Mail was sent to the person who originally requested the review.");
+    $Conf->confirmMsg("A requisão para que você revise o artigo #$prow->paperId foi removida.  Um e-email foi enviado para a pessoa que originalmente requereu esta revisão.");
     if ($hadToken)
 	$Conf->updateRevTokensSetting(true);
 
@@ -333,18 +353,25 @@ function refuseReview() {
 if (isset($_REQUEST["refuse"]) || isset($_REQUEST["decline"])) {
     if (!$paperTable->editrrow
 	|| (!$Me->ownReview($paperTable->editrrow) && !$Me->canAdminister($prow)))
+ 	//$Conf->errorMsg("Esta revisão não atribuída a você, então você não pode rejeita-la.");
 	$Conf->errorMsg("This review was not assigned to you, so you can’t decline it.");
     else if ($paperTable->editrrow->reviewType >= REVIEW_SECONDARY)
-	$Conf->errorMsg("PC members can’t decline their primary or secondary reviews.  Contact the PC chairs directly if you really cannot finish this review.");
+	//$Conf->errorMsg("PC members can’t decline their primary or secondary reviews.  Contact the PC chairs directly if you really cannot finish this review.");
+	$Conf->errorMsg("Membros da comissão científica não podem negar suas revisões primárias ou secundárias. Entre em contato diretamente com a diretoria caso realmente não consiga finalizar esta revisão.");
     else if ($paperTable->editrrow->reviewSubmitted)
-	$Conf->errorMsg("This review has already been submitted; you can’t decline it now.");
+	//$Conf->errorMsg("This review has already been submitted; you can’t decline it now.");
+	$Conf->errorMsg("Esta revisão já foi enviada; você não pode rejeita-la.");
     else if (defval($_REQUEST, "refuse") == "1"
 	     || defval($_REQUEST, "decline") == "1") {
-	$Conf->confirmMsg("<p>Select “Decline review” to decline this review (you may enter a brief explanation, if you’d like). Thank you for telling us that you cannot complete your review.</p><div class='g'></div><form method='post' action=\"" . hoturl_post("review", "p=" . $paperTable->prow->paperId . "&amp;r=" . $paperTable->editrrow->reviewId) . "\" enctype='multipart/form-data' accept-charset='UTF-8'><div class='aahc'>
+	//$Conf->confirmMsg("<p>Select “Decline review” to decline this review (you may enter a brief explanation, if you’d like). Thank you for telling us that you cannot
+//you cannot complete your review.</p><div class='g'></div><form method='post' action=\"" . hoturl_post("review", "p=" . $paperTable->prow->paperId . "&amp;r=" . $paperTable
+	$Conf->confirmMsg("<p>Selecione “Rejeitar Revisão” para rejeitar esta revisão(você pode inserir uma breve justificativa caso prefira). Obigado por nos comunicar que você não deseja completar sua revisão.</p><div class='g'></div><form method='post' action=\"" . hoturl_post("review", "p=" . $paperTable->prow->paperId . "&amp;r=" . 
+//<input type='submit' value='Decline review' />
+$paperTable->editrrow->reviewId) . "\" enctype='multipart/form-data' accept-charset='UTF-8'><div class='aahc'>
   <input type='hidden' name='refuse' value='refuse' />
   <textarea name='reason' rows='3' cols='40'></textarea>
   <span class='sep'></span>
-  <input type='submit' value='Decline review' />
+  <input type='submit' value='Rejeitar Revisão' />
   </div></form>");
     } else {
 	refuseReview();
@@ -356,11 +383,13 @@ if (isset($_REQUEST["refuse"]) || isset($_REQUEST["decline"])) {
 if (isset($_REQUEST["accept"])) {
     if (!$paperTable->editrrow
 	|| (!$Me->ownReview($paperTable->editrrow) && !$Me->canAdminister($prow)))
-	$Conf->errorMsg("This review was not assigned to you, so you cannot confirm your intention to write it.");
+	//$Conf->errorMsg("This review was not assigned to you, so you cannot confirm your intention to write it.");
+	$Conf->errorMsg("Esta revisão não foi associada à você, então você não pode confirmar sua intenção em escreve-lo.");
     else {
 	if ($paperTable->editrrow->reviewModified <= 0)
 	    $Conf->qe("update PaperReview set reviewModified=1 where reviewId=" . $paperTable->editrrow->reviewId . " and coalesce(reviewModified,0)<=0", "while confirming review");
-	$Conf->confirmMsg("Thank you for confirming your intention to finish this review.  You can download the paper and review form below.");
+	//$Conf->confirmMsg("Thank you for confirming your intention to finish this review.  You can download the paper and review form below.");
+	$Conf->confirmMsg("Obrigado pela confirmação da sua intenção de finalizar esta revisão.  Voce pode baixar o artigo e o formulário de revisão logo abaixo.");
 	loadRows();
     }
 }
@@ -407,7 +436,8 @@ if (!$viewAny && !$editAny) {
     if (!$Me->canViewPaper($prow, $whyNotPaper))
 	errorMsgExit(whyNotText($whyNotPaper, "view"));
     if (!isset($_REQUEST["reviewId"]) && !isset($_REQUEST["ls"])) {
-	$Conf->errorMsg("You can’t see the reviews for this paper.  " . whyNotText($whyNotView, "review"));
+	//$Conf->errorMsg("You can’t see the reviews for this paper.  " . whyNotText($whyNotView, "review"));
+	$Conf->errorMsg("Você não pode visualizar as revisões para este artigo.  " . whyNotText($whyNotView, "review"));
 	go(hoturl("paper", "p=$prow->paperId"));
     }
 }
