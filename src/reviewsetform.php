@@ -134,7 +134,7 @@ function rf_update() {
 	$Conf->confirmMsg("Formulário de Revisão Atualizado.");
         if (count($scoreModified))
            // $Conf->warnMsg("Your changes invalidated some existing review scores.  The invalid scores have been reset to “Unknown”.  The relevant fields were: " . join(", ", $scoreModified) . ".");
-	 $Conf->warnMsg("Suas alterações invalidaram algumas pontuações de revisão.  As pontuações foram redefinidas para "'Desconhecido'".  Os campos reelevantes eram: " . join(", ", $scoreModified) . ".");
+	 $Conf->warnMsg("Suas alterações invalidaram algumas pontuações de revisão.  As pontuações foram redefinidas para 'Desconhecido'.  Os campos reelevantes eram: " . join(", ", $scoreModified) . ".");
     }
 
     $Conf->invalidateCaches(array("rf" => true));
