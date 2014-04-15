@@ -259,6 +259,7 @@ class PaperTable {
 
 	if ($this->editable)
 	    $text = "<textarea class='textlite papertext' name='$fieldName' rows='" . $textAreaRows[$fieldName] . "' cols='60' onchange='hiliter(this)'>" . $text . "</textarea>";
+
 	return $text;
     }
 
@@ -476,8 +477,24 @@ class PaperTable {
         echo "<div class='pg pgtop'>",
             $this->editable_papt("abstract", "Abstract"),
             "<div class='papv abstract'>",
+            "<p><b>O resumo não deve ultrapassar 2500 caracteres.</b></p>",
             $this->entryData("abstract", "p"),
             "</div></div>\n\n";
+
+        //alerta para texto de no maximo 2500 caracteres
+		echo '<script>
+				$("textarea[name=abstract]").keypress(function(){
+					if(this.value.length > 2500) {
+						alert("Seu resumo ultrapassou o limite de 2500 caracteres.");
+					}
+				});
+				$("textarea[name=abstract]").change(function(){
+					if(this.value.length > 2500) {
+						alert("Seu resumo ultrapassou o limite de 2500 caracteres.");
+					}
+				});
+			</script>';
+
     }
 
     private function paptabAbstract() {
