@@ -22,12 +22,12 @@ else if (isset($_REQUEST["default"]))
 // paper group
 $tOpt = PaperSearch::searchTypes($Me);
 if (count($tOpt) == 0) {
-    $Conf->header("Search", "search", actionBar());
-    $Conf->errorMsg("You are not allowed to search for papers.");
+    $Conf->header("Buscar", "search", actionBar());
+    $Conf->errorMsg("Você não tem permissão para pesquisar artigos.");
     exit;
 }
 if (isset($_REQUEST["t"]) && !isset($tOpt[$_REQUEST["t"]])) {
-    $Conf->errorMsg("You aren’t allowed to search that paper collection.");
+    $Conf->errorMsg("VocÊ não está habilitado à procurar por esta coleção de artigos.");
     unset($_REQUEST["t"]);
 }
 if (!isset($_REQUEST["t"]))
@@ -179,9 +179,9 @@ function downloadReviews(&$texts, &$errors) {
     ksort($texts);
     if (count($texts) == 0) {
 	if (count($errors) == 0)
-	    $Conf->errorMsg("No papers selected.");
+	    $Conf->errorMsg("Nenhum artigo selecionado.");
 	else
-	    $Conf->errorMsg(join("<br />\n", array_keys($errors)) . "<br />Nothing to download.");
+	    $Conf->errorMsg(join("<br />\n", array_keys($errors)) . "<br />Não há nada a ser baixado.");
 	return;
     }
 
@@ -196,7 +196,7 @@ function downloadReviews(&$texts, &$errors) {
 	    $nerrors++;
     }
     if ($nerrors)
-	array_unshift($warnings, "Some " . ($getforms ? "review forms" : "reviews") . " are missing:");
+	array_unshift($warnings, "Alguns " . ($getforms ? "review forms" : "reviews") . " estão faltando:");
 
     if ($getforms && (count($texts) == 1 || !$gettext))
 	$rfname = "review";
@@ -304,7 +304,7 @@ function tagaction() {
 	$result = $Conf->qe($Conf->paperQuery($Me, array("paperId" => $papersel)), "while selecting papers");
 	while (($row = PaperInfo::fetch($result, $Me)))
 	    if ($row->conflictType > 0) {
-		$errors[] = "You have a conflict with paper #" . $row->paperId . " and cannot change its tags.";
+		$errors[] = "Você tem um conflito com o artigo #" . $row->paperId . " e não pode alterar suas tags.";
 		$papers = array_diff($papers, array($row->paperId));
 	    }
     }
@@ -350,7 +350,7 @@ if (isset($_REQUEST["tagact"]) && $Me->isPC && isset($papersel)
     && isset($_REQUEST["tag"]) && check_post())
     tagaction();
 else if (isset($_REQUEST["tagact"]) && defval($_REQUEST, "ajax"))
-    $Conf->ajaxExit(array("ok" => false, "error" => "Malformed request"));
+    $Conf->ajaxExit(array("ok" => false, "error" => "Erro de requisição."));
 
 
 // download votes
@@ -829,7 +829,7 @@ if ($getaction == "acmcms" && isset($papersel) && $Me->privChair) {
 if (isset($_REQUEST["setdecision"]) && defval($_REQUEST, "decision", "") != ""
     && isset($papersel) && check_post())
     if (!$Me->canSetOutcome(null))
-	$Conf->errorMsg("You cannot set paper decisions.");
+	$Conf->errorMsg("Você não pode tomar decisões sobre o artigo.");
     else {
 	$o = rcvtint($_REQUEST["decision"]);
 	$outcome_map = $Conf->outcome_map();
@@ -849,7 +849,7 @@ if (isset($_REQUEST["setassign"]) && defval($_REQUEST, "marktype", "") != ""
     $mt = $_REQUEST["marktype"];
     $mpc = defval($_REQUEST, "markpc", "");
     if (!$Me->privChair)
-	$Conf->errorMsg("Only PC chairs can set assignments and conflicts.");
+	$Conf->errorMsg("Somente membros da Comissão Científica podem definir atribuições e conflitos.");
     else if ($mt == "xauto") {
 	$t = (in_array($_REQUEST["t"], array("acc", "s")) ? $_REQUEST["t"] : "all");
 	$q = join($papersel, "+");
@@ -885,11 +885,11 @@ if (isset($_REQUEST["setassign"]) && defval($_REQUEST, "marktype", "") != ""
 	    }
 	}
 	if (count($conflicts))
-	    $Conf->errorMsg("Some papers were not assigned because of conflicts (" . join(", ", $conflicts) . ").  If these conflicts are in error, remove them and try to assign again.");
+	    $Conf->errorMsg("Alguns artigos não foram atríbuidos devido a conflitos (" . join(", ", $conflicts) . ").  Se estes conflitos estiverem errados, remova-os e tente atribuir novamente.");
 	if (count($assigned))
-	    $Conf->errorMsg("Some papers were not assigned because the PC member already had an assignment (" . join(", ", $assigned) . ").");
+	    $Conf->errorMsg("Alguns artigos não foram atribuídos por que o membro da comissão científica já realizou uma atribuição(" . join(", ", $assigned) . ").");
 	if ($nworked)
-	    $Conf->confirmMsg(($asstype == 0 ? "Unassigned reviews." : "Assigned reviews."));
+	    $Conf->confirmMsg(($asstype == 0 ? "Revisões não atribuídas." : "Revisões atríbuidas."));
 	$Conf->qe("unlock tables");
 	$Conf->updateRevTokensSetting(false);
     }
@@ -899,7 +899,7 @@ if (isset($_REQUEST["setassign"]) && defval($_REQUEST, "marktype", "") != ""
 // mark conflicts/PC-authored papers
 if (isset($_REQUEST["sendmail"]) && isset($papersel)) {
     if (!$Me->privChair)
-	$Conf->errorMsg("Only the PC chairs can send mail.");
+	$Conf->errorMsg("Somente membros da comissão científica podem enviar e-mails.");
     else {
 	$r = (in_array($_REQUEST["recipients"], array("au", "rev")) ? $_REQUEST["recipients"] : "all");
 	go(hoturl("mail", "p=" . join($papersel, "+") . "&recipients=$r"));
@@ -1514,8 +1514,8 @@ would display the sum of a paper&rsquo;s Overall merit scores.
 		"</td></tr>\n";
 	}
 	echo "<tr><td colspan='3' style='padding:1ex 0 0;text-align:right'>",
-	    "<input type='reset' value='Cancel' onclick='fold(\"searchform\",1,3)' tabindex='8' />",
-	    "&nbsp; <input type='submit' style='font-weight:bold' value='Save changes' tabindex='8' />",
+	    "<input type='reset' value='Cancelar' onclick='fold(\"searchform\",1,3)' tabindex='8' />",
+	    "&nbsp; <input type='submit' style='font-weight:bold' value='Salvar Alterações' tabindex='8' />",
 	    "</td></tr></tbody></table></div></form>\n";
     }
 
@@ -1527,12 +1527,12 @@ echo "</div>";
 // Tab selectors
 echo "</td></tr>
 <tr><td class='tllx'><table><tr>
-  <td><div class='tll1'><a class='tla' onclick='return crpfocus(\"searchform\", 1)' href=\"", selfHref(array("tab" => "basic")), "\">Search</a></div></td>
-  <td><div class='tll2'><a class='tla nowrap' onclick='return crpfocus(\"searchform\", 2)' href=\"", selfHref(array("tab" => "advanced")), "\">Advanced search</a></div></td>\n";
+  <td><div class='tll1'><a class='tla' onclick='return crpfocus(\"searchform\", 1)' href=\"", selfHref(array("tab" => "basic")), "\">Busca</a></div></td>
+  <td><div class='tll2'><a class='tla nowrap' onclick='return crpfocus(\"searchform\", 2)' href=\"", selfHref(array("tab" => "advanced")), "\">Busca Avançada</a></div></td>\n";
 if ($ss)
-    echo "  <td><div class='tll4'><a class='tla nowrap' onclick='fold(\"searchform\",1,4);return crpfocus(\"searchform\",4)' href=\"", selfHref(array("tab" => "ss")), "\">Saved searches</a></div></td>\n";
+    echo "  <td><div class='tll4'><a class='tla nowrap' onclick='fold(\"searchform\",1,4);return crpfocus(\"searchform\",4)' href=\"", selfHref(array("tab" => "ss")), "\">Buscas salvas</a></div></td>\n";
 if ($pl && $pl->count > 0)
-    echo "  <td><div class='tll3'><a class='tla nowrap' onclick='fold(\"searchform\",1,3);return crpfocus(\"searchform\",3)' href=\"", selfHref(array("tab" => "display")), "\">Display options</a></div></td>\n";
+    echo "  <td><div class='tll3'><a class='tla nowrap' onclick='fold(\"searchform\",1,3);return crpfocus(\"searchform\",3)' href=\"", selfHref(array("tab" => "display")), "\">Opções de Visualização</a></div></td>\n";
 echo "</tr></table></td></tr>
 </table>\n\n";
 
@@ -1560,7 +1560,7 @@ if ($pl) {
 	reset($tOpt);
 	echo " in ", strtolower($tOpt[$_REQUEST["t"]]);
 	if (key($tOpt) != $_REQUEST["t"] && $_REQUEST["t"] !== "all")
-	    echo " (<a href=\"", hoturl("search", join("&amp;", $a)), "\">Repeat search in ", strtolower(current($tOpt)), "</a>)";
+	    echo " (<a href=\"", hoturl("search", join("&amp;", $a)), "\">Repetir buscsa como ", strtolower(current($tOpt)), "</a>)";
     }
 
     if (isset($pl->any->sel))

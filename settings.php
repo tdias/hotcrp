@@ -1748,24 +1748,24 @@ function doDecGroup() {
     global $Conf, $Highlight, $Error;
 
     // doCheckbox('au_seerev', '<b>Authors can see reviews</b>');
-    echo "Can <b>authors see reviews and comments</b> for their papers?<br />";
-    doRadio("au_seerev", array(AU_SEEREV_NO => "No", AU_SEEREV_ALWAYS => "Yes", AU_SEEREV_YES => "Yes, once they&rsquo;ve completed any requested reviews"));
+    echo "<b>Autores podem visualizar revisões e comentários</b> para seus artigos?<br />";
+    doRadio("au_seerev", array(AU_SEEREV_NO => "No", AU_SEEREV_ALWAYS => "Yes", AU_SEEREV_YES => "Sim, uma vez que tenham completado qualquer revisão requisitada"));
 
     echo "<div class='g'></div>\n<table id='foldauresp' class='foldo'>";
-    doCheckbox('resp_open', "<b>Collect authors&rsquo; responses to the reviews<span class='fx'>:</span></b>", true, "void fold('auresp',!this.checked)");
+    doCheckbox('resp_open', "<b>Reunir autores&rsquo; e respostas aos revisores<span class='fx'>:</span></b>", true, "void fold('auresp',!this.checked)");
     echo "<tr class='fx'><td></td><td><table>";
-    doDateRow('resp_done', 'Hard deadline', null, "lxcaption");
-    doGraceRow('resp_grace', 'Grace period', "lxcaption");
-    doTextRow("resp_words", array("Word limit", "This is a soft limit: authors may submit longer responses. 0 means no limit."), setting("resp_words", 500), 5, "lxcaption", "none");
+    doDateRow('resp_done', 'Prazo máximo', null, "lxcaption");
+    doGraceRow('resp_grace', 'Período de Carência', "lxcaption");
+    doTextRow("resp_words", array("Limíte de Palavras", "Este limite é flexível: autores podem enviar respostas grandes. 0 significa sem limite."), setting("resp_words", 500), 5, "lxcaption", "none");
     echo "</table></td></tr></table>";
     $Conf->footerScript("fold('auresp',!\$\$('cbresp_open').checked)");
 
     echo "<div class='g'></div>\n<hr class='hr' />\n",
-	"Who can see paper <b>decisions</b> (accept/reject)?<br />\n";
-    doRadio("seedec", array(Conference::SEEDEC_ADMIN => "Only administrators",
-                            Conference::SEEDEC_NCREV => "Reviewers and non-conflicted PC members",
-                            Conference::SEEDEC_REV => "Reviewers and <em>all</em> PC members",
-                            Conference::SEEDEC_ALL => "<b>Authors</b>, reviewers, and all PC members (and reviewers can see accepted papers’ author lists)"));
+	"Quem pode visualizar o artigo <b>decisões</b> (aceitar/rejeitar)?<br />\n";
+    doRadio("seedec", array(Conference::SEEDEC_ADMIN => "Somente administradores",
+                            Conference::SEEDEC_NCREV => "Revisores e membros da comissão científica não conflitados",
+                            Conference::SEEDEC_REV => "Revisores  <em>e todos</em> os membros da Comissão Científica",
+                            Conference::SEEDEC_ALL => "<b>Autores</b>, revisores, e todos membros da comissão científica (e revisores podem visualizar artigos aceitos’ e lista de autores)"));
 
     echo "<div class='g'></div>\n";
     echo "<table>\n";
@@ -1782,7 +1782,7 @@ function doDecGroup() {
     $n_real_decs = 0;
     foreach ($decs as $k => $v)
 	$n_real_decs += ($k ? 1 : 0);
-    $caption = "<td class='lcaption' rowspan='$n_real_decs'>Current decision types</td>";
+    $caption = "<td class='lcaption' rowspan='$n_real_decs'>Tipos atuais de decisão</td>";
     foreach ($decs as $k => $v)
 	if ($k) {
 	    if (count($Error) > 0)
@@ -1804,31 +1804,31 @@ function doDecGroup() {
 	$vclass = defval($_REQUEST, "dtypn", $vclass);
     }
     echo "<tr><td class='lcaption'>",
-	setting_label("decn", "New decision type"),
+	setting_label("decn", "Novo tipo de decisão"),
 	"<br /></td>",
 	"<td class='lentry nowrap'>",
         Ht::hidden("has_decisions", 1),
         "<input type='text' class='textlite' name='decn' value=\"", htmlspecialchars($v), "\" size='35' onchange='hiliter(this)' /> &nbsp; ",
-	Ht::select("dtypn", array(1 => "Accept class", -1 => "Reject class"),
+	Ht::select("dtypn", array(1 => "Categoria aceita", -1 => "Categoria rejeitada"),
 		    $vclass, array("onchange" => "hiliter(this)")),
-	"<br /><small>Examples: “Accepted as short paper”, “Early reject”</small>",
+	"<br /><small>Exemplos: “Aceito como artigo curto”, “Inicialmente Rejeitado”</small>",
 	"</td>";
     if (defval($Highlight, "decn"))
 	echo "<td class='lentry nowrap'>",
 	    Ht::checkbox_h("decn_confirm", 1, false),
-	    "&nbsp;<span class='error'>", Ht::label("Confirm"), "</span></td>";
+	    "&nbsp;<span class='error'>", Ht::label("Confirmar"), "</span></td>";
     echo "</tr>\n</table>\n";
 
     // Final versions
-    echo "<h3 class=\"settings g\">Final versions</h3>\n";
+    echo "<h3 class=\"settings g\">Versões Finais</h3>\n";
     echo "<table id='foldfinal' class='foldo'>";
-    doCheckbox('final_open', "<b>Collect final versions of accepted papers<span class='fx'>:</span></b>", true, "void fold('final',!this.checked)");
+    doCheckbox('final_open', "<b>Reunir versões finalizadas de artigos aceitados<span class='fx'>:</span></b>", true, "void fold('final',!this.checked)");
     echo "<tr class='fx'><td></td><td><table>";
-    doDateRow("final_soft", "Deadline", "final_done", "lxcaption");
-    doDateRow("final_done", "Hard deadline", null, "lxcaption");
-    doGraceRow("final_grace", "Grace period", "lxcaption");
+    doDateRow("final_soft", "Data Limite", "final_done", "lxcaption");
+    doDateRow("final_done", "Data Limite Rígida", null, "lxcaption");
+    doGraceRow("final_grace", "Prazo de Carencia", "lxcaption");
     echo "</table><div class='gs'></div>",
-	"<small>To collect <em>multiple</em> final versions, such as one in 9pt and one in 11pt, add “Alternate final version” options via <a href='", hoturl("settings", "group=opt"), "'>Settings &gt; Submission options</a>.</small>",
+	"<small>Para reunir <em>multiple</em> versões finalizadas,como as que estão em 9pte 11pt, adicione a opção “Versão final alternativa” através de <a href='", hoturl("settings", "group=opt"), "'>Configurações &gt; Opções de Submissão</a>.</small>",
 	"</div></td></tr></table>\n\n";
     $Conf->footerScript("fold('final',!\$\$('cbfinal_open').checked)");
 }
@@ -1839,13 +1839,13 @@ echo "<form method='post' action='", hoturl_post("settings"), "' enctype='multip
 
 echo "<table class='settings'><tr><td class='caption initial final'>";
 echo "<table class='lhsel'>";
-foreach (array("acc" => "Accounts",
-	       "msg" => "Messages",
-	       "sub" => "Submissions",
-	       "opt" => "Submission options",
-	       "rev" => "Reviews",
-	       "rfo" => "Review form",
-	       "dec" => "Decisions") as $k => $v) {
+foreach (array("acc" => "Contas",
+	       "msg" => "Mensagens",
+	       "sub" => "Submissões",
+	       "opt" => "Opções de Submissão",
+	       "rev" => "Revisões",
+	       "rfo" => "Formulário de Revisões",
+	       "dec" => "Decisões") as $k => $v) {
     $kk = defval($GroupMapping, $k, $k);
     echo "<tr><td>";
     if ($Group == $k)
