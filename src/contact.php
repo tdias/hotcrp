@@ -455,7 +455,7 @@ class Contact {
             if ($this->is_empty())
                 $Conf->ajaxExit(array("ok" => 0, "loggedout" => 1));
             else
-                $Conf->ajaxExit(array("ok" => 0, "error" => "You don’t have permission to access that page."));
+                $Conf->ajaxExit(array("ok" => 0, "error" => "Você não tem permissão para acessar esta página."));
         }
 
         if ($this->is_empty()) {
@@ -476,9 +476,9 @@ class Contact {
             // "p", "q", etc.
             $_SESSION["afterLogin"] = substr(selfHref($x, false),
                                              strlen($ConfSiteBase));
-            error_go(false, "You have invalid credentials and need to sign in.");
+            error_go(false, "Suas credencias são inválidas, o login é necessário.");
         } else
-            error_go(false, "You don’t have permission to access that page.");
+            error_go(false, "Você não possui permissão para acessar esta pagina.");
     }
 
     function save() {
@@ -754,12 +754,12 @@ class Contact {
         // Log
 	if ($ok) {
             if ($Me && $Me->privChair)
-                $Conf->infoMsg("Created account for " . htmlspecialchars($email) . ".");
+                $Conf->infoMsg("Conta criada para " . htmlspecialchars($email) . ".");
             if ($send)
                 $acct->sendAccountInfo("create", false);
-	    $Conf->log($Me && $Me->is_known_user() ? "Created account ($Me->email)" : "Created account", $acct);
+	    $Conf->log($Me && $Me->is_known_user() ? "Conta criada ($Me->email)" : "Created account", $acct);
 	} else
-	    $Conf->log("Account $email creation failure", $Me);
+	    $Conf->log("Problema de criação da conta $email ", $Me);
 
 	return $ok ? $acct : null;
     }
@@ -1862,17 +1862,17 @@ class Contact {
 		    if ($trdecname != "")
                         $decclass .= " pstat_" . strtolower($trdecname);
                 } else
-                    $decname = "Unknown decision #" . $row->outcome;
+                    $decname = "Decisão desconhecida #" . $row->outcome;
 
 		$data = self::$status_info_cache[$row->outcome] = array($decclass, $decname);
 	    }
 	    return $data;
 	} else if ($row->timeSubmitted <= 0 && $row->paperStorageId == 1)
-	    return array("pstat_noup", "No submission");
+	    return array("pstat_noup", "Nenhuma submissão");
         else if ($row->timeSubmitted > 0)
-            return array("pstat_sub", "Submitted");
+            return array("pstat_sub", "Submetido");
         else
-            return array("pstat_prog", "Not ready");
+            return array("pstat_prog", "Não finalizado");
     }
 
 

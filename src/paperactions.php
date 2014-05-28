@@ -14,9 +14,9 @@ class PaperActions {
 	    if (isset($outcomes[$o])) {
 		$result = $Conf->qe("update Paper set outcome=$o where paperId=$prow->paperId", "while changing decision");
 		if ($result && $ajax)
-		    $Conf->confirmMsg("Saved");
+		    $Conf->confirmMsg("Salvo");
 		else if ($result)
-		    $Conf->confirmMsg("Decision for paper #$prow->paperId set to " . htmlspecialchars($outcomes[$o]) . ".");
+		    $Conf->confirmMsg("Decisão para o artigo #$prow->paperId definido para " . htmlspecialchars($outcomes[$o]) . ".");
 		if ($o > 0 || $prow->outcome > 0)
 		    $Conf->updatePaperaccSetting($o > 0);
 	    } else {
@@ -137,7 +137,7 @@ class PaperActions {
         global $Conf, $Me, $Error, $OK;
 	$ajax = defval($_REQUEST, "ajax", false);
 	if ($type == "manager" ? !$Me->privChair : !$Me->canAdminister($prow)) {
-	    $Conf->errorMsg("You don’t have permission to set the $type.");
+	    $Conf->errorMsg("Você não tem permissão para definir o $type.");
 	    $Error[$type] = true;
 	} else if (isset($_REQUEST[$type])
 		   && ($_REQUEST[$type] === "0"
@@ -152,7 +152,7 @@ class PaperActions {
 		    $Conf->log("set $type to " . $_REQUEST[$type], $Me, $prow->paperId);
 	    }
 	    if ($OK && $ajax)
-		$Conf->confirmMsg("Saved");
+		$Conf->confirmMsg("Salvo");
 	} else {
 	    $Conf->errorMsg("Bad $type setting “" . htmlspecialchars(defval($_REQUEST, $type, "")) . "”.");
 	    $Error[$type] = true;

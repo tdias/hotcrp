@@ -568,10 +568,10 @@ class AssignReviewPaperColumn extends ReviewerTypePaperColumn {
         $rt = ($row->reviewerConflictType > 0 ? -1 : min(max($row->reviewerReviewType, 0), REVIEW_PRIMARY));
         return Ht::select("assrev$row->paperId",
                            array(0 => "None",
-                                 REVIEW_PRIMARY => "Primary",
-                                 REVIEW_SECONDARY => "Secondary",
-                                 REVIEW_PC => "Optional",
-                                 -1 => "Conflict"), $rt,
+                                 REVIEW_PRIMARY => "Primário",
+                                 REVIEW_SECONDARY => "Secundário",
+                                 REVIEW_PC => "Opcional",
+                                 -1 => "Conflitos"), $rt,
                            array("tabindex" => 3,
                                  "onchange" => "hiliter(this)"));
     }
@@ -666,7 +666,7 @@ class PreferencePaperColumn extends PaperColumn {
 	return $x ? $x : $b->topicInterestScore - $a->topicInterestScore;
     }
     public function header($pl, $row, $ordinal) {
-        return "Preference";
+        return "Preferencia";
     }
     public function col() {
         return "<col width='0*' />";
@@ -701,7 +701,7 @@ class PreferenceListPaperColumn extends PaperColumn {
 	return true;
     }
     public function header($pl, $row, $ordinal) {
-        return "Preferences";
+        return "Preferências";
     }
     public function content_empty($pl, $row) {
         return !$pl->contact->allowAdminister($row);
@@ -733,7 +733,7 @@ class ReviewerListPaperColumn extends PaperColumn {
 	return true;
     }
     public function header($pl, $row, $ordinal) {
-        return "Reviewers";
+        return "Revisores";
     }
     public function content($pl, $row) {
         $prefs = PaperList::_rowPreferences($row);
@@ -768,7 +768,7 @@ class PCConflictListPaperColumn extends PaperColumn {
 	return true;
     }
     public function header($pl, $row, $ordinal) {
-        return "PC conflicts";
+        return "Conflitos de comissão científica";
     }
     public function content($pl, $row) {
         $conf = $row->conflicts();
@@ -791,9 +791,9 @@ class ConflictMatchPaperColumn extends PaperColumn {
     }
     public function header($pl, $row, $ordinal) {
 	if ($this->field == "authorInformation")
-	    return "<strong>Potential conflict in authors</strong>";
+	    return "<strong>Potencial conflito em autores</strong>";
         else
-	    return "<strong>Potential conflict in collaborators</strong>";
+	    return "<strong>Potencial conflito em colaboradores</strong>";
     }
     public function content_empty($pl, $row) {
         return defval($pl->search->matchPreg, $this->field, "") == "";

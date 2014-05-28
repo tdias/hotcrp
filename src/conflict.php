@@ -4,12 +4,12 @@
 // Distributed under an MIT-like license; see LICENSE
 
 class Conflict {
-    static $type_descriptions = array(0 => "No conflict",
-                                      3 => "Advisor/student",
-                                      2 => "Recent collaborator",
+    static $type_descriptions = array(0 => "Nenhum conflito",
+                                      3 => "Acessor/estudante",
+                                      2 => "Colaborador recente",
                                       4 => "Institutional",
-                                      5 => "Personal",
-                                      6 => "Other");
+                                      5 => "Pessoal",
+                                      6 => "Outro");
     static $type_names = array(0 => false,
                                1 => true,
                                2 => "collaborator",

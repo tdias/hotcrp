@@ -144,7 +144,7 @@ class PaperList extends BaseList {
 	global $Conf;
 	if ($row->finalPaperStorageId != 0) {
 	    $finalsuffix = "f";
-	    $finaltitle = "Final version";
+	    $finaltitle = "Versão final ";
 	    $row->documentType = DTYPE_FINAL;
 	} else {
 	    $finalsuffix = "";
@@ -195,7 +195,7 @@ class PaperList extends BaseList {
     }
 
     static function wrapChairConflict($text) {
-	return "<span class='fn5'><em>Hidden for conflict</em> &nbsp;<span class='barsep'>|</span>&nbsp; <a href=\"javascript:void fold('pl',0,'force')\">Override conflicts</a></span><span class='fx5'>$text</span>";
+	return "<span class='fn5'><em>Conflitos ocultos</em> &nbsp;<span class='barsep'>|</span>&nbsp; <a href=\"javascript:void fold('pl',0,'force')\">Ignorar Conflitos</a></span><span class='fx5'>$text</span>";
     }
 
     public function maybeConflict($row, $text, $visible) {
@@ -256,18 +256,18 @@ class PaperList extends BaseList {
             if (isset($reviewTypeName[$row->reviewType]))
                 $ranal->type_name = $reviewTypeName[$row->reviewType];
             else
-                $ranal->type_name = "Review"; /* won't happen; just in case */
+                $ranal->type_name = "Revisão"; /* won't happen; just in case */
 	    $ranal->needsSubmit = !isset($row->reviewSubmitted) || !$row->reviewSubmitted;
 	    if (!$ranal->needsSubmit)
-		$ranal->completion = "Complete";
+		$ranal->completion = "Completa";
 	    else if ($row->reviewType == REVIEW_SECONDARY
 		     && $row->reviewNeedsSubmit <= 0) {
-		$ranal->completion = "Delegated";
+		$ranal->completion = "Atribuído";
 		$ranal->delegated = true;
 	    } else if ($row->reviewModified == 0)
-		$ranal->completion = "Not&nbsp;started";
+		$ranal->completion = "Não &nbsp;iniciado";
 	    else
-		$ranal->completion = "In&nbsp;progress";
+		$ranal->completion = "Em &nbsp;progresso";
 	    if ($ranal->needsSubmit)
 		$link = hoturl("review", "r=" . unparseReviewOrdinal($row) . $this->_paper_link_args);
 	    else
@@ -309,46 +309,46 @@ class PaperList extends BaseList {
 	// Download
 	if ($this->atab == "download")
 	    $whichlll = $nlll;
-	$t = "<td class='lll$nlll nowrap'><a href=\"" . selfHref(array("atab" => "download")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Download</a></td><td class='lld$nlll nowrap'><b>:</b> &nbsp;";
+	$t = "<td class='lll$nlll nowrap'><a href=\"" . selfHref(array("atab" => "download")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Baixar</a></td><td class='lld$nlll nowrap'><b>:</b> &nbsp;";
 	$sel_opt = array();
 	if ($revpref) {
-	    $sel_opt["revpref"] = "Preference file";
-	    $sel_opt["revprefx"] = "Preference file with abstracts";
-	    $sel_opt["abstract"] = "Abstracts";
+	    $sel_opt["revpref"] = "Arquivo de Preferencias";
+	    $sel_opt["revprefx"] = "Arquivo de Preferencias com Resumo";
+	    $sel_opt["abstract"] = "Resumos";
 	} else {
 	    if ($this->any->final) {
-		$sel_opt["final"] = "Final papers";
+		$sel_opt["final"] = "Artigos finalizados";
 		foreach (PaperOption::option_list() as $id => $o)
 		    if ($o->type == "pdf" && @$o->final)
 			$sel_opt["opt-" . $o->abbr] = htmlspecialchars($o->name) . " papers";
 		    else if ($o->type == "slides" && @$o->final)
 			$sel_opt["opt-" . $o->abbr] = htmlspecialchars(pluralx($o->name, 2));
-		$sel_opt["paper"] = "Submitted papers";
+		$sel_opt["paper"] = "Artigos submetidos";
 	    } else if ($this->any->paper)
-		$sel_opt["paper"] = "Papers";
-	    $sel_opt["abstract"] = "Abstracts";
-	    $sel_opt["revform"] = "Review forms";
-	    $sel_opt["revformz"] = "Review forms (zip)";
+		$sel_opt["paper"] = "Artigos";
+	    $sel_opt["abstract"] = "Resumos";
+	    $sel_opt["revform"] = "Formulários de Revisão";
+	    $sel_opt["revformz"] = "Formulários de Revisão (zip)";
 	    if ($this->contact->is_reviewer()) {
-		$sel_opt["rev"] = "All reviews";
-		$sel_opt["revz"] = "All reviews (zip)";
+		$sel_opt["rev"] = "Todas Revisões";
+		$sel_opt["revz"] = "Todas Revisões (zip)";
 	    }
 	}
 	if ($this->contact->privChair)
-	    $sel_opt["authors"] = "Authors &amp; contacts";
+	    $sel_opt["authors"] = "Contatores de Autores";
 	else if ($this->contact->has_review() && !$Conf->subBlindAlways())
-	    $sel_opt["authors"] = "Authors";
-	$sel_opt["topics"] = "Topics";
+	    $sel_opt["authors"] = "Autores";
+	$sel_opt["topics"] = "Tópicos";
 	if ($this->contact->privChair) {
-	    $sel_opt["checkformat"] = "Format check";
-	    $sel_opt["pcconf"] = "PC conflicts";
-            $sel_opt["allrevpref"] = "PC review preferences";
+	    $sel_opt["checkformat"] = "Checagem de Formato";
+	    $sel_opt["pcconf"] = "Conflitos de Comissão Científica";
+            $sel_opt["allrevpref"] = "Preferencia de revisão da Comissão";
 	}
 	if (!$revpref && ($this->contact->privChair || ($this->contact->isPC && $Conf->timePCViewAllReviews())))
 	    $sel_opt["scores"] = "Scores";
 	if ($Conf->setting("paperlead") > 0) {
-	    $sel_opt["lead"] = "Discussion leads";
-	    $sel_opt["shepherd"] = "Shepherds";
+	    $sel_opt["lead"] = "Lider de Discussão";
+	    $sel_opt["shepherd"] = "Mediadores";
 	}
         if ($this->contact->privChair)
             $sel_opt["acmcms"] = "ACM CMS report";
@@ -363,7 +363,7 @@ class PaperList extends BaseList {
 		$whichlll = $nlll;
 	    $t .= $barsep;
 	    $t .= "<td class='lll$nlll nowrap'><a href=\"" . selfHref(array("atab" => "uploadpref")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Upload</a></td><td class='lld$nlll nowrap'><b>&nbsp;preference file:</b> &nbsp;";
-	    $t .= "<input id='plact${nlll}_d' type='file' name='uploadedFile' accept='text/plain' size='20' tabindex='6' onfocus='autosub(\"upload\",this)' />&nbsp; <input type='submit' name='upload' value='Go' tabindex='6' /></td>";
+	    $t .= "<input id='plact${nlll}_d' type='file' name='uploadledFile' accept='text/plain' size='20' tabindex='6' onfocus='autosub(\"upload\",this)' />&nbsp; <input type='submit' name='upload' value='Go' tabindex='6' /></td>";
 	    $nlll++;
 	}
 
@@ -383,7 +383,7 @@ class PaperList extends BaseList {
 		$whichlll = $nlll;
 	    $t .= $barsep;
 	    $t .= "<td class='lll$nlll nowrap'><a href=\"" . selfHref(array("atab" => "tags")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Tag</a></td><td class='lld$nlll nowrap'><table id='foldplacttags' class='foldc fold99c'><tr><td><b>:</b><a class='help' href='" . hoturl("help", "t=tags") . "' target='_blank' title='Learn more'>?</a> &nbsp;";
-	    $tagopt = array("a" => "Add", "d" => "Remove", "s" => "Define", "xxxa" => null, "ao" => "Add to order", "aos" => "Add to gapless order", "so" => "Define order", "sos" => "Define gapless order", "sor" => "Define random order");
+	    $tagopt = array("a" => "Add", "d" => "Remover", "s" => "Definir", "xxxa" => null, "ao" => "Add to order", "aos" => "Add to gapless order", "so" => "Define order", "sos" => "Define gapless order", "sor" => "Define random order");
 	    $tagextra = array("id" => "placttagtype");
 	    if ($this->contact->privChair) {
 		$tagopt["xxxb"] = null;
@@ -422,15 +422,15 @@ class PaperList extends BaseList {
 	    $t .= "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "assign")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Assign</a></td><td id='foldass' class='lld$nlll foldo'><b>:</b> &nbsp;";
 	    $want_plactions_dofold = true;
 	    $t .= Ht::select("marktype",
-			      array("xauto" => "Automatic assignments",
+			      array("xauto" => "Atribuições automáticas",
 				    "zzz1" => null,
-				    "conflict" => "Mark conflict",
-				    "unconflict" => "Remove conflict",
+				    "conflict" => "Marcar conflito",
+				    "unconflict" => "Remover conflito",
 				    "zzz3" => null,
-				    "assign" . REVIEW_PRIMARY => "Assign primary review",
-				    "assign" . REVIEW_SECONDARY => "Assign secondary review",
-				    "assign" . REVIEW_PC => "Assign optional review",
-				    "assign0" => "Unassign reviews"),
+				    "assign" . REVIEW_PRIMARY => "Atribuir revisões primárias",
+				    "assign" . REVIEW_SECONDARY => "Atribuir revisões secundárias",
+				    "assign" . REVIEW_PC => "Atribuir revisão opcional",
+				    "assign0" => "Desatribuir revisões"),
 			      defval($_REQUEST, "marktype"),
 			      array("id" => "plact${nlll}_d",
 				    "onchange" => "plactions_dofold()"))
@@ -451,7 +451,7 @@ class PaperList extends BaseList {
 	    if ($this->atab == "decide")
 		$whichlll = $nlll;
 	    $t .= $barsep;
-	    $t .= "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "decide")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Decide</a></td><td class='lld$nlll'><b>:</b> Set to &nbsp;";
+	    $t .= "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "decide")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Decidir</a></td><td class='lld$nlll'><b>:</b> Definir para &nbsp;";
 	    $t .= decisionSelector(defval($_REQUEST, "decision", 0), "plact${nlll}_d") . " &nbsp;<input type='submit' name='setdecision' value='Go' /></td>";
 	    $nlll++;
 
@@ -459,7 +459,7 @@ class PaperList extends BaseList {
 		$whichlll = $nlll;
 	    $t .= $barsep
 		. "<td class='lll$nlll'><a href=\"" . selfHref(array("atab" => "mail")) . "#plact\" onclick='return crpfocus(\"plact\",$nlll)'>Mail</a></td><td class='lld$nlll'><b>:</b> &nbsp;"
-		. Ht::select("recipients", array("au" => "Contact authors", "rev" => "Reviewers"), defval($_REQUEST, "recipients"), array("id" => "plact${nlll}_d"))
+		. Ht::select("recipients", array("au" => "Contactar autores", "rev" => "Revisores"), defval($_REQUEST, "recipients"), array("id" => "plact${nlll}_d"))
 		. " &nbsp;<input type='submit' name='sendmail' value='Go' /></td>";
 	    $nlll++;
 	}
@@ -477,9 +477,9 @@ class PaperList extends BaseList {
 	    $foot .= "    <td class='pl_footselector'>"
 		. $Conf->cacheableImage("_.gif", "^^", null, "placthook")
 		. "</td>\n    <td class='pl_footer' colspan='" . ($ncol - 1) . "'>";
-	return $foot . "<table id='plact' class='linelinks$whichlll'><tr><td><a name='plact'><b>Select papers</b></a> (or <a href=\""
+	return $foot . "<table id='plact' class='linelinks$whichlll'><tr><td><a name='plact'><b>Artigos selecionados</b></a> (or <a href=\""
 	    . selfHref(array("selectall" => 1))
-	    . "#plact\" onclick='return papersel(true)'>select all " . $this->count . "</a>), then&nbsp;"
+	    . "#plact\" onclick='return papersel(true)'>selecionar todos " . $this->count . "</a>), entao &nbsp;"
 	    . "<img id='foldplactsession' alt='' src='" . hoturl("sessionvar", "var=foldplact&amp;val=" . defval($_SESSION, "foldplact", 1) . "&amp;cache=1") . "' width='1' height='1' />"
 	    . "</td>"
 	    . $t . "</tr></td></table>" . $extra . "</td></tr>\n"
@@ -489,14 +489,14 @@ class PaperList extends BaseList {
     static function _listDescription($listname) {
 	switch ($listname) {
 	  case "reviewAssignment":
-	    return "Review assignments";
+	    return "Revisar atribuições";
 	  case "conflict":
-	    return "Potential conflicts";
+	    return "Potenciais conflitos";
 	  case "editReviewPreference":
-	    return "Review preferences";
+	    return "Revisar preferencias";
 	  case "reviewers":
 	  case "reviewersSel":
-	    return "Proposed assignments";
+	    return "Atribuições propostas";
 	  default:
 	    return null;
 	}
