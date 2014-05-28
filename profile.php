@@ -12,7 +12,7 @@ function change_email_by_capability() {
     if (!$capdata || $capdata->capabilityType != CAPTYPE_CHANGEEMAIL
         || !($capdata->data = json_decode($capdata->data))
         || !@$capdata->data->uemail)
-        error_go(false, "That email change code has expired, or you didn’t enter it correctly.");
+        error_go(false, "O código de mudança de email expirour, ou não foi inserido corretamente.");
     $Acct = Contact::find_by_id($capdata->contactId);
     if (!$Acct)
         error_go(false, "Não existe uma conta para este usuário.");
@@ -28,7 +28,7 @@ function change_email_by_capability() {
         $Conf->invalidateCaches(array("pc" => 1));
     $Conf->delete_capability($capdata);
 
-    $Conf->confirmMsg("Seu email foi alerado com sucesso.");
+    $Conf->confirmMsg("Seu email foi alterado com sucesso.");
     if (!$Me->is_known_user() || $Me->contactId == $Acct->contactId)
         $Me = $Acct->activate();
 }

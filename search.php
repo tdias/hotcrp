@@ -839,7 +839,7 @@ if (isset($_REQUEST["setdecision"]) && defval($_REQUEST, "decision", "") != ""
 	    redirectSelf(array("atab" => "decide", "decision" => $o));
 	    // normally does not return
 	} else
-	    $Conf->errorMsg("Bad decision value!");
+	    $Conf->errorMsg("Valor de decisão errado!");
     }
 
 
@@ -942,7 +942,7 @@ if (isset($_REQUEST["savedisplayoptions"]) && $Me->privChair) {
     if ($OK && defval($_REQUEST, "ajax"))
 	$Conf->ajaxExit(array("ok" => 1));
     else if ($OK)
-	$Conf->confirmMsg("Display options saved.");
+	$Conf->confirmMsg("Opções de Exibição salvas.");
 }
 
 
@@ -973,26 +973,26 @@ function saveformulas() {
 
 	if ($name != "" && $expr != "") {
 	    if (isset($names[$name]))
-		$ok = $Conf->errorMsg("You have two formulas with the same name, &ldquo;" . htmlspecialchars($name) . ".&rdquo;  Please change one of the names.");
+		$ok = $Conf->errorMsg("Você tem duas formulas com o mesmo nome, &ldquo;" . htmlspecialchars($name) . ".&rdquo;  Por favor altere um dos nomes.");
 	    $names[$name] = true;
 	}
 
 	if ($name == $fdef->name && $expr == $fdef->expression)
 	    /* do nothing */;
 	else if (!$Me->privChair && $fdef->createdBy < 0)
-	    $ok = $Conf->errorMsg("You can't change formula &ldquo;" . htmlspecialchars($fdef->name) . "&rdquo; because it was created by an administrator.");
+	    $ok = $Conf->errorMsg("Você não pode alterar esta fórmula &ldquo;" . htmlspecialchars($fdef->name) . "&rdquo; por que foi criada pro um administradosr.");
 	else if (($name == "" || $expr == "") && $fdef->formulaId != "n")
 	    $changes[] = "delete from Formula where formulaId=$fdef->formulaId";
 	else if ($name == "")
-	    $ok = $Conf->errorMsg("Please enter a name for your new formula.");
+	    $ok = $Conf->errorMsg("Por favor insira um nome para a nova fórmula.");
 	else if ($expr == "")
-	    $ok = $Conf->errorMsg("Please enter a definition for your new formula.");
+	    $ok = $Conf->errorMsg("Por favor entre uma definição para sua nova fórmula.");
 	else if (!($paperexpr = Formula::parse($expr)))
 	    $ok = false;	/* errors already generated */
 	else {
 	    $exprViewScore = Formula::expression_view_score($paperexpr, $Me);
 	    if ($exprViewScore <= $Me->viewReviewFieldsScore(null, true))
-		$ok = $Conf->errorMsg("The expression &ldquo;" . htmlspecialchars($expr) . "&rdquo; refers to paper properties that you aren't allowed to view.  Please define a different expression.");
+		$ok = $Conf->errorMsg("A expressão &ldquo;" . htmlspecialchars($expr) . "&rdquo; refere-se à propriedades de artigos que você não tem permissão para visualizar.  Por favor defina uma expressao diferente");
 	    else if ($fdef->formulaId == "n") {
 		$changes[] = "insert into Formula (name, heading, headingTitle, expression, authorView, createdBy, timeModified) values ('" . sqlq($name) . "', '', '', '" . sqlq($expr) . "', $exprViewScore, " . ($Me->privChair ? -$Me->contactId : $Me->contactId) . ", " . time() . ")";
 		if (!$Conf->setting("formulas"))
@@ -1007,7 +1007,7 @@ function saveformulas() {
 	foreach ($changes as $change)
 	    $Conf->qe($change, $while);
 	if ($OK) {
-	    $Conf->confirmMsg("Formulas saved.");
+	    $Conf->confirmMsg("Fórmulas salvas.");
 	    redirectSelf();
 	}
     }
@@ -1037,7 +1037,7 @@ function savesearch() {
 	if (isset($_REQUEST["q"]) && $_REQUEST["q"] == "ss:$name")
 	    $_REQUEST["q"] = (isset($t->q) ? $t->q : "");
 	if (isset($t->owner) && !$Me->privChair && $t->owner != $Me->contactId)
-	    return $Conf->errorMsg("You don’t have permission to change “ss:" . htmlspecialchars($name) . "”.");
+	    return $Conf->errorMsg("Você não tem permissao para alterar “ss:" . htmlspecialchars($name) . "”.");
     }
 
     $arr = array();
@@ -1182,7 +1182,7 @@ if ($pl) {
 		       || ($_REQUEST["t"] == "acc" && $viewAcceptedAuthors)
                        || $Conf->subBlindNever());
 
-    displayOptionText("<strong>Show:</strong>" . foldsessionpixel("pl", "pldisplay", null), 1);
+    displayOptionText("<strong>Exibir:</strong>" . foldsessionpixel("pl", "pldisplay", null), 1);
 
     // Authors group
     if (!$Conf->subBlindAlways() || $viewAcceptedAuthors || $viewAllAuthors) {
@@ -1191,25 +1191,25 @@ if ($pl) {
 	    $onchange .= ";fold('pl',!this.checked,'anonau')";
 	if ($Me->privChair)
 	    $onchange .= ";plinfo.extra()";
-	displayOptionCheckbox("au", 1, "Authors", array("id" => "showau", "onchange" => $onchange));
+	displayOptionCheckbox("au", 1, "Autores", array("id" => "showau", "onchange" => $onchange));
     } else if ($Conf->subBlindAlways() && $Me->privChair) {
 	$onchange = "fold('pl',!this.checked,'anonau');plinfo.extra()";
-	displayOptionCheckbox("anonau", 1, "Authors", array("id" => "showau", "onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau)));
+	displayOptionCheckbox("anonau", 1, "Autores", array("id" => "showau", "onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau)));
     }
     if (!$Conf->subBlindAlways() || $viewAcceptedAuthors || $viewAllAuthors || $Me->privChair)
-	displayOptionCheckbox("aufull", 1, "Full author info", array("indent" => true));
+	displayOptionCheckbox("aufull", 1, "Toda informação do Autor", array("indent" => true));
     if (!$viewAllAuthors && $Me->privChair) {
 	$onchange = "fold('pl',!this.checked,'anonau');plinfo.extra()";
-	displayOptionCheckbox("anonau", 1, "Anonymous authors", array("onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau), "indent" => true));
+	displayOptionCheckbox("anonau", 1, "Autores Anônimos", array("onchange" => $onchange, "disabled" => (!$pl || !$pl->any->anonau), "indent" => true));
     }
     if ($pl->any->collab)
-	displayOptionCheckbox("collab", 1, "Collaborators", array("indent" => true));
+	displayOptionCheckbox("collab", 1, "Colaboradores", array("indent" => true));
 
     // Abstract group
     if ($pl->any->abstract)
-	displayOptionCheckbox("abstract", 1, "Abstracts");
+	displayOptionCheckbox("abstract", 1, "Resumos");
     if ($pl->any->topics)
-	displayOptionCheckbox("topics", 1, "Topics");
+	displayOptionCheckbox("topics", 1, "Tópicos");
 
     // Tags group
     if ($Me->isPC && $pl->any->tags) {
@@ -1225,17 +1225,17 @@ if ($pl) {
 
     // Row numbers
     if (isset($pl->any->sel))
-	displayOptionCheckbox("rownum", 1, "Row numbers", array("onchange" => "fold('pl',!this.checked,'rownum')"));
+	displayOptionCheckbox("rownum", 1, "Número de linhas", array("onchange" => "fold('pl',!this.checked,'rownum')"));
 
     // Reviewers group
     if ($Me->canViewReviewerIdentity(true, null, null))
-	displayOptionCheckbox("reviewers", 2, "Reviewers");
+	displayOptionCheckbox("reviewers", 2, "Revisores");
     if ($Me->privChair)
-	displayOptionCheckbox("pcconf", 2, "PC conflicts");
+	displayOptionCheckbox("pcconf", 2, "Conflitos de Comissão Científicas");
     if ($Me->isPC && $pl->any->lead)
-	displayOptionCheckbox("lead", 2, "Discussion leads");
+	displayOptionCheckbox("lead", 2, "Chefe de discussão");
     if ($Me->isPC && $pl->any->shepherd)
-	displayOptionCheckbox("shepherd", 2, "Shepherds");
+	displayOptionCheckbox("shepherd", 2, "Mediadores");
 
     // Scores group
     $anyScores = false;
@@ -1293,29 +1293,29 @@ echo "</div><div class='tld2'>";
 // Advanced search
 echo "<form method='get' action='", hoturl("search"), "' accept-charset='UTF-8'>
 <table><tr>
-  <td class='lxcaption'>Search these papers</td>
+  <td class='lxcaption'>Buscar estes artigos</td>
   <td class='lentry'>$tselect</td>
 </tr>
 <tr>
-  <td class='lxcaption'>Using these fields</td>
+  <td class='lxcaption'>Usando estes campos</td>
   <td class='lentry'>";
-$qtOpt = array("ti" => "Title",
-	       "ab" => "Abstract");
+$qtOpt = array("ti" => "Título",
+	       "ab" => "Resumo");
 if ($Me->privChair || $Conf->subBlindNever()) {
-    $qtOpt["au"] = "Authors";
-    $qtOpt["n"] = "Title, abstract, and authors";
+    $qtOpt["au"] = "Autores";
+    $qtOpt["n"] = "Título, resumos e autores";
 } else if ($Conf->subBlindAlways() && $Me->is_reviewer() && $Conf->timeReviewerViewAcceptedAuthors()) {
-    $qtOpt["au"] = "Accepted authors";
-    $qtOpt["n"] = "Title and abstract, and accepted authors";
+    $qtOpt["au"] = "Autores aceitos";
+    $qtOpt["n"] = "Título e resumo e autores aceitos";
 } else if (!$Conf->subBlindAlways()) {
-    $qtOpt["au"] = "Non-blind authors";
-    $qtOpt["n"] = "Title and abstract, and non-blind authors";
+    $qtOpt["au"] = "Autores não ocultos";
+    $qtOpt["n"] = "Título e resumos, e autores não ocultos";
 } else
-    $qtOpt["n"] = "Title and abstract";
+    $qtOpt["n"] = "Título e resumo";
 if ($Me->privChair)
-    $qtOpt["ac"] = "Authors and collaborators";
+    $qtOpt["ac"] = "Autores e colaboradores";
 if ($Me->isPC) {
-    $qtOpt["re"] = "Reviewers";
+    $qtOpt["re"] = "Revisores";
     $qtOpt["tag"] = "Tags";
 }
 if (!isset($qtOpt[defval($_REQUEST, "qt", "")]))
@@ -1325,19 +1325,19 @@ echo Ht::select("qt", $qtOpt, $_REQUEST["qt"], array("tabindex" => 1)),
 </tr>
 <tr><td><div class='g'></div></td></tr>
 <tr>
-  <td class='lxcaption'>With <b>all</b> the words</td>
+  <td class='lxcaption'>Com <b>todos</b> os termos</td>
   <td class='lentry'><input id='searchform2_d' class='textlite' type='text' size='40' style='width:30em' name='qa' value=\"", htmlspecialchars(defval($_REQUEST, "qa", defval($_REQUEST, "q", ""))), "\" tabindex='1' /><span class='sep'></span></td>
-  <td rowspan='3'><input type='submit' value='Search' tabindex='2' /></td>
+  <td rowspan='3'><input type='submit' value='Buscar' tabindex='2' /></td>
 </tr><tr>
-  <td class='lxcaption'>With <b>any</b> of the words</td>
+  <td class='lxcaption'>Com <b>qualuqer</b> um dos termos</td>
   <td class='lentry'><input class='textlite' type='text' size='40' name='qo' style='width:30em' value=\"", htmlspecialchars(defval($_REQUEST, "qo", "")), "\" tabindex='1' /></td>
 </tr><tr>
-  <td class='lxcaption'><b>Without</b> the words</td>
+  <td class='lxcaption'><b>Sem</b>os termos</td>
   <td class='lentry'><input class='textlite' type='text' size='40' name='qx' style='width:30em' value=\"", htmlspecialchars(defval($_REQUEST, "qx", "")), "\" tabindex='1' /></td>
 </tr>
 <tr>
   <td class='lxcaption'></td>
-  <td><span style='font-size: x-small'><a href='", hoturl("help", "t=search"), "'>Search help</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Search keywords</a></span></td>
+  <td><span style='font-size: x-small'><a href='", hoturl("help", "t=search"), "'>Ajuda de Busca</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Search keywords</a></span></td>
 </tr></table></form>";
 
 echo "</div>";
@@ -1450,11 +1450,11 @@ if ($pl && $pl->count > 0) {
 	    Ht::checkbox("showforce", 1, !!defval($_REQUEST, "forceShow"),
 			  array("id" => "showforce", "class" => "cbx",
 				"onchange" => "fold('pl',!this.checked,'force')")),
-	    "&nbsp;", Ht::label("Override conflicts", "showforce"), "</td>";
+	    "&nbsp;", Ht::label("Ignorar conflitos", "showforce"), "</td>";
 
     // Formulas link
     if (count($paperListFormulas) || ($Me->isPC && $Conf->sversion >= 32))
-	echo "<td class='padlb'><button type='button' onclick='fold(\"searchform\",0,3)'>Edit formulas</button></td>";
+	echo "<td class='padlb'><button type='button' onclick='fold(\"searchform\",0,3)'>Editar formulas</button></td>";
 
     echo "<td class='padlb'>";
     // "Set default display"
@@ -1560,7 +1560,7 @@ if ($pl) {
 	reset($tOpt);
 	echo " in ", strtolower($tOpt[$_REQUEST["t"]]);
 	if (key($tOpt) != $_REQUEST["t"] && $_REQUEST["t"] !== "all")
-	    echo " (<a href=\"", hoturl("search", join("&amp;", $a)), "\">Repetir buscsa como ", strtolower(current($tOpt)), "</a>)";
+	    echo " (<a href=\"", hoturl("search", join("&amp;", $a)), "\">Repetir busca como ", strtolower(current($tOpt)), "</a>)";
     }
 
     if (isset($pl->any->sel))

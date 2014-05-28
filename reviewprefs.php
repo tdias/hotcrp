@@ -205,7 +205,7 @@ echo "<form method='get' action='", hoturl("reviewprefs"), "' accept-charset='UT
     "'>\n<table>";
 
 if ($Me->privChair) {
-    echo "<tr><td class='lxcaption'><strong>Preferences:</strong> &nbsp;</td><td class='lentry'>";
+    echo "<tr><td class='lxcaption'><strong>Preferencias:</strong> &nbsp;</td><td class='lentry'>";
 
     $prefcount = array();
     $result = $Conf->qe("select contactId, count(preference) from PaperReviewPreference where preference!=0 group by contactId");
@@ -223,11 +223,11 @@ if ($Me->privChair) {
 	"<div class='g'></div></td></tr>\n";
 }
 
-echo "<tr><td class='lxcaption'><strong>Search:</strong></td><td class='lentry'><input class='textlite' type='text' size='32' name='q' value=\"", htmlspecialchars(defval($_REQUEST, "q", "")), "\" /><span class='sep'></span></td>",
+echo "<tr><td class='lxcaption'><strong>Buscar:</strong></td><td class='lentry'><input class='textlite' type='text' size='32' name='q' value=\"", htmlspecialchars(defval($_REQUEST, "q", "")), "\" /><span class='sep'></span></td>",
     "<td><input type='submit' name='redisplay' value='Redisplay' /></td>",
     "</tr>\n";
 
-echo "<tr><td class='lxcaption'><strong>Show:</strong> &nbsp;",
+echo "<tr><td class='lxcaption'><strong>Exibir:</strong> &nbsp;",
     foldsessionpixel("pl", "pfdisplay", null),
     "</td><td colspan='2' class='lentry'>";
 $sep = "";
