@@ -11,7 +11,7 @@ $rf = reviewForm();
 
 // general error messages
 if (defval($_REQUEST, "post") && !count($_POST))
-    $Conf->errorMsg("It looks like you tried to upload a gigantic file, larger than I can accept.  The file was ignored.");
+    $Conf->errorMsg("Parece que você tentou enviar um arquivo que excedeu o tamanho máximo. O arquivo foi ignorado.");
 
 
 // download blank review form action
@@ -43,7 +43,7 @@ if (isset($_REQUEST["uploadForm"])
     // Uploading forms may have completed the reviewer's task; recheck roles.
     $Me->update_cached_roles();
 } else if (isset($_REQUEST["uploadForm"]))
-    $Conf->errorMsg("Choose a file first.");
+    $Conf->errorMsg("Escolha um arquivo primeiro.");
 
 
 // upload tag indexes action
@@ -57,15 +57,15 @@ function saveTagIndexes($tag, &$settings, &$titles, &$linenos, &$errors) {
 	    && !($settingrank
 		 ? $Me->canSetRank($row, true)
 		 : $Me->canSetTags($row, true))) {
-	    $errors[$linenos[$row->paperId]] = "You cannot rank paper #$row->paperId. (" . ($Me->isPC?"PC":"npc") . $Me->contactId . $row->conflictType . ")";
+	    $errors[$linenos[$row->paperId]] = "Você não pode classificar o artigo #$row->paperId. (" . ($Me->isPC?"PC":"npc") . $Me->contactId . $row->conflictType . ")";
 	    unset($settings[$row->paperId]);
 	} else if ($titles[$row->paperId] !== ""
 		   && strcmp($row->title, $titles[$row->paperId]) != 0
 		   && strcasecmp($row->title, simplify_whitespace($titles[$row->paperId])) != 0)
-	    $errors[$linenos[$row->paperId]] = "Warning: Title doesn’t match";
+	    $errors[$linenos[$row->paperId]] = "Aviso: O título não confere";
 
     if (!$tag)
-	defappend($Error["tags"], "No tag defined");
+	defappend($Error["tags"], "Nenhuma tag definida");
     else if (count($settings)) {
         $tagger = new Tagger;
 	$tagger->save(array_keys($settings), $tag, "d");
@@ -81,12 +81,12 @@ function setTagIndexes() {
     global $Conf, $Me, $Error;
     if (isset($_REQUEST["upload"]) && fileUploaded($_FILES["file"])) {
 	if (($text = file_get_contents($_FILES["file"]["tmp_name"])) === false) {
-	    $Conf->errorMsg("Internal error: cannot read file.");
+	    $Conf->errorMsg("Erro Interno: Não foi possível ler o arquivo.");
 	    return;
 	}
 	$filename = htmlspecialchars($_FILES["file"]["name"]) . ":";
     } else if (!($text = defval($_REQUEST, "data"))) {
-	$Conf->errorMsg("Choose a file first.");
+	$Conf->errorMsg("Escolha um arquivo primeiro.");
 	return;
     } else
 	$filename = "line ";
@@ -155,7 +155,7 @@ function setTagIndexes() {
     else if (isset($_REQUEST["setvote"]))
 	$Conf->confirmMsg("Votes saved.");
     else
-	$Conf->confirmMsg("Ranking saved.  To view it, <a href='" . hoturl("search", "q=order:" . urlencode($tag)) . "'>search for &ldquo;order:$tag&rdquo;</a>.");
+	$Conf->confirmMsg("Classificação Salva.  Para visualiza-la, <a href='" . hoturl("search", "q=order:" . urlencode($tag)) . "'>busque por &ldquo;order:$tag&rdquo;</a>.");
 }
 if ((isset($_REQUEST["setvote"]) || isset($_REQUEST["setrank"]))
     && $Me->is_reviewer() && check_post())
@@ -165,33 +165,33 @@ if ((isset($_REQUEST["setvote"]) || isset($_REQUEST["setrank"]))
 $pastDeadline = !$Conf->time_review($Me->isPC, true);
 
 if ($pastDeadline && !$Conf->deadlinesAfter("rev_open") && !$Me->privChair) {
-    $Conf->errorMsg("The site is not open for review.");
+    $Conf->errorMsg("O site está fechado para revisões.");
     go(hoturl("index"));
 }
 
-$Conf->header("Offline Reviewing", 'offrev', actionBar());
+$Conf->header("Revisão Offline", 'offrev', actionBar());
 
 if ($Me->is_reviewer()) {
     if ($pastDeadline && !$Conf->deadlinesAfter("rev_open"))
-	$Conf->infoMsg("The site is not open for review.");
+	$Conf->infoMsg("O site está fechado para revisões.");
     else if ($pastDeadline)
-	$Conf->infoMsg("The <a href='" . hoturl("deadlines") . "'>deadline</a> for submitting reviews has passed.");
-    $Conf->infoMsg("Use this page to download a blank review form, or to upload review forms you’ve already filled out.");
+	$Conf->infoMsg("O <a href='" . hoturl("deadlines") . "'>prazo</a> para submissão de revisões terminou.");
+    $Conf->infoMsg("Usa esta página para baixar um formulário de revisão vazio, ou envie formulários que ja tenha preenchido.");
 } else
-    $Conf->infoMsg("You aren’t registered as a reviewer or PC member for this conference, but for your information, you may download the review form anyway.");
+    $Conf->infoMsg("Você não está registrado como revisor ou membro da Comissão para realizar esta conferenciaY, mas para seu conhecimento você pode baixar este formulário de revisão de qualquer forma.");
 
 
 echo "<table id='offlineform'>";
 
 // Review forms
-echo "<tr><td><h3>Download forms</h3>\n<div>";
+echo "<tr><td><h3>Formulários de Download</h3>\n<div>";
 if ($Me->is_reviewer()) {
-    echo "<a href='", hoturl("search", "get=revform&amp;q=&amp;t=r&amp;p=all"), "'>Your reviews</a><br />\n";
+    echo "<a href='", hoturl("search", "get=revform&amp;q=&amp;t=r&amp;p=all"), "'>Suas revisões</a><br />\n";
     if ($Me->has_outstanding_review())
-	echo "<a href='", hoturl("search", "get=revform&amp;q=&amp;t=rout&amp;p=all"), "'>Your incomplete reviews</a><br />\n";
-    echo "<a href='", hoturl("offline", "downloadForm=1"), "'>Blank form</a></div>
+	echo "<a href='", hoturl("search", "get=revform&amp;q=&amp;t=rout&amp;p=all"), "'>Suas revisões incompletas</a><br />\n";
+    echo "<a href='", hoturl("offline", "downloadForm=1"), "'>Formulário vazio</a></div>
 <div class='g'></div>
-<span class='hint'><strong>Tip:</strong> Use <a href='", hoturl("search", "q="), "'>Search</a> &gt; Download to choose individual papers.\n";
+<span class='hint'><strong>Tip:</strong> Use <a href='", hoturl("search", "q="), "'>Busca</a> &gt; Download to choose individual papers.\n";
 } else
     echo "<a href='", hoturl("offline", "downloadForm=1"), "'>Blank form</a></div>\n";
 echo "</td>\n";
@@ -203,7 +203,7 @@ if ($Me->is_reviewer()) {
 	<input type='file' name='uploadedFile' accept='text/plain' size='30' $disabled/>&nbsp; <input type='submit' value='Go' $disabled/>";
     if ($pastDeadline && $Me->privChair)
 	echo "<br />", Ht::checkbox("override"), "&nbsp;", Ht::label("Override&nbsp;deadlines");
-    echo "<br /><span class='hint'><strong>Tip:</strong> You may upload a file containing several forms.</span>";
+    echo "<br /><span class='hint'><strong>Dica:</strong> You may upload a file containing several forms.</span>";
     echo "</div></form></td>\n";
 }
 echo "</tr>\n";

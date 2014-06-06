@@ -2624,13 +2624,13 @@ class PaperSearch {
 
     function description($listname) {
 	if (!$listname) {
-	    $a = array("s" => "Submitted papers", "acc" => "Accepted papers",
-		       "act" => "Active papers", "all" => "All papers",
-		       "r" => "Your reviews", "a" => "Your submissions",
-		       "rout" => "Your incomplete reviews",
-		       "req" => "Your review requests",
-		       "reqrevs" => "Your review requests",
-                       "rable" => "Reviewable papers");
+	    $a = array("s" => "Artigos submetidos", "acc" => "Artigos aceitos",
+		       "act" => "Artigos ativos", "all" => "Todos os artigos",
+		       "r" => "Suas revisões", "a" => "Suas submissões",
+		       "rout" => "Suas revisões incompletas",
+		       "req" => "Suas requisições de revisão",
+		       "reqrevs" => "Suas requisições de revisão",
+                       "rable" => "Artigos revisíveis");
 	    if (isset($a[$this->limitName]))
 		$listname = $a[$this->limitName];
 	    else
@@ -2639,9 +2639,9 @@ class PaperSearch {
 	if ($this->q == "")
 	    return $listname;
 	if (($td = $this->_tagDescription())) {
-	    if ($listname == "Submitted papers") {
+	    if ($listname == "Artigos submetidos") {
 		if ($this->q == "re:me")
-		    return "Your reviews";
+		    return "Suas revisões";
 		else
 		    return $td;
 	    } else
@@ -2704,27 +2704,27 @@ class PaperSearch {
 	global $Conf;
 	$tOpt = array();
 	if ($me->isPC && $Conf->setting("pc_seeall") > 0)
-	    $tOpt["act"] = "Active papers";
+	    $tOpt["act"] = "Artigos ativos";
 	if ($me->isPC)
-	    $tOpt["s"] = "Submitted papers";
+	    $tOpt["s"] = "Artigos submetidos";
 	if ($me->isPC && $Conf->timePCViewDecision(false) && $Conf->setting("paperacc") > 0)
-	    $tOpt["acc"] = "Accepted papers";
+	    $tOpt["acc"] = "Artigos aceitos";
 	if ($me->privChair)
-	    $tOpt["all"] = "All papers";
+	    $tOpt["all"] = "Todos artigos";
 	if ($me->privChair && $Conf->setting("pc_seeall") <= 0 && defval($_REQUEST, "t") == "act")
-	    $tOpt["act"] = "Active papers";
+	    $tOpt["act"] = "Artigos ativos";
 	if ($me->is_reviewer())
-	    $tOpt["r"] = "Your reviews";
+	    $tOpt["r"] = "Suas revisões";
 	if ($me->has_outstanding_review()
 	    || ($me->is_reviewer() && defval($_REQUEST, "t") == "rout"))
-	    $tOpt["rout"] = "Your incomplete reviews";
+	    $tOpt["rout"] = "Suas revisões incompletas";
 	if ($me->isPC)
-	    $tOpt["req"] = "Your review requests";
+	    $tOpt["req"] = "Suas requisições de revisão";
 	if ($me->isPC && $Conf->setting("paperlead") > 0
 	    && $me->is_discussion_lead())
 	    $tOpt["lead"] = "Your discussion leads";
 	if ($me->is_author())
-	    $tOpt["a"] = "Your submissions";
+	    $tOpt["a"] = "Suas submissões";
 	return $tOpt;
     }
 

@@ -423,7 +423,7 @@ function option_request_to_json(&$new_opts, $id, $current_opts) {
         return;
     } else if ($name == ""
                || @$_REQUEST["optfp$id"] == "delete"
-               || ($id[0] == "n" && ($name == "New option" || $name == "(Enter new option)")))
+               || ($id[0] == "n" && ($name == "New option" || $name == "(Insira uma nova opção)")))
         return;
 
     $oarg = array("name" => $name, "id" => (int) $id, "req_id" => $id);
@@ -1150,8 +1150,8 @@ function doGraceRow($name, $text, $capclass = "lcaption") {
 
 function doActionArea($top) {
     echo "<div class='aa'", ($top ? " style='margin-top:0'" : ""), ">
-  <input type='submit' class='bb' name='update' value='Save changes' />
-  &nbsp;<input type='submit' name='cancel' value='Cancel' />
+  <input type='submit' class='bb' name='update' value='Salvar Alterações' />
+  &nbsp;<input type='submit' name='cancel' value='Cancelar' />
 </div>";
 }
 
@@ -1161,12 +1161,12 @@ function doActionArea($top) {
 function doAccGroup() {
     global $Conf, $Me, $belowHr;
 
-    doCheckbox("acct_addr", "Collect users&rsquo; addresses and phone numbers");
+    doCheckbox("acct_addr", "Agrupar endereços e telefones de usuários");
 
-    echo "<h3 class=\"settings g\">Program committee &amp; system administrators</h3>";
+    echo "<h3 class=\"settings g\">Organizadores e Administradores do Sistema</h3>";
 
-    echo "<p><a href='", hoturl("profile", "u=new"), "' class='button'>Create account</a> &nbsp;|&nbsp; ",
-	"Select a user&rsquo;s name to edit a profile.</p>\n";
+    echo "<p><a href='", hoturl("profile", "u=new"), "' class='button'>Criar Conta</a> &nbsp;|&nbsp; ",
+	"Selecione um nome de usuário para editar o perfil.</p>\n";
     $pl = new ContactList($Me, false);
     echo $pl->text("pcadminx", hoturl("users", "t=pcadmin"));
 }
@@ -1209,16 +1209,17 @@ function doMsgGroup() {
         Ht::entry("opt.contactName", opt_data("contactName", null, "Your Name"), array("class" => "textlite", "size" => 50, "onchange" => "hiliter(this)")),
         "<div class='g'></div>\n";
 
-    echo "<div class='f-c'>", setting_label("opt.contactEmail", "Email of primary site administrator"), "</div>\n",
+    echo "<div class='f-c'>", setting_label("opt.contactEmail", "Email do Administrador Principal"), "</div>\n",
         Ht::entry("opt.contactEmail", opt_data("contactEmail", null, "you@example.com"), array("class" => "textlite", "size" => 40, "onchange" => "hiliter(this)")),
         "<div class='ug'></div>\n",
-        "<div class='hint'>The primary site administrator is listed as the contact in system emails.</div>",
+        "<div class='hint'>O administrador do site é listado como contato nos emails do sistema.</div>",
         "<div class='lg'></div>\n";
 
     do_message("msg.home", "Home page message");
-    do_message("clickthrough_submit", "Clickthrough submission terms", 10,
-               "<div class=\"hint fx\">Users must “accept” these terms to edit or submit a paper. Use HTML, and consider including a headline, such as “&lt;h2&gt;Submission terms&lt;/h2&gt;”.</div>");
-    do_message("msg.conflictdef", "Definition of conflict of interest", 5);
+    do_message("clickthrough_submit", "Concorde com os termos de submissão", 10,
+               "<div class=\"hint fx\">Usuários devem concordar com estes termos para editar ou submeter um artigo. Use HTML e considere incluir um cabeçalho ;Termos de Submissão</div>");
+ 
+    do_message("msg.conflictdef", "Definição de conflitos de interesse", 5);
     do_message("msg.revprefdescription", "Review preference instructions", 20);
     do_message("msg.responseinstructions", "Authors’ response instructions");
 }
@@ -1227,59 +1228,59 @@ function doMsgGroup() {
 function doSubGroup() {
     global $Conf;
 
-    doCheckbox('sub_open', '<b>Open site for submissions</b>');
+    doCheckbox('sub_open', '<b>Abrir site para submissões</b>');
 
     echo "<div class='g'></div>\n";
-    echo "<strong>Blind submission:</strong> Are author names hidden from reviewers?<br />\n";
-    doRadio("sub_blind", array(Conference::BLIND_ALWAYS => "Yes—submissions are anonymous",
-                               Conference::BLIND_NEVER => "No—author names are visible to reviewers",
-                               Conference::BLIND_UNTILREVIEW => "Blind until review—author names become visible after review submission",
-                               Conference::BLIND_OPTIONAL => "Depends—authors decide whether to expose their names"));
+    echo "<strong>Submissão oculta:</strong> Os autores podem ocultar nomes dos revisores?<br />\n";
+    doRadio("sub_blind", array(Conference::BLIND_ALWAYS => "Sim—submissões são anônimas",
+                               Conference::BLIND_NEVER => "Nenhuma nome de autor é visível para revisores",
+                               Conference::BLIND_UNTILREVIEW => "Oculto até o nome do autor ou revisor tornar-se visível após a revisão de submissão",
+                               Conference::BLIND_OPTIONAL => "Depende do autor decidir se expõe seu nome"));
 
     echo "<div class='g'></div>\n<table>\n";
-    doDateRow("sub_reg", "Paper registration deadline", "sub_sub");
-    doDateRow("sub_sub", "Paper submission deadline");
-    doGraceRow("sub_grace", 'Grace period');
+    doDateRow("sub_reg", "Prazo para registro de Artigo", "sub_sub");
+    doDateRow("sub_sub", "Prazo para submissão de Artigo");
+    doGraceRow("sub_grace", 'Prazo de Carência');
     echo "</table>\n";
 
     echo "<div class='g'></div>\n<table id='foldpcconf' class='fold",
 	($Conf->setting("sub_pcconf") ? "o" : "c"), "'>\n";
-    doCheckbox("sub_pcconf", "Collect authors&rsquo; PC conflicts", true,
+    doCheckbox("sub_pcconf", "Agrupar conflitos de autores com membros da comissão científica", true,
 	       "hiliter(this);void fold('pcconf',!this.checked)");
     echo "<tr class='fx'><td></td><td>";
-    doCheckbox("sub_pcconfsel", "Collect PC conflict types (“Advisor/student,” “Recent collaborator,” etc.)");
+    doCheckbox("sub_pcconfsel", "Agrupar tipos de conflitos da comissão científica (“Acessor/estudante,” “Colaborador Recente,” etc.)");
     echo "</td></tr>\n";
-    doCheckbox("sub_collab", "Collect authors&rsquo; other collaborators as text", true);
+    doCheckbox("sub_collab", "Agrupar outras colaborações do autor como texto", true);
     echo "</table>\n";
 
     if (is_executable("src/banal")) {
 	echo "<div class='g'></div>",
             Ht::hidden("has_banal", 1),
             "<table id='foldbanal' class='", ($Conf->setting("sub_banal") ? "foldo" : "foldc"), "'>";
-	doCheckbox("sub_banal", "<strong>Automated format checker<span class='fx'>:</span></strong>", true, "hiliter(this);void fold('banal',!this.checked)");
+	doCheckbox("sub_banal", "<strong>Checagem de formato automatizada<span class='fx'>:</span></strong>", true, "hiliter(this);void fold('banal',!this.checked)");
 	echo "<tr class='fx'><td></td><td class='top'><table>";
 	$bsetting = explode(";", preg_replace("/>.*/", "", $Conf->setting_data("sub_banal", "")));
 	for ($i = 0; $i < 6; $i++)
 	    if (defval($bsetting, $i, "") == "")
 		$bsetting[$i] = "N/A";
-	doTextRow("sub_banal_papersize", array("Paper size", "Examples: “letter”, “A4”, “8.5in&nbsp;x&nbsp;14in”,<br />“letter OR A4”"), setting("sub_banal_papersize", $bsetting[0]), 18, "lxcaption", "N/A");
-	doTextRow("sub_banal_pagelimit", "Page limit", setting("sub_banal_pagelimit", $bsetting[1]), 4, "lxcaption", "N/A");
+	doTextRow("sub_banal_papersize", array("Tamanho do Artigo", "Exemplo: “Carta”, “A4”, “8.5in&nbsp;x&nbsp;14in”,<br />“Carta ou A4”"), setting("sub_banal_papersize", $bsetting[0]), 18, "lxcaption", "N/A");
+	doTextRow("sub_banal_pagelimit", "Limite de Páginas", setting("sub_banal_pagelimit", $bsetting[1]), 4, "lxcaption", "N/A");
 	doTextRow("sub_banal_textblock", array("Text block", "Examples: “6.5in&nbsp;x&nbsp;9in”, “1in&nbsp;margins”"), setting("sub_banal_textblock", $bsetting[3]), 18, "lxcaption", "N/A");
 	echo "</table></td><td><span class='sep'></span></td><td class='top'><table>";
-	doTextRow("sub_banal_bodyfontsize", array("Minimum body font size", null, "&nbsp;pt"), setting("sub_banal_bodyfontsize", $bsetting[4]), 4, "lxcaption", "N/A");
+	doTextRow("sub_banal_bodyfontsize", array("Tamanho mínimo de fonte", null, "&nbsp;pt"), setting("sub_banal_bodyfontsize", $bsetting[4]), 4, "lxcaption", "N/A");
 	doTextRow("sub_banal_bodyleading", array("Minimum leading", null, "&nbsp;pt"), setting("sub_banal_bodyleading", $bsetting[5]), 4, "lxcaption", "N/A");
 	doTextRow("sub_banal_columns", array("Columns", null), setting("sub_banal_columns", $bsetting[2]), 4, "lxcaption", "N/A");
 	echo "</table></td></tr></table>";
     }
 
     echo "<hr class='hr' />\n";
-    doRadio("sub_freeze", array(0 => "<strong>Authors can update submissions until the deadline</strong>", 1 => array("Authors must freeze the final version of each submission", "“Authors can update submissions until the deadline” is usually the best choice.  Freezing submissions can be useful when there is no submission deadline.")));
+    doRadio("sub_freeze", array(0 => "<strong>Autores podem atualizar suas submissões até o prazo</strong>", 1 => array("Autores devem preservar a versão final de cada submissão", "“Autores podem atualizar submissões até a prazo” é geralmente a melhor escolha.  Preservar submissões pode ser util quando não há data limite.")));
 
     echo "<div class='g'></div><table>\n";
     // compensate for pc_seeall magic
     if ($Conf->setting("pc_seeall") < 0)
 	$Conf->settings["pc_seeall"] = 1;
-    doCheckbox('pc_seeall', "PC can see <i>all registered papers</i> until submission deadline<br /><small>Check this box if you want to collect review preferences <em>before</em> most papers are submitted. After the submission deadline, PC members can only see submitted papers.</small>", true);
+    doCheckbox('pc_seeall', "Membros da comissão científica podem visualizar <i>todos artigos registrados</i> até o prazo de submissão<br /><small>Marque está opção se deseja agrupar preferências de revisão<em> antes</em> da maioria dos artigos serem submetidos. Depos do prazo de submissão, membros da comissão científica podem somente visualizar artigos submetidos.</small>", true);
     echo "</table>";
 }
 
@@ -1299,7 +1300,7 @@ function doOptGroupOption($o) {
 
     if (is_string($o))
         $o = new PaperOption(array("id" => $o,
-                "name" => "(Enter new option)",
+                "name" => "(Insira uma nova opção)",
                 "description" => "",
                 "type" => "checkbox",
                 "position" => count(PaperOption::option_list()) + 1));
@@ -1321,21 +1322,21 @@ function doOptGroupOption($o) {
     echo "<tr><td><div class='f-contain'>\n",
 	"  <div class='f-i'>",
 	"<div class='f-c'>",
-	setting_label("optn$id", ($id === "n" ? "New option name" : "Option name")),
+	setting_label("optn$id", ($id === "n" ? "Nome da nova opção" : "Nome da opção")),
 	"</div>",
 	"<div class='f-e'>",
-        Ht::entry("optn$id", $o->name, array("class" => "textlite", "hottemptext" => "(Enter new option)", "size" => 50, "onchange" => "hiliter(this)")),
+        Ht::entry("optn$id", $o->name, array("class" => "textlite", "hottemptext" => "(Insira uma nova opção)", "size" => 50, "onchange" => "hiliter(this)")),
 	"</div>\n",
 	"  <div class='f-i'>",
 	"<div class='f-c'>",
-	setting_label("optd$id", "Description"),
+	setting_label("optd$id", "Descrição"),
 	"</div>",
 	"<div class='f-e'><textarea class='textlite' name='optd$id' rows='2' cols='50' onchange='hiliter(this)'>", htmlspecialchars($o->description), "</textarea></div>",
 	"</div></td>";
 
     if ($id !== "n") {
 	echo "<td style='padding-left: 1em'><div class='f-i'>",
-	    "<div class='f-c'>Example search</div>",
+	    "<div class='f-c'>Exemplo de Busca</div>",
 	    "<div class='f-e'>";
 	$oabbrev = simplify_whitespace($o->name);
 	foreach (preg_split('/\s+/', preg_replace('/[^a-z\s]/', '', strtolower($o->name))) as $oword)
@@ -1356,7 +1357,7 @@ function doOptGroupOption($o) {
     echo "</tr>\n  <tr><td colspan='2'><table id='foldoptvis$id' class='fold2c fold3o'><tr>";
 
     echo "<td class='pad'><div class='f-i'><div class='f-c'>",
-	setting_label("optvt$id", "Type"), "</div><div class='f-e'>";
+	setting_label("optvt$id", "Tipo"), "</div><div class='f-e'>";
 
     $optvt = $o->type;
     if ($optvt == "text" && @$o->display_space > 3)
@@ -1370,37 +1371,37 @@ function doOptGroupOption($o) {
 
     $otypes = array();
     if ($show_final)
-	$otypes["xxx1"] = array("optgroup", "Options for submissions");
+	$otypes["xxx1"] = array("optgroup", "Opções para submissão");
     $otypes["checkbox"] = "Checkbox";
-    $otypes["selector"] = "Selector";
-    $otypes["radio"] = "Radio buttons";
-    $otypes["numeric"] = "Numeric";
-    $otypes["text"] = "Text";
+    $otypes["selector"] = "Seletor";
+    $otypes["radio"] = "Botão rádio";
+    $otypes["numeric"] = "Numerico";
+    $otypes["text"] = "Texto";
     if ($o->type == "text" && @$o->display_space > 3 && $o->display_space != 5)
-        $otypes[$optvt] = "Multiline text";
+        $otypes[$optvt] = "Texto Multilinha";
     else
-        $otypes["text:ds_5"] = "Multiline text";
+        $otypes["text:ds_5"] = "Texto Multilinha";
     $otypes["pdf"] = "PDF";
     $otypes["slides"] = "Slides";
     $otypes["video"] = "Video";
-    $otypes["attachments"] = "Attachments";
+    $otypes["attachments"] = "Anexos";
     if ($show_final) {
-	$otypes["xxx2"] = array("optgroup", "Options for accepted papers");
-	$otypes["pdf:final"] = "Alternate final version";
-	$otypes["slides:final"] = "Final slides";
-	$otypes["video:final"] = "Final video";
+	$otypes["xxx2"] = array("optgroup", "Opções para artigos aceitos");
+	$otypes["pdf:final"] = "Versão final alternativa";
+	$otypes["slides:final"] = "Slides Final";
+	$otypes["video:final"] = "Video Final";
     }
     echo Ht::select("optvt$id", $otypes, $optvt, array("onchange" => "do_option_type(this)", "id" => "optvt$id")),
 	"</div></div></td>";
     $Conf->footerScript("do_option_type(\$\$('optvt$id'),true)");
 
     echo "<td class='fn2 pad'><div class='f-i'><div class='f-c'>",
-	setting_label("optp$id", "Visibility"), "</div><div class='f-e'>",
-	Ht::select("optp$id", array("admin" => "Administrators only", "pc" => "Visible to PC and reviewers", "nonblind" => "Visible if authors are visible"), $o->view_type, array("onchange" => "hiliter(this)")),
+	setting_label("optp$id", "Visibilidade"), "</div><div class='f-e'>",
+	Ht::select("optp$id", array("admin" => "Administradores Somente", "pc" => "Visível para revisores e membros da comissão científica", "nonblind" => "Visível  se autores estão visíveis"), $o->view_type, array("onchange" => "hiliter(this)")),
 	"</div></div></td>";
 
     echo "<td class='pad'><div class='f-i'><div class='f-c'>",
-        setting_label("optfp$id", "Form order"), "</div><div class='f-e'>";
+        setting_label("optfp$id", "Ordem do formulário"), "</div><div class='f-e'>";
     $x = array();
     // can't use "foreach (PaperOption::option_list())" because caller
     // uses cursor
@@ -1409,15 +1410,15 @@ function doOptGroupOption($o) {
     if ($id === "n")
         $x[$n + 1] = ordinal($n + 1);
     else
-        $x["delete"] = "Delete option";
+        $x["delete"] = "Remover Opção";
     echo Ht::select("optfp$id", $x, $o->position, array("onchange" => "hiliter(this)")),
         "</div></div></td>";
 
     echo "<td class='pad fn3'><div class='f-i'><div class='f-c'>",
-        setting_label("optdt$id", "Display"), "</div><div class='f-e'>";
+        setting_label("optdt$id", "Exibir"), "</div><div class='f-e'>";
     echo Ht::select("optdt$id", array("normal" => "Normal",
-                                      "highlight" => "Prominent",
-                                      "near_submission" => "Near submission"),
+                                      "highlight" => "Destacado",
+                                      "near_submission" => "Próximo da submissao"),
                     $o->display_type(), array("onchange" => "hiliter(this)")),
         "</div></div></td>";
 
@@ -1434,7 +1435,7 @@ function doOptGroupOption($o) {
 	$value = "";
     echo "<div id='foldoptv$id' class='", (PaperOption::type_has_selector($optvt) ? "foldo" : "foldc"),
 	"'><div class='fx'>",
-	"<div class='hint' style='margin-top:1ex'>Enter choices one per line.  The first choice will be the default.</div>",
+	"<div class='hint' style='margin-top:1ex'>Entre uma opção por linha.  A primeira opção será padrão.</div>",
 	"<textarea class='textlite' name='optv$id' rows='", $rows, "' cols='50' onchange='hiliter(this)'>", htmlspecialchars($value), "</textarea>",
 	"</div></div>";
 
@@ -1444,9 +1445,9 @@ function doOptGroupOption($o) {
 function doOptGroup() {
     global $Conf;
 
-    echo "<h3 class=\"settings\">Submission options</h3>\n";
-    echo "Options are selected by authors at submission time.  Examples have included “PC-authored paper,” “Consider this paper for a Best Student Paper award,” and “Allow the shadow PC to see this paper.”  The “option name” should be brief (“PC paper,” “Best Student Paper,” “Shadow PC”).  The optional description can explain further and may use XHTML.  ";
-    echo "Add options one at a time.\n";
+    echo "<h3 class=\"settings\">Opções de Submissão</h3>\n";
+    echo "Opções são selecionadas pelos autores no momento de submissão. Exemplos incluem “Artigos da comissão cientifica,” “Considere este artigo para um premio de melhor estudante,” e  “Permitir membro que membros ocultos da CC visualize este artigo.”  O nome da opção deve ser resumido. Uma descrição melhorada pode ser feita depois e utilizar XHTML.  ";
+    echo "Adicione uma opção por vez.\n";
     echo "<div class='g'></div>\n",
         Ht::hidden("has_options", 1),
         "<table>";
@@ -1477,13 +1478,13 @@ function doOptGroup() {
 	$ninterests += ($row[2] ? 1 : 0);
     }
 
-    echo "<h3 class=\"settings g\">Topics</h3>\n";
-    echo "Enter topics one per line.  Authors select the topics that apply to their papers; PC members use this information to find papers they'll want to review.  To delete a topic, delete its name.\n";
+    echo "<h3 class=\"settings g\">Tópicos</h3>\n";
+    echo "Insira um tópico por linha. Autores selecionam os tópicos que são aplicáveis aos seus artigos; Membros da Comissão podem usar esta informação para procurar artigos que desejam revisar. Para deletar um tópico, delete seu nome.\n";
     echo "<div class='g'></div>",
         Ht::hidden("has_topics", 1),
         "<table id='newtoptable' class='", ($ninterests ? "foldo" : "foldc"), "'>";
     echo "<tr><th colspan='2'></th><th class='fx'><small>Low</small></th><th class='fx'><small>High</small></th></tr>";
-    $td1 = "<td class='lcaption'>Current</td>";
+    $td1 = "<td class='lcaption'>Atual</td>";
     foreach ($Conf->topic_map() as $tid => $tname) {
 	echo "<tr>$td1<td class='lentry'><input type='text' class='textlite' name='top$tid' value=\"", htmlspecialchars($tname), "\" size='40' onchange='hiliter(this)' /></td>";
 
@@ -1509,7 +1510,7 @@ function doOptGroup() {
 	echo "</tr>\n";
 	$td1 = "<td></td>";
     }
-    $td1 = "<td class='lcaption' rowspan='40'>New<br /><small><a href='#' onclick='return authorfold(\"newtop\",1,1)'>More</a> | <a href='#' onclick='return authorfold(\"newtop\",1,-1)'>Fewer</a></small></td>";
+    $td1 = "<td class='lcaption' rowspan='40'>Novo<br /><small><a href='#' onclick='return authorfold(\"newtop\",1,1)'>Mais</a> | <a href='#' onclick='return authorfold(\"newtop\",1,-1)'>Anteriores</a></small></td>";
     for ($i = 1; $i <= 40; $i++) {
 	echo "<tr id='newtop$i' class='auedito'>$td1<td class='lentry'><input type='text' class='textlite' name='topn$i' value=\"\" size='40' onchange='hiliter(this)' /></td></tr>\n";
 	$td1 = "";
@@ -1572,46 +1573,46 @@ function do_track($trackname, $tnum) {
 function doRevGroup() {
     global $Conf, $Error, $Highlight, $DateExplanation, $TagStyles;
 
-    doCheckbox("rev_open", "<b>Open site for reviewing</b>");
-    doCheckbox("cmt_always", "Allow comments even if reviewing is closed");
+    doCheckbox("rev_open", "<b>Abrir site para revisões</b>");
+    doCheckbox("cmt_always", "Permitir comentários mesmo se revisões estiverem fechadas");
 
     echo "<div class='g'></div>\n";
-    echo "<strong>Review anonymity:</strong> Are reviewer names hidden from authors?<br />\n";
-    doRadio("rev_blind", array(Conference::BLIND_ALWAYS => "Yes—reviews are anonymous",
-                               Conference::BLIND_NEVER => "No—reviewer names are visible to authors",
-                               Conference::BLIND_OPTIONAL => "Depends—reviewers decide whether to expose their names"));
+    echo "<strong>Privacidade da Revisão:</strong> Os nomes de revisores estão ocultos de seus autores?<br />\n";
+    doRadio("rev_blind", array(Conference::BLIND_ALWAYS => "Sim, revisores são anônimos",
+                               Conference::BLIND_NEVER => "Não, nenhum nome de revisor é visível para os autores",
+                               Conference::BLIND_OPTIONAL => "Depende dos revisores decidir de irão expor seus nomes"));
 
     echo "<div class='g'></div>\n";
-    doCheckbox('rev_notifychair', 'PC chairs are notified of new reviews by email');
+    doCheckbox('rev_notifychair', 'Membros da comissão científica são notificados sobre novas revisões por email');
 
 
     // Review visibility
-    echo "<h3 class=\"settings g\">Review visibility</h3>\n";
+    echo "<h3 class=\"settings g\">Visibilidade de Revisão</h3>\n";
 
-    echo "Can PC members <strong>see all reviews</strong> except for conflicts?<br />\n";
-    doRadio("pc_seeallrev", array(Conference::PCSEEREV_YES => "Yes",
-				  Conference::PCSEEREV_UNLESSINCOMPLETE => "Yes, unless they haven’t completed an assigned review for the same paper",
-				  Conference::PCSEEREV_UNLESSANYINCOMPLETE => "Yes, after completing all their assigned reviews",
-				  Conference::PCSEEREV_IFCOMPLETE => "Only after completing a review for the same paper"));
+    echo "Os membros da comissão podem <strong>visualizar todas as revisões</strong> exceto as que possuem conflitos?<br />\n";
+    doRadio("pc_seeallrev", array(Conference::PCSEEREV_YES => "SIM",
+				  Conference::PCSEEREV_UNLESSINCOMPLETE => "Sim, a não ser que não tenham completado uma revissão atribuída ao mesmo artigo",
+				  Conference::PCSEEREV_UNLESSANYINCOMPLETE => "Sim, após completar todas suas revisões atribuidas",
+				  Conference::PCSEEREV_IFCOMPLETE => "Somente após completar uma revisão do mesmo artigo"));
 
     echo "<div class='g'></div>\n";
-    echo "Can PC members see <strong>reviewer names</strong> except for conflicts?<br />\n";
+    echo "Somente membros da comissão podem<strong> visualizar nomes  </strong> exceto os que possuem conflitos?<br />\n";
     doRadio("pc_seeblindrev", array(0 => "Yes",
-				    1 => "Only after completing a review for the same paper<br /><span class='hint'>This setting also hides reviewer-only comments from PC members who have not completed a review for the paper.</span>"));
+				    1 => "Somente depois de completar uma revisão para o mesmo artigo<br /><span class='hint'>Esta configuração também oculta comentários de revisores  da comissão que não tenha completado uma revisão deste artigo.</span>"));
 
     echo "<div class='g'></div>";
-    echo "Can external reviewers see the other reviews for their assigned papers, once they&rsquo;ve submitted their own?<br />\n";
-    doRadio("extrev_view", array(2 => "Yes", 1 => "Yes, but they can&rsquo;t see who wrote blind reviews", 0 => "No"));
+    echo "Revisores externos podem visualizar outras revisões para artigos atríbuidos, uma vez que tenham submetido seus próprios artigos ?<br />\n";
+    doRadio("extrev_view", array(2 => "Yes", 1 => "Sim, mas podem visualizar quem escreveu revisões ocultas", 0 => "No"));
 
 
     // PC reviews
-    echo "<h3 class=\"settings g\">PC reviews</h3>\n";
+    echo "<h3 class=\"settings g\">Revisões da Comissão Científica</h3>\n";
 
     echo "<table>\n";
     $date_text = $DateExplanation;
     $DateExplanation = null;
-    doDateRow("pcrev_soft", array("Deadline", "Reviews are due by the deadline."), "pcrev_hard");
-    doDateRow("pcrev_hard", array("Hard deadline", "Reviews <em>cannot be entered or changed</em> after the hard deadline.  If set, this should generally be after the PC meeting.<br />$date_text"));
+    doDateRow("pcrev_soft", array("Prazo", "Revisões são definidas pelo prazo."), "pcrev_hard");
+    doDateRow("pcrev_hard", array("Prazo Rígido", "Revisões <em>não podem ser inseridas ou alteradas</em> após o prazo rígido.  Se selecionado, devem geralmente ocorrer após o encntro da comissão.<br />$date_text"));
     if (!($rev_roundtag = setting_data("rev_roundtag")))
 	$rev_roundtag = "(None)";
     doTextRow("rev_roundtag", array("Review round", "This will mark new PC review assignments by default.  Examples: “R1”, “R2” &nbsp;<span class='barsep'>|</span>&nbsp; <a href='" . hoturl("help", "t=revround") . "'>What is this?</a>"), $rev_roundtag, 15, "lxcaption", "(None)");
@@ -1619,19 +1620,19 @@ function doRevGroup() {
         Ht::hidden("has_rev_roundtag", 1);
 
     echo "<div class='g'></div>\n";
-    doCheckbox('pcrev_any', "PC members can review <strong>any</strong> submitted paper");
+    doCheckbox('pcrev_any', "Membros da comissão científica podem revisar <strong>qualquer</strong> artigo enviado");
 
 
     // External reviews
-    echo "<h3 class=\"settings g\">External reviews</h3>\n";
+    echo "<h3 class=\"settings g\">Revisões Externas</h3>\n";
 
-    doCheckbox("extrev_chairreq", "PC chair must approve proposed external reviewers");
-    doCheckbox("pcrev_editdelegate", "PC members can edit external reviews they requested");
+    doCheckbox("extrev_chairreq", "Membros da comissão científica devem aprovar os revisores externos propostos");
+    doCheckbox("pcrev_editdelegate", "Membros da Comissão podem editar revisões externas que requisitaram");
     echo "<div class='g'></div>";
 
     echo "<table>\n";
-    doDateRow("extrev_soft", "Deadline", "extrev_hard");
-    doDateRow("extrev_hard", "Hard deadline");
+    doDateRow("extrev_soft", "Prazo", "extrev_hard");
+    doDateRow("extrev_hard", "Prazo Rígido");
     echo "</table>\n";
 
     echo "<div class='g'></div>\n";
@@ -1639,8 +1640,8 @@ function doRevGroup() {
     echo "<table id='foldmailbody_requestreview' class='",
         ($t == expandMailTemplate("requestreview", true) ? "foldc" : "foldo"),
         "'><tr><td>", foldbutton("mailbody_requestreview", ""), "</td>",
-	"<td><a href='#' onclick='return fold(\"mailbody_requestreview\")' class='q'><strong>Mail template for external review requests</strong></a>",
-	" <span class='fx'>(<a href='", hoturl("mail"), "'>keywords</a> allowed; set to empty for default)<br /></span>
+	"<td><a href='#' onclick='return fold(\"mailbody_requestreview\")' class='q'><strong>Exemplo de Email para requisição de revisões externas</strong></a>",
+	" <span class='fx'>(<a href='", hoturl("mail"), "'>palavras chave</a> permitidas; deixe vazio por padrão)<br /></span>
 <textarea class='tt fx' name='mailbody_requestreview' cols='80' rows='20' onchange='hiliter(this)'>", htmlspecialchars($t["body"]), "</textarea>",
 	"</td></tr></table>\n";
 
@@ -1731,10 +1732,10 @@ function doRevGroup() {
     echo "</div></td></tr></table>\n";
 
     // Review ratings
-    echo "<h3 class=\"settings g\">Review ratings</h3>\n";
+    echo "<h3 class=\"settings g\">Classificações de Revisão</h3>\n";
 
-    echo "Should HotCRP collect ratings of reviews? &nbsp; <a class='hint' href='", hoturl("help", "t=revrate"), "'>(Learn more)</a><br />\n";
-    doRadio("rev_ratings", array(REV_RATINGS_PC => "Yes, PC members can rate reviews", REV_RATINGS_PC_EXTERNAL => "Yes, PC members and external reviewers can rate reviews", REV_RATINGS_NONE => "No"));
+    echo "O HotCRP deve agrupar classificações de revisões? &nbsp; <a class='hint' href='", hoturl("help", "t=revrate"), "'>(Aprenda mais)</a><br />\n";
+    doRadio("rev_ratings", array(REV_RATINGS_PC => "Sim, Membros da comissão podem classificar revisões", REV_RATINGS_PC_EXTERNAL => "Sim, Membros da comissão científica e revisores externos podem classificar revisões", REV_RATINGS_NONE => "Não"));
 }
 
 // Review form
@@ -1748,24 +1749,24 @@ function doDecGroup() {
     global $Conf, $Highlight, $Error;
 
     // doCheckbox('au_seerev', '<b>Authors can see reviews</b>');
-    echo "Can <b>authors see reviews and comments</b> for their papers?<br />";
-    doRadio("au_seerev", array(AU_SEEREV_NO => "No", AU_SEEREV_ALWAYS => "Yes", AU_SEEREV_YES => "Yes, once they&rsquo;ve completed any requested reviews"));
+    echo "<b>Autores podem visualizar revisões e comentários</b> para seus artigos?<br />";
+    doRadio("au_seerev", array(AU_SEEREV_NO => "No", AU_SEEREV_ALWAYS => "Yes", AU_SEEREV_YES => "Sim, uma vez que tenham completado qualquer revisão requisitada"));
 
     echo "<div class='g'></div>\n<table id='foldauresp' class='foldo'>";
-    doCheckbox('resp_open', "<b>Collect authors&rsquo; responses to the reviews<span class='fx'>:</span></b>", true, "void fold('auresp',!this.checked)");
+    doCheckbox('resp_open', "<b>Reunir autores&rsquo; e respostas aos revisores<span class='fx'>:</span></b>", true, "void fold('auresp',!this.checked)");
     echo "<tr class='fx'><td></td><td><table>";
-    doDateRow('resp_done', 'Hard deadline', null, "lxcaption");
-    doGraceRow('resp_grace', 'Grace period', "lxcaption");
-    doTextRow("resp_words", array("Word limit", "This is a soft limit: authors may submit longer responses. 0 means no limit."), setting("resp_words", 500), 5, "lxcaption", "none");
+    doDateRow('resp_done', 'Prazo máximo', null, "lxcaption");
+    doGraceRow('resp_grace', 'Período de Carência', "lxcaption");
+    doTextRow("resp_words", array("Limíte de Palavras", "Este limite é flexível: autores podem enviar respostas grandes. 0 significa sem limite."), setting("resp_words", 500), 5, "lxcaption", "none");
     echo "</table></td></tr></table>";
     $Conf->footerScript("fold('auresp',!\$\$('cbresp_open').checked)");
 
     echo "<div class='g'></div>\n<hr class='hr' />\n",
-	"Who can see paper <b>decisions</b> (accept/reject)?<br />\n";
-    doRadio("seedec", array(Conference::SEEDEC_ADMIN => "Only administrators",
-                            Conference::SEEDEC_NCREV => "Reviewers and non-conflicted PC members",
-                            Conference::SEEDEC_REV => "Reviewers and <em>all</em> PC members",
-                            Conference::SEEDEC_ALL => "<b>Authors</b>, reviewers, and all PC members (and reviewers can see accepted papers’ author lists)"));
+	"Quem pode visualizar o artigo <b>decisões</b> (aceitar/rejeitar)?<br />\n";
+    doRadio("seedec", array(Conference::SEEDEC_ADMIN => "Somente administradores",
+                            Conference::SEEDEC_NCREV => "Revisores e membros da comissão científica não conflitados",
+                            Conference::SEEDEC_REV => "Revisores  <em>e todos</em> os membros da Comissão Científica",
+                            Conference::SEEDEC_ALL => "<b>Autores</b>, revisores, e todos membros da comissão científica (e revisores podem visualizar artigos aceitos’ e lista de autores)"));
 
     echo "<div class='g'></div>\n";
     echo "<table>\n";
@@ -1782,7 +1783,7 @@ function doDecGroup() {
     $n_real_decs = 0;
     foreach ($decs as $k => $v)
 	$n_real_decs += ($k ? 1 : 0);
-    $caption = "<td class='lcaption' rowspan='$n_real_decs'>Current decision types</td>";
+    $caption = "<td class='lcaption' rowspan='$n_real_decs'>Tipos atuais de decisão</td>";
     foreach ($decs as $k => $v)
 	if ($k) {
 	    if (count($Error) > 0)
@@ -1804,31 +1805,31 @@ function doDecGroup() {
 	$vclass = defval($_REQUEST, "dtypn", $vclass);
     }
     echo "<tr><td class='lcaption'>",
-	setting_label("decn", "New decision type"),
+	setting_label("decn", "Novo tipo de decisão"),
 	"<br /></td>",
 	"<td class='lentry nowrap'>",
         Ht::hidden("has_decisions", 1),
         "<input type='text' class='textlite' name='decn' value=\"", htmlspecialchars($v), "\" size='35' onchange='hiliter(this)' /> &nbsp; ",
-	Ht::select("dtypn", array(1 => "Accept class", -1 => "Reject class"),
+	Ht::select("dtypn", array(1 => "Categoria aceita", -1 => "Categoria rejeitada"),
 		    $vclass, array("onchange" => "hiliter(this)")),
-	"<br /><small>Examples: “Accepted as short paper”, “Early reject”</small>",
+	"<br /><small>Exemplos: “Aceito como artigo curto”, “Inicialmente Rejeitado”</small>",
 	"</td>";
     if (defval($Highlight, "decn"))
 	echo "<td class='lentry nowrap'>",
 	    Ht::checkbox_h("decn_confirm", 1, false),
-	    "&nbsp;<span class='error'>", Ht::label("Confirm"), "</span></td>";
+	    "&nbsp;<span class='error'>", Ht::label("Confirmar"), "</span></td>";
     echo "</tr>\n</table>\n";
 
     // Final versions
-    echo "<h3 class=\"settings g\">Final versions</h3>\n";
+    echo "<h3 class=\"settings g\">Versões Finais</h3>\n";
     echo "<table id='foldfinal' class='foldo'>";
-    doCheckbox('final_open', "<b>Collect final versions of accepted papers<span class='fx'>:</span></b>", true, "void fold('final',!this.checked)");
+    doCheckbox('final_open', "<b>Reunir versões finalizadas de artigos aceitados<span class='fx'>:</span></b>", true, "void fold('final',!this.checked)");
     echo "<tr class='fx'><td></td><td><table>";
-    doDateRow("final_soft", "Deadline", "final_done", "lxcaption");
-    doDateRow("final_done", "Hard deadline", null, "lxcaption");
-    doGraceRow("final_grace", "Grace period", "lxcaption");
+    doDateRow("final_soft", "Data Limite", "final_done", "lxcaption");
+    doDateRow("final_done", "Data Limite Rígida", null, "lxcaption");
+    doGraceRow("final_grace", "Prazo de Carencia", "lxcaption");
     echo "</table><div class='gs'></div>",
-	"<small>To collect <em>multiple</em> final versions, such as one in 9pt and one in 11pt, add “Alternate final version” options via <a href='", hoturl("settings", "group=opt"), "'>Settings &gt; Submission options</a>.</small>",
+	"<small>Para reunir <em>multiple</em> versões finalizadas,como as que estão em 9pte 11pt, adicione a opção “Versão final alternativa” através de <a href='", hoturl("settings", "group=opt"), "'>Configurações &gt; Opções de Submissão</a>.</small>",
 	"</div></td></tr></table>\n\n";
     $Conf->footerScript("fold('final',!\$\$('cbfinal_open').checked)");
 }
@@ -1839,13 +1840,13 @@ echo "<form method='post' action='", hoturl_post("settings"), "' enctype='multip
 
 echo "<table class='settings'><tr><td class='caption initial final'>";
 echo "<table class='lhsel'>";
-foreach (array("acc" => "Accounts",
-	       "msg" => "Messages",
-	       "sub" => "Submissions",
-	       "opt" => "Submission options",
-	       "rev" => "Reviews",
-	       "rfo" => "Review form",
-	       "dec" => "Decisions") as $k => $v) {
+foreach (array("acc" => "Contas",
+	       "msg" => "Mensagens",
+	       "sub" => "Submissões",
+	       "opt" => "Opções de Submissão",
+	       "rev" => "Revisões",
+	       "rfo" => "Formulário de Revisões",
+	       "dec" => "Decisões") as $k => $v) {
     $kk = defval($GroupMapping, $k, $k);
     echo "<tr><td>";
     if ($Group == $k)

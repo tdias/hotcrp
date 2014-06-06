@@ -527,7 +527,7 @@ class Conference {
 	if ($getdb)
 	    $text .= ": " . htmlspecialchars($this->dblink->error) . "</p>";
 	if ($suggestRetry)
-	    $text .= "\n<p>Please try again or contact the site administrator at " . $Opt["emailFrom"] . ".</p>";
+	    $text .= "\n<p>Por favor tente novamente ou contacte o administrador " . $Opt["emailFrom"] . ".</p>";
 	return $text;
     }
 
@@ -973,10 +973,10 @@ class Conference {
 
         $result = $this->document_result($paperId, $documentType, $docid);
         if (!$result) {
-	    $this->log("Download error: " . $this->dblink->error, $Me, $paperId);
-	    return set_error_html("Database error while downloading paper.");
+	    $this->log("Erro de Download: " . $this->dblink->error, $Me, $paperId);
+	    return set_error_html("Erro no banco de dados ao baixar o artigo.");
 	} else if (edb_nrows($result) == 0)
-	    return set_error_html("No such document.");
+	    return set_error_html("Nenhuma documento.");
 
 	// Check data
         $docs = array();
@@ -987,7 +987,7 @@ class Conference {
             $docs[] = $doc;
         }
 	if (count($docs) == 1 && $docs[0]->paperStorageId <= 1)
-	    return set_error_html("Paper #" . $docs[0]->paperId . " hasn’t been uploaded yet.");
+	    return set_error_html("Artigo #" . $docs[0]->paperId . " não foi enviado ainda.");
         $downloadname = false;
         if (count($docs) > 1)
             $downloadname = $Opt["downloadPrefix"] . pluralx(2, HotCRPDocument::unparse_dtype($documentType)) . ".zip";
@@ -1001,7 +1001,7 @@ class Conference {
 	    $this->errorMsg($result->error_html);
             return false;
         } else {
-	    $this->log("Downloaded paper", $Me, $paperId);
+	    $this->log("Baixar artigo", $Me, $paperId);
             return true;
         }
     }
@@ -1845,7 +1845,7 @@ class Conference {
 		    echo "<a href=\"", selfHref(array("actas" => $_SESSION["actasuser"])), "\">", htmlspecialchars($_SESSION["actasuser"]), "&nbsp;<img src='${ConfSiteBase}images/viewas.png' alt='[Unprivileged view]' /></a>", $xsep;
 	    }
 	    $x = ($id == "search" ? "t=$id" : ($id == "settings" ? "t=chair" : ""));
-	    echo "<a href='", hoturl("help", $x), "'>Help</a>", $xsep;
+	    echo "<a href='", hoturl("help", $x), "'>Ajuda</a>", $xsep;
 	    if ($Me->contactId > 0 || isset($Opt["httpAuthLogin"]))
 		echo "<a href='", hoturl("index", "signout=1"), "'>Sign&nbsp;out</a>";
 	    else
