@@ -27,7 +27,7 @@ if (count($tOpt) == 0) {
     exit;
 }
 if (isset($_REQUEST["t"]) && !isset($tOpt[$_REQUEST["t"]])) {
-    $Conf->errorMsg("VocÊ não está habilitado à procurar por esta coleção de artigos.");
+    $Conf->errorMsg("Você não está habilitado à procurar por esta coleção de artigos.");
     unset($_REQUEST["t"]);
 }
 if (!isset($_REQUEST["t"]))
@@ -58,7 +58,7 @@ function paperselPredicate($papersel, $prefix = "") {
     else if (count($papersel) == 1)
 	return "${prefix}paperId=$papersel[0]";
     else
-	return "${prefix}paperId in (" . join(", ", $papersel) . ")";
+	return "${prefix}paperId em (" . join(", ", $papersel) . ")";
 }
 
 function cleanAjaxResponse(&$response, $type) {
@@ -1329,15 +1329,15 @@ echo Ht::select("qt", $qtOpt, $_REQUEST["qt"], array("tabindex" => 1)),
   <td class='lentry'><input id='searchform2_d' class='textlite' type='text' size='40' style='width:30em' name='qa' value=\"", htmlspecialchars(defval($_REQUEST, "qa", defval($_REQUEST, "q", ""))), "\" tabindex='1' /><span class='sep'></span></td>
   <td rowspan='3'><input type='submit' value='Buscar' tabindex='2' /></td>
 </tr><tr>
-  <td class='lxcaption'>Com <b>qualuqer</b> um dos termos</td>
+  <td class='lxcaption'>Com <b>qualquer</b> um dos termos</td>
   <td class='lentry'><input class='textlite' type='text' size='40' name='qo' style='width:30em' value=\"", htmlspecialchars(defval($_REQUEST, "qo", "")), "\" tabindex='1' /></td>
 </tr><tr>
-  <td class='lxcaption'><b>Sem</b>os termos</td>
+  <td class='lxcaption'><b>Sem</b> os termos</td>
   <td class='lentry'><input class='textlite' type='text' size='40' name='qx' style='width:30em' value=\"", htmlspecialchars(defval($_REQUEST, "qx", "")), "\" tabindex='1' /></td>
 </tr>
 <tr>
   <td class='lxcaption'></td>
-  <td><span style='font-size: x-small'><a href='", hoturl("help", "t=search"), "'>Ajuda de Busca</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Search keywords</a></span></td>
+  <td><span style='font-size: x-small'><a href='", hoturl("help", "t=search"), "'>Ajuda de Busca</a> <span class='barsep'>&nbsp;|&nbsp;</span> <a href='", hoturl("help", "t=keywords"), "'>Procurar palavras-chave</a></span></td>
 </tr></table></form>";
 
 echo "</div>";

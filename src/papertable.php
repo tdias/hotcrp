@@ -526,7 +526,7 @@ class PaperTable {
 	global $Conf;
         cleanAuthor($this->prow);
 
-	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>More</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Fewer</a>)</span>"),
+	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>Mais</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Menos</a>)</span>"),
 	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus emails e afiliações.";
 	if ($Conf->subBlindAlways())
 	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
@@ -1236,7 +1236,7 @@ class PaperTable {
 	    $pcconfs[] = "None";
 
 	echo $this->_papstripBegin(),
-	    $this->papt("pcconflict", "PC conflicts", array("type" => "ps")),
+	    $this->papt("pcconflict", "Conflito de CC", array("type" => "ps")),
 	    "<div class='psv psconf'><p class='odname'>",
 	    join("</p><p class='odname'>", $pcconfs),
 	    "</p></div></div>\n";
@@ -1472,7 +1472,7 @@ class PaperTable {
 				       $watchValue & $this->watchCheckbox,
 				       array("onchange" => "Miniajax.submit('watchform')",
 					     "style" => "padding-left:0;margin-left:0"))
-			 . "&nbsp;" . Ht::label("Email notification"),
+			 . "&nbsp;" . Ht::label("Notificação por email"),
 			 array("type" => "ps")),
 	    // "<div class='pshint'>Select to receive email on updates to reviews and comments. <span id='watchformresult'></span>"
 	    "<div class='pshint'>Selecione para receber emails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
@@ -1583,7 +1583,7 @@ class PaperTable {
             if ($revivable || $this->admin) {
                 $b = "<input type='submit' name='revive' value='Recuperar artigo' />";
                 if (!$revivable)
-                    $b = array($b, "(admin only)");
+                    $b = array($b, "(apenas administrador)");
             } else
                 $b = "O <a href='" . hoturl("deadlines") . "'>prazo final</a> retirar artigos em revisão se encerrou.";
             return array($b);
@@ -1599,7 +1599,7 @@ class PaperTable {
             $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => "bb")), "");
         else if ($this->admin && $this->mode == "pe") {
             $class = ($prow->outcome > 0 && $Conf->collectFinalPapers() ? "b" : "bb");
-            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => $class)), "(admin only)");
+            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => $class)), "(apenas administrador)");
         } else if ($this->mode == "pe" && $prow->timeSubmitted > 0)
             $buttons[] = array(Ht::submit("updatecontacts", "Salvar contatos", array("class" => "b")), "");
 
@@ -1633,7 +1633,7 @@ class PaperTable {
         }
         if ($b) {
             if (!$Me->canWithdrawPaper($prow))
-                $b = array($b, "(adminstrador apenas)");
+                $b = array($b, "(apenas administrador)");
             $buttons[] = $b;
         }
 
@@ -1647,7 +1647,7 @@ class PaperTable {
 	$buttons = $this->_collectActionButtons();
 
 	if ($this->admin && $prow) {
-	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Excluir artigo</button>", "(adminstrador apenas)");
+	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Excluir artigo</button>", "(apenas adminstrador)");
 	    $Conf->footerHtml("<div id='popup_d' class='popupc'>
   <p>Seja cuidadoso: Esta ação excluirá permanentemente todas informações sobre este artigo da base de dados e <strong>não poderá ser desfeita</strong>.</p>
   <form method='post' action=\"" . hoturl_post("paper", "p=" . $prow->paperId . "&amp;m=pe") . "\" enctype='multipart/form-data' accept-charset='UTF-8'>
