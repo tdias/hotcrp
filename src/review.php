@@ -278,13 +278,13 @@ class ReviewForm {
         $rfj = $Conf->review_form_json();
         if (!$rfj)
             $rfj = json_decode('{
-"overAllMerit":{"name":"Overall merit","position":1,"view_score":1,
+"overAllMerit":{"name":"Mérito geral","position":1,"view_score":1,
   "options":["Reject","Weak reject","Weak accept","Accept","Strong accept"]},
-"reviewerQualification":{"name":"Reviewer expertise","position":2,"view_score":1,
+"reviewerQualification":{"name":"Experiência do revisor","position":2,"view_score":1,
   "options":["No familiarity","Some familiarity","Knowledgeable","Expert"]},
-"paperSummary":{"name":"Paper summary","position":3,"display_space":5,"view_score":1},
-"commentsToAuthor":{"name":"Comments to authors","position":4,"view_score":1},
-"commentsToPC":{"name":"Comments to PC","position":5,"view_score":0}}');
+"paperSummary":{"name":"Resumo do artigo","position":3,"display_space":5,"view_score":1},
+"commentsToAuthor":{"name":"Comentários para os autores","position":4,"view_score":1},
+"commentsToPC":{"name":"Comentários para comissão científica","position":5,"view_score":0}}');
 
         foreach ($rfj as $fname => $j)
             if (@($f = $this->fmap[$fname]))
@@ -430,10 +430,10 @@ class ReviewForm {
 		//$c .= "<div class='revevis'>(secret)</div>";
 		$c .= "<div class='revevis'>(secreto)</div>";
 	    else if ($f->view_score < VIEWSCORE_PC)
-		$c .= "<div class='revevis'>(shown only to chairs)</div>";
+		$c .= "<div class='revevis'>(mostrar apenas para comissão científica)</div>";
 	    else if ($f->view_score < VIEWSCORE_AUTHOR)
 		//$c .= "<div class='revevis'>(hidden from authors)</div>";
-		$c .= "<div class='revevis'>(oculto pelos autores)</div>";
+		$c .= "<div class='revevis'>(oculto para autores)</div>";
 
 	    $x .= "<div class='revt";
 	    if (isset($ReviewFormError[$field]))
@@ -1388,7 +1388,7 @@ $blind\n";
 		echo $ratesep, "<form id='ratingform_$reviewOrdinal' action='$ratinglink' method='post' enctype='multipart/form-data' accept-charset='UTF-8'><div class='inform'>",
 		    "How helpful is this review? &nbsp;",
 		    Ht::select("rating", $ratingTypes, ($rrow->myRating === null ? "n" : $rrow->myRating)),
-		    " <input class='fx7' type='submit' value='Save' />",
+		    " <input class='fx7' type='submit' value='Salvar' />",
 		    "</div></form>",
 		    "<span id='ratingform_${reviewOrdinal}result'></span>";
 		if (!defval($options, "ratingsajax")) {
@@ -1535,14 +1535,14 @@ $blind\n";
 	// download?
 	echo "<div class='clear'></div></td><td></td></tr>
   <tr><td></td><td><table class='revoff'><tr>
-      <td><span class='revfn'>Offline reviewing</span></td>
-      <td>Upload form: &nbsp; <input type='file' name='uploadedFile' accept='text/plain' size='30' />
-      &nbsp; <input type='submit' value='Go' name='uploadForm' /></td>
+      <td><span class='revfn'>Revisão Offline</span></td>
+      <td>Formulário para envio: &nbsp; <input type='file' name='uploadedFile' accept='text/plain' size='30' />
+      &nbsp; <input type='submit' value='Enviar' name='uploadForm' /></td>
     </tr><tr>
       <td></td>
-      <td><a href='$reviewDownloadLink'>Download form</a>
+      <td><a href='$reviewDownloadLink'>Download do formulário</a>
       &nbsp;<span class='barsep'>|</span>&nbsp;
-      <span class='hint'><strong>Tip:</strong> Use <a href='", hoturl("search"), "'>Search</a> or <a href='", hoturl("offline"), "'>Offline reviewing</a> to download or upload many forms at once.</span></td>
+      <span class='hint'><strong>Dica:</strong> Use <a href='", hoturl("search"), "'>Procurar</a> ou <a href='", hoturl("offline"), "'>Revisão offline</a> para baixar ou enviar mais de um formulário de uma vez.</span></td>
     </tr></table></td><td></td></tr>\n";
 
 	// ready?
@@ -1554,10 +1554,10 @@ $blind\n";
 	if ($Me->timeReview($prow, $rrow) || $admin) {
 	    $buttons = array();
 	    if (!$submitted) {
-		$buttons[] = Ht::submit("submit", "Submit review", array("class" => "bb"));
-		$buttons[] = Ht::submit("savedraft", "Save as draft");
+		$buttons[] = Ht::submit("submit", "Submeter revisão", array("class" => "bb"));
+		$buttons[] = Ht::submit("savedraft", "Salvar como rascunho");
 	    } else
-		$buttons[] = Ht::submit("submit", "Save changes", array("class" => "bb"));
+		$buttons[] = Ht::submit("submit", "Salvar alterações", array("class" => "bb"));
 	    echo Ht::actions($buttons, array("style" => "margin-top:0"));
 	}
 
@@ -1578,32 +1578,30 @@ $blind\n";
 	if ($Me->timeReview($prow, $rrow) || $admin) {
 	    $buttons = array();
 	    if (!$submitted) {
-		$buttons[] = Ht::submit("submit", "Submit review", array("class" => "bb"));
-		$buttons[] = Ht::submit("savedraft", "Save as draft");
+		$buttons[] = Ht::submit("submit", "Submeter revisão", array("class" => "bb"));
+		$buttons[] = Ht::submit("savedraft", "Salvar como rascunho");
 	    } else
-		$buttons[] = Ht::submit("submit", "Save changes", array("class" => "bb"));
+		$buttons[] = Ht::submit("submit", "Salvar alterações", array("class" => "bb"));
 	    if ($rrow && $admin) {
                 $buttons[] = "";
 		if ($submitted)
-		    $buttons[] = array(Ht::submit("unsubmit", "Unsubmit review"), "(admin only)");
-		$buttons[] = array("<button type='button' onclick=\"popup(this, 'd', 0)\">Delete review</button>", "(admin only)");
+		    $buttons[] = array(Ht::submit("unsubmit", "Retirar revisão"), "(apenas administrador)");
+		$buttons[] = array("<button type='button' onclick=\"popup(this, 'd', 0)\">Excluir revisão</button>", "(apenas administrador)");
 		$Conf->footerHtml("<div id='popup_d' class='popupc'>
-  <p>Be careful: This will permanently delete all information about this
-  review assignment from the database and <strong>cannot be
-  undone</strong>.</p>
+  <p>Seja cuidadoso: Isto irá excluir permanentemente do banco de dados todas as informações sobre a revisão e <strong>não poderá ser desfeita</strong>.</p>
   <form method='post' action=\"$reviewPostLink\" enctype='multipart/form-data' accept-charset='UTF-8'>
     <div class='popup_actions'>
-      <button type='button' onclick=\"popup(null, 'd', 1)\">Cancel</button>
-      &nbsp;<input class='bb' type='submit' name='delete' value='Delete review' />
+      <button type='button' onclick=\"popup(null, 'd', 1)\">Cancelar</button>
+      &nbsp;<input class='bb' type='submit' name='delete' value='Excluir revisão' />
     </div>
   </form></div>");
 	    }
 
 	    echo Ht::actions($buttons);
 	    if ($admin)
-		echo Ht::checkbox("override"), "&nbsp;", Ht::label("Override deadlines");
+		echo Ht::checkbox("override"), "&nbsp;", Ht::label("Sobrescrever prazo final");
 	    if ($rrow && $rrow->reviewSubmitted && !$admin)
-		echo "<div class='hint'>Only administrators can remove or unsubmit the review at this point.</div>";
+		echo "<div class='hint'>Apenas administradores podem remover ou retirar a revisão neste momemnto.</div>";
 	}
 
 	echo "</td><td></td></tr>\n", Ht::cbox("rev", true),

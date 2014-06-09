@@ -2077,16 +2077,16 @@ class PaperTable {
             && ($Me->ownReview($this->editrrow) || $actChair)
 	    && !$Conf->time_review($actPC, true)) {
 	    if ($actChair)
-		$override = "  As an administrator, you can override this deadline using the “Override deadlines” checkbox.";
+		$override = "  Como administrador, você pode sobrescrever o prazo final usando a opção 'Sobrescrever prazo final' .";
 	    else {
 		$override = "";
 		if ($this->editrrow->reviewSubmitted)
 		    $opt["edit"] = false;
 	    }
 	    if (!$Conf->time_review($actPC, true, true))
-		$opt["editmessage"] = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for changing reviews has passed, so the review can no longer be changed.$override";
+		$opt["editmessage"] = "O <a href='" . hoturl("deadlines") . "'>prazo final</a> para alterações nas revisões se encerrou, então a revisão não pode mais ser alterada.$override";
 	    else
-		$opt["editmessage"] = "The site is not open for reviewing, so the review cannot be changed.$override";
+		$opt["editmessage"] = "O sistema não está aberto para revisões, então a revisão não pode ser alteracão.$override";
 	} else if (!$Me->canReview($prow, $this->editrrow))
 	    $opt["edit"] = false;
 
