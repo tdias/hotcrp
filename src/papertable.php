@@ -527,7 +527,7 @@ class PaperTable {
         cleanAuthor($this->prow);
 
 	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>More</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Fewer</a>)</span>"),
-	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus e-mails e afiliações.";
+	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus emails e afiliações.";
 	if ($Conf->subBlindAlways())
 	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
 	echo " Qualquer autor com uma conta neste site pode editar este artigo.</div>",
@@ -846,12 +846,12 @@ class PaperTable {
 	    "<div class='paphint'>Você poderá adicionar mais contatos depois do registro do artigo.</div>",
 	    "<div class='papv'>";
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Nome" ? "" : $name;
+        $name = $name == "Name" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Nome", "Email", "textlite temptext");
+            : array("Name", "Email", "textlite temptext");
         echo '<table><tr><td class="lcaption">Adicionar</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -862,7 +862,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr></table>';
-        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
 	echo "</div>\n\n";
     }
 
@@ -885,7 +885,7 @@ class PaperTable {
             (@$Error["contactAuthor"] ? " error" : ""),
             '"><span class="papfn">',
             ($always_unfold ? "" : expander(false)),
-            'Contacts</span><div class="clear"></div></div>';
+            'Contatos</span><div class="clear"></div></div>';
 
         // Non-editable version
         echo '<div class="papv fn0">';
@@ -938,12 +938,12 @@ class PaperTable {
         }
         $checked = $this->useRequest ? @$_REQUEST["newcontact"] : true;
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Nome" ? "" : $name;
+        $name = $name == "Name" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Nome", "E-mail", "textlite temptext");
+            : array("Name", "Email", "textlite temptext");
         echo '<tr><td class="lcaption">Add</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -954,7 +954,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr>';
-        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
         echo '</table>', Ht::hidden("setcontacts", $open ? 2 : 1, array("id" => "setcontacts")), "</div></div>\n\n";
     }
 
@@ -1475,7 +1475,7 @@ class PaperTable {
 			 . "&nbsp;" . Ht::label("Email notification"),
 			 array("type" => "ps")),
 	    // "<div class='pshint'>Select to receive email on updates to reviews and comments. <span id='watchformresult'></span>"
-	    "<div class='pshint'>Selecione para receber e-mails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
+	    "<div class='pshint'>Selecione para receber emails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
 	    "<input class='fx7' type='submit' value='Save' />",
 	    "</div></div></form></div>\n\n";
 
@@ -1665,7 +1665,7 @@ class PaperTable {
 	    $v = defval($_REQUEST, "emailNote", "");
 	    echo "  <div class='g'></div>\n  <table>\n",
 		"    <tr><td>",
-		Ht::checkbox("doemail", 1, true), "&nbsp;",
+		Ht::checkbox("doemail", 1, false), "&nbsp;",
 		Ht::label("Enviar email para os autores, incluindo:"), "&nbsp; ",
 		"<input id='emailNote' type='text' class='textlite temptext' name='emailNote' size='30' value=\"",
 		htmlspecialchars($v == "" ? "Optional explanation" : $v),
