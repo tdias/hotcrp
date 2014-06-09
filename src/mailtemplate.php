@@ -6,24 +6,25 @@
 global $mailTemplates;
 $mailTemplates = array
     ("createaccount" =>
-     array("subject" => "[%CONFSHORTNAME%] Account information",
-	   "body" => "Greetings,
+     array("subject" => "[%CONFSHORTNAME%] Cadastro",
+	   "body" => "Prezado(a),
 
-An account has been created for you at the %CONFNAME% submissions site.
+Uma conta foi criada para voce no sistema de submissao da %CONFNAME%
+Segue as informacoes para acesso:
 
         Site: %URL%/
        Email: %EMAIL%
     Password: %OPT(PASSWORD)%
 
-Use the link below to sign in.
+Use o link abaixo para acessar o sistema
 
 %LOGINURL%
 
-If you already have an account under a different email address, you may merge this new account into that one. Go to your profile page and select \"Merge with another account\".
+Se voce ja posssui uma conta com um email diferente, voce pode mesclar esta nova conta com a antiga. Va para a pagina do perfil e selecione \"Juntar com outra conta\"
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do sistema, %ADMIN% para qualquer questoes
 
-- %CONFSHORTNAME% Submissions\n"),
+- %CONFSHORTNAME% Sistema de Submissao\n"),
 
      "accountinfo" =>
      array("subject" => "[%CONFSHORTNAME%] Account information",
