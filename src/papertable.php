@@ -271,7 +271,7 @@ class PaperTable {
     }
 
     private function editable_title() {
-	echo $this->editable_papt("title", "Title"),
+	echo $this->editable_papt("title", "Título"),
 	    "<div class='papv'>", $this->entryData("title"), "</div>\n\n";
     }
 
@@ -477,7 +477,7 @@ class PaperTable {
         echo "<div class='pg pgtop'>",
             $this->editable_papt("abstract", "Abstract"),
             "<div class='papv abstract'>",
-            "<p><b>O resumo não deve ultrapassar 2500 caracteres.</b></p>",
+            "<p><b>O resumo não deverá ultrapassar 2500 caracteres.</b></p>",
             $this->entryData("abstract", "p"),
             "</div></div>\n\n";
 
@@ -531,7 +531,7 @@ class PaperTable {
 	if ($Conf->subBlindAlways())
 	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
 	echo " Qualquer autor com uma conta neste site pode editar este artigo.</div>",
-	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Nome</th><th>Email</th><th>Associação</th></tr>\n";
+	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Nome</th><th>Email</th><th>Instituição/Município</th></tr>\n";
 
 	$blankAu = array("", "", "", "");
 	if ($this->useRequest && isset($_REQUEST["authorTable"]))
@@ -807,7 +807,7 @@ class PaperTable {
 		$infotypes[] = "Opções";
 	    $options_name = commajoin($infotypes);
 	    if ($topicdata != "")
-		array_unshift($infotypes, "Tópicos");
+		array_unshift($infotypes, "Eixos Temáticos");
 	    $tanda = commajoin($infotypes);
 
 	    if ($this->allFolded) {
@@ -823,7 +823,7 @@ class PaperTable {
 
 	    if ($topicdata != "") {
                 echo "<div class='pg'>",
-                    $this->papt("topics", array("Tópicos", $tanda), $extra),
+                    $this->papt("topics", array("Eixos Temáticos", $tanda), $extra),
                     "<div class='pavb$eclass'>", $topicdata, "</div></div>\n\n";
                 $extra = null;
 		$tanda = $options_name;
@@ -846,12 +846,12 @@ class PaperTable {
 	    "<div class='paphint'>Você poderá adicionar mais contatos depois do registro do artigo.</div>",
 	    "<div class='papv'>";
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Name" ? "" : $name;
+        $name = $name == "Nome" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Nome", "E-mail", "textlite temptext");
+            : array("Nome", "Email", "textlite temptext");
         echo '<table><tr><td class="lcaption">Adicionar</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -862,7 +862,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr></table>';
-        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
 	echo "</div>\n\n";
     }
 
@@ -910,7 +910,7 @@ class PaperTable {
             '</div>';
         echo '<div class="papv fx0">';
         echo '<table>';
-        $title = "Authors";
+        $title = "Autores";
         foreach ($autable as $au) {
             if (!@$au[4] && (!$au[2] || !validateEmail($au[2])))
                 continue;
@@ -938,7 +938,7 @@ class PaperTable {
         }
         $checked = $this->useRequest ? @$_REQUEST["newcontact"] : true;
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Name" ? "" : $name;
+        $name = $name == "Nome" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
@@ -954,7 +954,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr>';
-        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
         echo '</table>', Ht::hidden("setcontacts", $open ? 2 : 1, array("id" => "setcontacts")), "</div></div>\n\n";
     }
 
@@ -1035,8 +1035,8 @@ class PaperTable {
 	assert(!!$this->editable);
 	$topicMode = (int) $this->useRequest;
 	if (($topicTable = topicTable($this->prow, $topicMode))) {
-	    echo $this->editable_papt("topics", "Tópicos"),
-		"<div class='paphint'>Selecione qualquer tópico que for aplicável ao seu artigo.</div>",
+	    echo $this->editable_papt("topics", "Eixos Temáticos"),
+		"<div class='paphint'>Selecione os eixos temáticos que melhor classifiquem seu artigo.</div>",
 		"<div class='papv'>", $topicTable, "</div>\n\n";
 	}
     }
@@ -1531,40 +1531,40 @@ class PaperTable {
 	    $submitDeadline = $this->deadlineSettingIs("sub_sub");
 	    if ($prow->timeWithdrawn > 0) {
 		if ($timeUpdate)
-		    $m .= "<div class='xinfo'>This paper has been withdrawn, but you can still revive it.$updateDeadline</div>";
+		    $m .= "<div class='xinfo'>Este artigo foi retirado, mas você ainda pode recupera-lo.$updateDeadline</div>";
 		// otherwise no message
 	    } else if ($timeUpdate) {
 		if ($prow->timeSubmitted <= 0) {
 		    $m .= "<div class='xwarning'>";
 		    if ($Conf->setting('sub_freeze'))
-			$m .= "A final version of this paper must be submitted before it can be reviewed.";
+			$m .= "A versão final do artigo deve ser enviada antes do prazo final.";
 		    else if ($prow->paperStorageId <= 1)
-			$m .= "The paper is not ready for review and will not be considered as is, but you can still make changes.";
+			$m .= "O artigo não está pronto para ser revisto e não será considerado para revisão, mas você ainda pode fazer modificações.";
 		    else
-			$m .= "The paper is not ready for review and will not be considered as is, but you can still mark it ready for review and make other changes if appropriate.";
+			$m .= "O artigo não está pronto para ser revisto e não será considerado para revisão, mas você ainda pode marca-lo como pronto para revisão e realizar modificações se achar apropriado.";
 		    $m .= $updateDeadline . "</div>";
 		} else if ($this->mode == "pe")
-		    $m .= "<div class='xconfirm'>This paper is ready and will be considered for review.  You can still make changes if necessary.$updateDeadline</div>";
+		    $m .= "<div class='xconfirm'>Este artigo está pronto e será considerado para revisão.  Você ainda pode fazer modificações se for necessário.$updateDeadline</div>";
 	    } else if ($timeSubmit)
-		$m .= "<div class='xwarning'>You cannot make any changes as the <a href='" . hoturl("deadlines") . "'>deadline</a> has passed, but the current version can still be submitted.  Only submitted papers will be reviewed.$submitDeadline$override</div>";
+		$m .= "<div class='xwarning'>Você não pode fazer nenhuma modificação já que o <a href='" . hoturl("deadlines") . "'>prazo final</a> passou, mas a versão atual ainda pode ser submetida. Apenas os artigos submetidos serão revisados.$submitDeadline$override</div>";
 	    else if ($Conf->deadlinesBetween("", "sub_sub", "sub_grace"))
-		$m .= "<div class='xwarning'>The site is not open for submission updates at the moment.$override</div>";
+		$m .= "<div class='xwarning'>O sistema não está aberto para atualizações das submissões no momento.$override</div>";
 	    else
-		$m .= "<div class='xwarning'>The <a href='" . hoturl("deadlines") . "'>deadline</a> for submitting this paper has passed.  The paper will not be reviewed.$submitDeadline$override</div>";
+		$m .= "<div class='xwarning'>O <a href='" . hoturl("deadlines") . "'>prazo final</a> para submeter o artigo já se encerrou.  O artigo não será revisto.$submitDeadline$override</div>";
 	} else if ($prow->has_author($Me) && $prow->outcome > 0
 		   && $Conf->timeSubmitFinalPaper()) {
 	    $updateDeadline = $this->deadlineSettingIs("final_soft");
-	    $m .= "<div class='xinfo'>" . "Congratulations!  This paper was accepted.  Submit a final version for the paper here.$updateDeadline  You may also edit paper contacts, allowing others to view reviews and make changes." . "</div>";
+	    $m .= "<div class='xinfo'>" . "Parabéns! Este artigo foi aceito. Envie a versão final para o artigo aqui.$updateDeadline  Você também podera editar os contatos, permitindo que os outros autores vejam as revisões e façam modificações." . "</div>";
 	} else if ($prow->has_author($Me)) {
-	    $override2 = ($this->admin ? " As an administrator, you can update the paper anyway by selecting “Override deadlines.”" : "");
+	    $override2 = ($this->admin ? " Como administrador, você pode atualizar um artigo de qualquer forma selecionando “Override deadlines.”" : "");
 	    if ($this->mode == "pe") {
-		$m .= "<div class='xinfo'>This paper is under review and can’t be changed, but you can change its contacts";
+		$m .= "<div class='xinfo'>Este artigo está em revisão e não pode ser modificado, mas você pode alterar os contatos";
                 if ($Me->canWithdrawPaper($prow))
-                    $m .= " or withdraw it from consideration";
+                    $m .= " ou retirar o artigo para considerações";
                 $m .= ".$override2</div>";
             }
 	} else
-	    $m .= "<div class='xinfo'>" . "You aren’t a contact for this paper, but as an administrator you can still make changes." . "</div>";
+	    $m .= "<div class='xinfo'>" . "Você não é um contato para este artigo, porém como administrador você ainda pode realizar alterações." . "</div>";
 
 	return $m;
     }
@@ -1575,17 +1575,17 @@ class PaperTable {
 
         // Absent paper can only be saved
         if (!$prow)
-            return array("<input class='bb' type='submit' name='update' value='Save paper' />");
+            return array("<input class='bb' type='submit' name='update' value='Salvar artigo' />");
 
         // Withdrawn papers can be revived
         if ($prow->timeWithdrawn > 0) {
             $revivable = $Conf->timeFinalizePaper($prow);
             if ($revivable || $this->admin) {
-                $b = "<input type='submit' name='revive' value='Revive paper' />";
+                $b = "<input type='submit' name='revive' value='Recuperar artigo' />";
                 if (!$revivable)
                     $b = array($b, "(admin only)");
             } else
-                $b = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for reviving withdrawn papers has passed.";
+                $b = "O <a href='" . hoturl("deadlines") . "'>prazo final</a> retirar artigos em revisão se encerrou.";
             return array($b);
         }
 
@@ -1594,47 +1594,46 @@ class PaperTable {
         if ($prow->outcome > 0 && $Conf->collectFinalPapers()
             && ($Conf->timeSubmitFinalPaper() || $this->admin)
             && $this->mode == "pe")
-            $buttons[] = array(Ht::submit("submitfinal", "Save changes", array("class" => "bb")), "");
+            $buttons[] = array(Ht::submit("submitfinal", "Salvar alterações", array("class" => "bb")), "");
         else if ($Conf->timeUpdatePaper($prow) && $this->mode == "pe")
-            $buttons[] = array(Ht::submit("update", "Save changes", array("class" => "bb")), "");
+            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => "bb")), "");
         else if ($this->admin && $this->mode == "pe") {
             $class = ($prow->outcome > 0 && $Conf->collectFinalPapers() ? "b" : "bb");
-            $buttons[] = array(Ht::submit("update", "Save changes", array("class" => $class)), "(admin only)");
+            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => $class)), "(admin only)");
         } else if ($this->mode == "pe" && $prow->timeSubmitted > 0)
-            $buttons[] = array(Ht::submit("updatecontacts", "Save contacts", array("class" => "b")), "");
+            $buttons[] = array(Ht::submit("updatecontacts", "Salvar contatos", array("class" => "b")), "");
 
         // withdraw button
         if (!$Me->canWithdrawPaper($prow, $whyNot, true))
             $b = null;
         else if ($prow->timeSubmitted <= 0)
-            $b = Ht::submit("withdraw", "Withdraw paper");
+            $b = Ht::submit("withdraw", "Retirar artigo");
         else {
-            $b = Ht::button("Withdraw paper", array("onclick" => "popup(this,'w',0,true)"));
+            $b = Ht::button("Retirar artigo", array("onclick" => "popup(this,'w',0,true)"));
             $admins = "";
             if ((!$this->admin || $prow->has_author($Me))
                 && !$Conf->timeFinalizePaper($prow))
-                $admins = "Only administrators can undo this step.";
+                $admins = "Apenas administradores poder desfazer esta ação.";
             $override = "";
             if (!$Me->canWithdrawPaper($prow))
                 $override = "<div>" . Ht::checkbox("override", array("id" => "dialog_override")) . "&nbsp;"
-                    . Ht::label("Override deadlines") . "</div>";
+                    . Ht::label("Sobrescrever prazo final") . "</div>";
             $Conf->footerHtml("<div id='popup_w' class='popupc'>
-  <p>Are you sure you want to withdraw this paper from consideration and/or
-  publication?  $admins</p>
+  <p>Você tem certeza que deseja retirar este artigo das revisões e/ou publicação?  $admins</p>
   <form method='post' action=\"" . hoturl_post("paper", "p=" . $prow->paperId . "&amp;m=pe") . "\" enctype='multipart/form-data' accept-charset='UTF-8'><div class='inform'>
     <textarea id='withdrawreason' class='temptext' name='reason' rows='3' cols='40' style='width:99%'>Optional explanation</textarea>$override
     <div class='popup_actions' style='margin-top:10px'>
       <input class='popup_populate' type='hidden' name='doemail' value='1' />
       <input class='popup_populate' type='hidden' name='emailNote' value='' />
-      <button type='button' onclick=\"popup(null, 'w', 1)\">Cancel</button>
-      &nbsp;<input class='bb' type='submit' name='withdraw' value='Withdraw paper' />
+      <button type='button' onclick=\"popup(null, 'w', 1)\">Cancelar</button>
+      &nbsp;<input class='bb' type='submit' name='withdraw' value='Retirar artigo' />
     </div>
   </div></form></div>");
             $Conf->footerScript("mktemptext('withdrawreason','Optional explanation')");
         }
         if ($b) {
             if (!$Me->canWithdrawPaper($prow))
-                $b = array($b, "(admin only)");
+                $b = array($b, "(adminstrador apenas)");
             $buttons[] = $b;
         }
 
@@ -1648,16 +1647,15 @@ class PaperTable {
 	$buttons = $this->_collectActionButtons();
 
 	if ($this->admin && $prow) {
-	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Delete paper</button>", "(admin only)");
+	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Excluir artigo</button>", "(adminstrador apenas)");
 	    $Conf->footerHtml("<div id='popup_d' class='popupc'>
-  <p>Be careful: This will permanently delete all information about this
-  paper from the database and <strong>cannot be undone</strong>.</p>
+  <p>Seja cuidadoso: Esta ação excluirá permanentemente todas informações sobre este artigo da base de dados e <strong>não poderá ser desfeita</strong>.</p>
   <form method='post' action=\"" . hoturl_post("paper", "p=" . $prow->paperId . "&amp;m=pe") . "\" enctype='multipart/form-data' accept-charset='UTF-8'>
     <div class='popup_actions'>
       <input class='popup_populate' type='hidden' name='doemail' value='1' />
       <input class='popup_populate' type='hidden' name='emailNote' value='' />
-      <button type='button' onclick=\"popup(null, 'd', 1)\">Cancel</button>
-      &nbsp;<input class='bb' type='submit' name='delete' value='Delete paper' />
+      <button type='button' onclick=\"popup(null, 'd', 1)\">Cancelar</button>
+      &nbsp;<input class='bb' type='submit' name='delete' value='Excluir artigo' />
     </div>
   </form></div>");
 	}
@@ -1668,15 +1666,15 @@ class PaperTable {
 	    echo "  <div class='g'></div>\n  <table>\n",
 		"    <tr><td>",
 		Ht::checkbox("doemail", 1, true), "&nbsp;",
-		Ht::label("Email authors, including:"), "&nbsp; ",
+		Ht::label("Enviar email para os autores, incluindo:"), "&nbsp; ",
 		"<input id='emailNote' type='text' class='textlite temptext' name='emailNote' size='30' value=\"",
 		htmlspecialchars($v == "" ? "Optional explanation" : $v),
 		"\" /></td></tr>\n    <tr><td>",
 		Ht::checkbox("override", array("onclick" => "copy_override_status(this)")), "&nbsp;";
             if ($Conf->timeUpdatePaper($prow))
-                echo "<span class='dim'>", Ht::label("Override deadlines"), "</span>";
+                echo "<span class='dim'>", Ht::label("Sobrescrever prazo final"), "</span>";
             else
-                echo "<strong>", Ht::label("Override deadlines"), "</strong>";
+                echo "<strong>", Ht::label("Sobrescrever prazo final"), "</strong>";
             echo "</td></tr>\n  </table>\n";
 	    $Conf->footerScript("mktemptext('emailNote','Optional explanation')");
 	}
@@ -1747,16 +1745,16 @@ class PaperTable {
 	    $highlight = ($this->mode != "assign" && $this->mode != "pe"
 			  && $this->mode != "contact" && $this->mode != "re");
 	    $a = ($this->mode == "pe" || $this->mode == "re" ? "&amp;m=p" : "");
-	    $this->_paptabTabLink("Main", hoturl("paper", "p=$prow->paperId$a"), "view18.png", $highlight);
+	    $this->_paptabTabLink("Principal", hoturl("paper", "p=$prow->paperId$a"), "view18.png", $highlight);
 
 	    if ($canEdit)
-		$this->_paptabTabLink("Edit", hoturl("paper", "p=$prow->paperId&amp;m=pe"), "edit18.png", $this->mode == "pe");
+		$this->_paptabTabLink("Editar", hoturl("paper", "p=$prow->paperId&amp;m=pe"), "edit18.png", $this->mode == "pe");
 
 	    if ($canReview)
-		$this->_paptabTabLink("Review", hoturl("review", "p=$prow->paperId&amp;m=re"), "review18.png", $this->mode == "re" && (!$this->editrrow || $this->editrrow->contactId == $Me->contactId));
+		$this->_paptabTabLink("Revisão", hoturl("review", "p=$prow->paperId&amp;m=re"), "review18.png", $this->mode == "re" && (!$this->editrrow || $this->editrrow->contactId == $Me->contactId));
 
 	    if ($canAssign)
-		$this->_paptabTabLink("Assign", hoturl("assign", "p=$prow->paperId"), "assign18.png", $this->mode == "assign");
+		$this->_paptabTabLink("Atribuir revisor", hoturl("assign", "p=$prow->paperId"), "assign18.png", $this->mode == "assign");
 
 	    echo "<div class='clear'></div></div></div>\n";
 	}
@@ -1780,8 +1778,8 @@ class PaperTable {
     private function _echo_clickthrough($form, $ctype, $ctime) {
         global $Conf;
         echo $form, "<div class='aahc'>", $Conf->setting_data("clickthrough_$ctype");
-        $buttons = array(Ht::submit("clickthrough_accept", "Accept", array("class" => "bb")),
-                         Ht::submit("clickthrough_decline", "Decline", array("class" => "b")));
+        $buttons = array(Ht::submit("clickthrough_accept", "Aceitar", array("class" => "bb")),
+                         Ht::submit("clickthrough_decline", "Desqualificar", array("class" => "b")));
         echo "<div class='g'></div>",
             Ht::hidden("clickthrough", $ctype),
             Ht::hidden("clickthrough_time", $ctime),
@@ -1852,7 +1850,7 @@ class PaperTable {
 		"    <td class='pboxni'></td>\n",
 		"    <td class='pboxnt'><table class='papcbar'>\n",
 		"	<tr><td class='papculs'></td><td></td><td class='papcur'></td></tr>\n",
-		"	<tr><td></td><td><h2>New paper</h2></td><td></td></tr>\n",
+		"	<tr><td></td><td><h2>Novo artigo</h2></td><td></td></tr>\n",
 		"    </table></td>\n",
 		"    <td class='pboxnj'></td>\n",
 		"</tr><tr>",
@@ -1960,7 +1958,7 @@ class PaperTable {
             && !$Me->canViewReview($prow, null, false))
 	    $this->_paptabSepContaining("<div class='inpapcc'>" . $this->_privilegeMessage() . "</div>");
 
-	$empty = $this->_paptabReviewLinks(true, null, "<div class='hint'>There are no reviews or comments for you to view.</div>");
+	$empty = $this->_paptabReviewLinks(true, null, "<div class='hint'>Não existem revisões ou comentários para você visualizar.</div>");
 	if ($empty)
 	    return;
 
