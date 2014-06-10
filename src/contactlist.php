@@ -242,13 +242,13 @@ class ContactList extends BaseList {
 	case self::FIELD_LOWTOPICS:
 	    return "Low-interest topics";
 	case self::FIELD_REVIEWS:
-	    return "<span class='hastitle' title='\"1/2\" means 1 complete review out of 2 assigned reviews'>Reviews</span>";
+	    return "<span class='hastitle' title='\"1/2\" significa uma revisão completa de 2 revisões atribuídas'>Reviews</span>";
 	case self::FIELD_LEADS:
 	    return "Leads";
 	case self::FIELD_SHEPHERDS:
 	    return "Shepherds";
 	case self::FIELD_REVIEW_RATINGS:
-	    return "<span class='hastitle' title='Ratings of reviews'>Rating</a>";
+	    return "<span class='hastitle' title='Classificações de Revisões'>Rating</a>";
 	case self::FIELD_SELECTOR:
 	    return "";
 	case self::FIELD_PAPERS:
@@ -459,9 +459,9 @@ class ContactList extends BaseList {
 
 	// Begin linelinks
 	$t .= "<span class='lll1'><a href='#' onclick='return crpfocus(\"pplact\",1)'>Download</a></span><span class='lld1'><b>:</b> &nbsp;"
-	    . Ht::select("getaction", array("nameemail" => "Names and emails",
-                                            "nameaffemail" => "Names, affiliations, and emails",
-                                            "address" => "Addresses"),
+	    . Ht::select("getaction", array("nameemail" => "Nomes e e-mails",
+                                            "nameaffemail" => "Nomes, afiliações e e-mails",
+                                            "address" => "Endereços"),
                          null, array("id" => "pplact1_d"))
 	    . "&nbsp; <input type='submit' class='bsm' name='getgo' value='Go' /></span>";
 
@@ -469,10 +469,10 @@ class ContactList extends BaseList {
         if ($this->contact->privChair) {
             $t .= $barsep;
             $t .= "<span class='lll3'><a href='#' onclick='return crpfocus(\"pplact\",3)'>Modify</a></span><span class='lld3'><b>:</b> &nbsp;";
-            $t .= Ht::select("modifytype", array("disableaccount" => "Disable",
-                                                 "enableaccount" => "Enable",
-                                                 "resetpassword" => "Reset password",
-                                                 "sendaccount" => "Send account information"),
+            $t .= Ht::select("modifytype", array("disableaccount" => "Desabilitar",
+                                                 "enableaccount" => "Habilitar",
+                                                 "resetpassword" => "Redefinir senha",
+                                                 "sendaccount" => "Enviar informação de conta"),
                              null, array("id" => "pplact3_d"))
                 . "&nbsp; " . Ht::submit("modifygo", "Go", array("class" => "bsm")) . "</span>";
         }
@@ -627,7 +627,7 @@ class ContactList extends BaseList {
 
 	// get paper list
 	if (!($baseFieldId = $this->listFields($listname))) {
-	    $Conf->errorMsg("There is no people list query named '" . htmlspecialchars($listname) . "'.");
+	    $Conf->errorMsg("Não há lista de pessoas chamada '" . htmlspecialchars($listname) . "'.");
 	    return null;
 	}
 	$this->limit = array_shift($baseFieldId);
