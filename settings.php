@@ -100,7 +100,7 @@ if ($Group == "acc")
 
 $SettingText = array(
 	"sub_open" => "Submissions open setting",
-	"sub_reg" => "Paper registration deadline",
+	"sub_reg" => "Data limite de registro de trabalho",
 	"sub_sub" => "Paper submission deadline",
 	"rev_open" => "Reviews open setting",
 	"cmt_always" => "Comments open setting",

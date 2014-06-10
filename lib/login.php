@@ -9,7 +9,7 @@ class LoginHelper {
         global $Me, $Conf, $Opt, $allowedSessionVars;
         if (!$Me->is_empty() && isset($_REQUEST["signout"])
             && !isset($Opt["httpAuthLogin"]))
-            $Conf->confirmMsg("You have been signed out. Thanks for using the system.");
+            $Conf->confirmMsg("Voce saiu do sistema. Obrigado.");
         $Me = new Contact;
         $Me->fresh = true;
         unset($_SESSION["user"]);
@@ -89,7 +89,7 @@ class LoginHelper {
             if (isset($Opt["ldapLogin"]))
                 return $Conf->errorMsg("Enter your LDAP username.");
             else
-                return $Conf->errorMsg("Enter your email address.");
+                return $Conf->errorMsg("Entre seu endereço de email.");
         }
 
         // Check for the cookie
@@ -130,19 +130,19 @@ class LoginHelper {
                     return self::first_user($user, $msg);
             } else {
                 $email_class = " error";
-                return $Conf->errorMsg("No account for " . htmlspecialchars($_REQUEST["email"]) . " exists.  Did you enter the correct email address?");
+                return $Conf->errorMsg("Não existe nenhuma conta para " . htmlspecialchars($_REQUEST["email"]) . ".  Você escreveu o endereço de email correto?");
             }
         }
 
         if (($user->password == "" && !$external_login) || $user->disabled)
-            return $Conf->errorMsg("Your account is disabled. Contact the site administrator for more information.");
+            return $Conf->errorMsg("Sua conta está desabilitada. Entre em contato com o administrador para mais informações.");
 
         if ($_REQUEST["action"] == "forgot") {
             $worked = $user->sendAccountInfo("forgot", true);
             if ($worked == "@resetpassword")
-                $Conf->confirmMsg("A password reset link has been emailed to " . htmlspecialchars($_REQUEST["email"]) . ". When you receive that email, follow its instructions to create a new password.");
+                $Conf->confirmMsg("Um link para recuperação da senha foi enviada para o email " . htmlspecialchars($_REQUEST["email"]) . ". Quando voce abrir o email, siga as instruções para criar uma nova senha.");
             else if ($worked) {
-                $Conf->confirmMsg("Your password has been emailed to " . htmlspecialchars($_REQUEST["email"]) . ".  When you receive that email, return here to sign in.");
+                $Conf->confirmMsg("Sua senha foi enviada por email para " . htmlspecialchars($_REQUEST["email"]) . ".  Quando você receber este email, returne aqui para entrara no sistema.");
                 $Conf->log("Sent password", $user);
             }
             return null;
@@ -151,12 +151,12 @@ class LoginHelper {
         $_REQUEST["password"] = trim(defval($_REQUEST, "password", ""));
         if ($_REQUEST["password"] == "" && !isset($Opt["httpAuthLogin"])) {
             $password_class = " error";
-            return $Conf->errorMsg("Enter your password. If you’ve forgotten it, enter your email address and use the “I forgot my password” option.");
+            return $Conf->errorMsg("Digite sua senha. Se você esqueceu, escreva seu email e utilize a opção 'Esqueci minha senha'");
         }
 
         if (!$external_login && !$user->check_password($_REQUEST["password"])) {
             $password_class = " error";
-            return $Conf->errorMsg("That password doesn’t match. If you’ve forgotten your password, enter your email address and use the “I forgot my password” option.");
+            return $Conf->errorMsg("Senha incorreta. Se você esqueceu sua senha entre com seu endereço de email e escolha a opção 'Esqueci minha senha'");
         }
 
         $Conf->qe("update ContactInfo set visits=visits+1, lastLogin=$Now where contactId=" . $user->cid, "while recording login statistics");
@@ -218,23 +218,23 @@ class LoginHelper {
         }
 
         $user->sendAccountInfo("create", true);
-        $msg = "Successfully created an account for " . htmlspecialchars($_REQUEST["email"]) . ".";
+        $msg = "Uma conta foi criada com sucesso para o email " . htmlspecialchars($_REQUEST["email"]) . ".";
 
         // handle setup phase
         if (defval($Conf->settings, "setupPhase", false))
             return self::first_user($user, $msg);
 
         if ($Conf->allowEmailTo($user->email))
-            $msg .= " A password has been emailed to you.  Return here when you receive it to complete the registration process.  If you don’t receive the email, check your spam folders and verify that you entered the correct address.";
+            $msg .= " Uma senha de acesso foi enviada por email para você. Retorne aqui quando você recebê-la para completar o cadastro. Se você não recebeu o email, cheque sua pasta de spam e verifique se vc digitou o email corretamente.";
         else {
             if ($Opt["sendEmail"])
-                $msg .= " The email address you provided seems invalid.";
+                $msg .= " O email que você digitou parecer ser inválido, tente outro.";
             else
                 $msg .= " The conference system is not set up to mail passwords at this time.";
             $msg .= " Although an account was created for you, you need the site administrator’s help to retrieve your password.  The site administrator is " . htmlspecialchars($Opt["contactName"] . " <" . $Opt["contactEmail"] . ">") . ".";
         }
         if (isset($_REQUEST["password"]) && trim($_REQUEST["password"]) != "")
-            $msg .= " Note that the password you supplied on the login screen was ignored.";
+            $msg .= " ATENÇÃO: note que a senha que você digitou será ignorada, verfique a senha no seu email.";
         $Conf->confirmMsg($msg);
         return null;
     }

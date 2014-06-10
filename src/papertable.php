@@ -531,7 +531,7 @@ class PaperTable {
 	if ($Conf->subBlindAlways())
 	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
 	echo " Qualquer autor com uma conta neste site pode editar este artigo.</div>",
-	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Nome</th><th>Email</th><th>Instituição/Município</th></tr>\n";
+	    "<div class='papv'><table id='auedittable' class='auedittable'><tr><th></th><th>Name</th><th>Email</th><th>Instituição/Município</th></tr>\n";
 
 	$blankAu = array("", "", "", "");
 	if ($this->useRequest && isset($_REQUEST["authorTable"]))
@@ -846,12 +846,12 @@ class PaperTable {
 	    "<div class='paphint'>Você poderá adicionar mais contatos depois do registro do artigo.</div>",
 	    "<div class='papv'>";
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Nome" ? "" : $name;
+        $name = $name == "Name" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Nome", "Email", "textlite temptext");
+            : array("Name", "Email", "textlite temptext");
         echo '<table><tr><td class="lcaption">Adicionar</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -938,12 +938,12 @@ class PaperTable {
         }
         $checked = $this->useRequest ? @$_REQUEST["newcontact"] : true;
         $name = $this->useRequest ? @trim($_REQUEST["newcontact_name"]) : "";
-        $name = $name == "Nome" ? "" : $name;
+        $name = $name == "Name" ? "" : $name;
         $email = $this->useRequest ? @trim($_REQUEST["newcontact_email"]) : "";
         $email = $email == "Email" ? "" : $email;
         list($name, $email, $class) = $email
             ? array($name, $email, "textlite temptextoff")
-            : array("Nome", "E-mail", "textlite temptext");
+            : array("Name", "Email", "textlite temptext");
         echo '<tr><td class="lcaption">Add</td>',
             '<td></td><td>',
             Ht::entry('newcontact_name', $name,
@@ -954,7 +954,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr>';
-        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
         echo '</table>', Ht::hidden("setcontacts", $open ? 2 : 1, array("id" => "setcontacts")), "</div></div>\n\n";
     }
 
