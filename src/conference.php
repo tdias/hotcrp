@@ -1835,7 +1835,7 @@ class Conference {
 	    if ($Me->contactId > 0) {
 		echo "<a class='q' href='", hoturl("profile"), "'><strong>",
 		    htmlspecialchars($Me->email),
-		    "</strong></a> &nbsp; <a href='", hoturl("profile"), "'>Profile</a>",
+		    "</strong></a> &nbsp; <a href='", hoturl("profile"), "'>Perfil</a>",
 		    $xsep;
 	    }
 	    if (@$_SESSION["adminuser"]) {
@@ -1847,9 +1847,9 @@ class Conference {
 	    $x = ($id == "search" ? "t=$id" : ($id == "settings" ? "t=chair" : ""));
 	    echo "<a href='", hoturl("help", $x), "'>Ajuda</a>", $xsep;
 	    if ($Me->contactId > 0 || isset($Opt["httpAuthLogin"]))
-		echo "<a href='", hoturl("index", "signout=1"), "'>Sign&nbsp;out</a>";
+		echo "<a href='", hoturl("index", "signout=1"), "'>Sair</a>";
 	    else
-		echo "<a href='", hoturl("index", "signin=1"), "'>Sign&nbsp;in</a>";
+		echo "<a href='", hoturl("index", "signin=1"), "'>Entrar</a>";
 	}
 	echo "<div id='maindeadline' style='display:none'>";
 

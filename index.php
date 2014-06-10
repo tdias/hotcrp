@@ -269,7 +269,7 @@ Bem vindo ao site de submissões da(o) ", htmlspecialchars($confname),
 	echo "\n</div>\n";
     }
     echo "<div class='f-i'>
-  <input type='submit' value='Sign in' name='signin' tabindex='1' />
+  <input type='submit' value='Entrar' name='signin' tabindex='1' />
 </div>
 </div></form>
 <hr class='home' /></div>\n";

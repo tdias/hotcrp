@@ -437,20 +437,20 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 - %CONFSHORTNAME% Submissions\n"),
 
      "registerpaper" =>
-     array("subject" => "[%CONFSHORTNAME%] Registered paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Paper #%PAPER% has been registered at the %CONFNAME% submissions site.
+     array("subject" => "[%CONFSHORTNAME%] Trabalho registrado #%NUMBER% %TITLEHINT%",
+	   "body" => "O trabalho #%PAPER% foi registrado no sistema de submissão da %CONFNAME%.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+  Site do trabalho: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
 %NOTES%%IF(REASON)%An administrator provided the following reason for this registration: %REASON%
 
 %ELSEIF(ADMINUPDATE)%An administrator performed this registration.
 
-%ENDIF%Contact the site administrator, %ADMIN%, with any questions or concerns.
+%ENDIF%Entre em contato com o administrador do sistema, %ADMIN%, para quaisquer outras dúvidas.
 
-- %CONFSHORTNAME% Submissions\n"),
+- %CONFSHORTNAME% Submissões\n"),
 
      "updatepaper" =>
      array("subject" => "[%CONFSHORTNAME%] Updated paper #%NUMBER% %TITLEHINT%",
@@ -469,34 +469,34 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 - %CONFSHORTNAME% Submissions\n"),
 
      "submitpaper" =>
-     array("subject" => "[%CONFSHORTNAME%] Submitted paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Paper #%PAPER% has been submitted to the %CONFNAME% submissions site.
+     array("subject" => "[%CONFSHORTNAME%] Trabalho submetido #%NUMBER% %TITLEHINT%",
+	   "body" => "O trabalho #%PAPER% foi submetido para o sistema de submissão %CONFNAME%.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+  Site do trabalho: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
 %NOTES%%IF(REASON)%An administrator provided the following reason for this update: %REASON%
 
 %ELSEIF(ADMINUPDATE)%An administrator performed this update.
 
-%ENDIF%Contact the site administrator, %ADMIN%, with any questions or concerns.
+%ENDIF%Entre em contato com o administrador do sistema, %ADMIN%, para quaisquer outras dúvidas.
 
-- %CONFSHORTNAME% Submissions\n"),
+- %CONFSHORTNAME% Submissões\n"),
 
      "submitfinalpaper" =>
-     array("subject" => "[%CONFSHORTNAME%] Updated final paper #%NUMBER% %TITLEHINT%",
-	   "body" => "The final version for paper #%PAPER% has been updated at the %CONFNAME% submissions site.
+     array("subject" => "[%CONFSHORTNAME%] Versão final do trabalho atualizado #%NUMBER% %TITLEHINT%",
+	   "body" => "A versão final do trabalho #%PAPER% foi atualizado no sistema de submissão da %CONFNAME%.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+  Site do trabalho: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
 %NOTES%%IF(REASON)%An administrator provided the following reason for this update: %REASON%
 
 %ELSEIF(ADMINUPDATE)%An administrator performed this update.
 
-%ENDIF%Contact the site administrator, %ADMIN%, with any questions or concerns.
+%ENDIF%Entre em contato com o administrador do sistema, %ADMIN%, para quaisquer outras dúvidas.
 
 - %CONFSHORTNAME% Submissions\n")
 
