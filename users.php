@@ -23,25 +23,25 @@ if ($Me->isPC && count($pctags = pcTags())) {
 	$_SESSION["foldppltags"] = 0;
 }
 if ($Me->isPC)
-    $tOpt["admin"] = "System administrators";
+    $tOpt["admin"] = "Administradores do Sistema";
 if ($Me->privChair || ($Me->isPC && $Conf->timePCViewAllReviews())) {
-    $tOpt["re"] = "All reviewers";
-    $tOpt["ext"] = "External reviewers";
-    $tOpt["extsub"] = "External reviewers who completed a review";
+    $tOpt["re"] = "Todos os revisores";
+    $tOpt["ext"] = "Revisores externos";
+    $tOpt["extsub"] = "Revisores Externos que completaram uma revisão";
 }
 if ($Me->isPC)
-    $tOpt["req"] = "External reviewers you requested";
+    $tOpt["req"] = "Revisores externos requisitados por você";
 if ($Me->privChair || ($Me->isPC && $Conf->subBlindNever()))
-    $tOpt["au"] = "Contact authors of submitted papers";
+    $tOpt["au"] = "Contate os autores de artigos submetidos";
 if ($Me->privChair
     || ($Me->isPC && $Conf->timePCViewDecision(true)))
-    $tOpt["auacc"] = "Contact authors of accepted papers";
+    $tOpt["auacc"] = "Conate autores de artigos aceitos";
 if ($Me->privChair
     || ($Me->isPC && $Conf->subBlindNever() && $Conf->timePCViewDecision(true)))
-    $tOpt["aurej"] = "Contact authors of rejected papers";
+    $tOpt["aurej"] = "Contate autores de artigos rejeitados";
 if ($Me->privChair) {
-    $tOpt["auuns"] = "Contact authors of non-submitted papers";
-    $tOpt["all"] = "All users";
+    $tOpt["auuns"] = "Conate autores de artigos não submetidos";
+    $tOpt["all"] = "Todos usuários";
 }
 if (isset($_REQUEST["t"]) && !isset($tOpt[$_REQUEST["t"]])) {
     $Conf->errorMsg("You aren’t allowed to list those users.");
@@ -129,13 +129,13 @@ function modify_confirm($j, $ok_message, $ok_message_optional) {
 
 if ($Me->privChair && @$_REQUEST["modifygo"] && check_post() && isset($papersel)) {
     if (@$_REQUEST["modifytype"] == "disableaccount")
-        modify_confirm(UserActions::disable($papersel, $Me), "Accounts disabled.", true);
+        modify_confirm(UserActions::disable($papersel, $Me), "Contas desativas.", true);
     else if (@$_REQUEST["modifytype"] == "enableaccount")
-        modify_confirm(UserActions::enable($papersel, $Me), "Accounts enabled.", true);
+        modify_confirm(UserActions::enable($papersel, $Me), "Contas ativadas.", true);
     else if (@$_REQUEST["modifytype"] == "resetpassword")
-        modify_confirm(UserActions::reset_password($papersel, $Me), "Passwords reset. <a href=\"" . hoturl_post("users", "t=" . $_REQUEST["t"] . "&amp;modifygo=1&amp;modifytype=sendaccount&amp;pap=" . join("+", $papersel)) . "\">Send account information to those accounts</a>", false);
+        modify_confirm(UserActions::reset_password($papersel, $Me), "Redefinição de senhas. <a href=\"" . hoturl_post("users", "t=" . $_REQUEST["t"] . "&amp;modifygo=1&amp;modifytype=sendaccount&amp;pap=" . join("+", $papersel)) . "\">Enviar informações de contas à estas contas</a>", false);
     else if (@$_REQUEST["modifytype"] == "sendaccount")
-        modify_confirm(UserActions::send_account_info($papersel, $Me), "Account information sent.", false);
+        modify_confirm(UserActions::send_account_info($papersel, $Me), "Envio de informação de contas.", false);
     redirectSelf(array("modifygo" => null, "modifytype" => null));
 }
 
@@ -160,9 +160,9 @@ if (isset($_REQUEST["scoresort"])
 
 
 if ($_REQUEST["t"] == "pc")
-    $title = "Program Committee";
+    $title = "Comissão de Programação";
 else if (substr($_REQUEST["t"], 0, 3) == "pc:")
-    $title = "“" . substr($_REQUEST["t"], 3) . "” Program Committee";
+    $title = "“" . substr($_REQUEST["t"], 3) . "” Comissão de Programação";
 else
     $title = "Users";
 $Conf->header($title, "accounts", actionBar());
@@ -192,7 +192,7 @@ if (count($tOpt) > 1) {
 	if (isset($_REQUEST[$x]))
 	    echo "<input type='hidden' name='$x' value=\"", htmlspecialchars($_REQUEST[$x]), "\" />\n";
 
-    echo "<table><tr><td><strong>Show:</strong> &nbsp;</td>
+    echo "<table><tr><td><strong>Exibir:</strong> &nbsp;</td>
   <td class='pad'>";
     if ($pl->haveAffrow !== null) {
 	echo Ht::checkbox("showaff", 1, $pl->haveAffrow,
@@ -242,8 +242,8 @@ if (count($tOpt) > 1) {
 
     // Tab selectors
     echo "<tr><td class='tllx'><table><tr>
-  <td><div class='tll1'><a class='tla' onclick='return crpfocus(\"contactsform\", 1)' href=''>User selection</a></div></td>
-  <td><div class='tll2'><a class='tla' onclick='return crpfocus(\"contactsform\", 2)' href=''>Display options</a></div></td>
+  <td><div class='tll1'><a class='tla' onclick='return crpfocus(\"contactsform\", 1)' href=''>Seleção de Usuário</a></div></td>
+  <td><div class='tll2'><a class='tla' onclick='return crpfocus(\"contactsform\", 2)' href=''>Opções de Exibição</a></div></td>
 </tr></table></td></tr>
 </table>\n\n";
 }
@@ -252,7 +252,7 @@ if (count($tOpt) > 1) {
 if ($Me->privChair && $_REQUEST["t"] == "pc")
     $Conf->infoMsg("<p><a href='" . hoturl("profile", "u=new&amp;pc=1") . "' class='button'>Add PC member</a></p><p>Select a PC member’s name to edit their profile or remove them from the PC.</p>");
 else if ($Me->privChair && $_REQUEST["t"] == "all")
-    $Conf->infoMsg("<p><a href='" . hoturl("profile", "u=new") . "' class='button'>Create account</a></p><p>Select a user to edit their profile.  Select <img src='images/viewas.png' alt='[Act as]' /> to view the site as that user would see it.</p>");
+    $Conf->infoMsg("<p><a href='" . hoturl("profile", "u=new") . "' class='button'>Criar conta</a></p><p>Selecione um usuário para editar seu perfil. Selecione <img src='images/viewas.png' alt='[Act as]' /> para visualizar como o site seria visto.</p>");
 
 
 if (isset($pl->any->sel)) {
