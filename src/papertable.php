@@ -526,8 +526,8 @@ class PaperTable {
 	global $Conf;
         cleanAuthor($this->prow);
 
-	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>More</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Fewer</a>)</span>"),
-	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus e-mails e afiliações.";
+	echo $this->editable_papt("authorInformation", "Autores <span class='papfnh'>(<a href='javascript:void authorfold(\"auedit\",1,1)'>Mais</a> | <a href='javascript:void authorfold(\"auedit\",1,-1)'>Menos</a>)</span>"),
+	    "<div class='paphint'>Lista o(os) paper&rsquo;s autores, incluindo seus emails e afiliações.";
 	if ($Conf->subBlindAlways())
 	    echo " A submissão está oculta, portanto revisores não serão capazes de visualizar as informações do autor.";
 	echo " Qualquer autor com uma conta neste site pode editar este artigo.</div>",
@@ -862,7 +862,7 @@ class PaperTable {
                       array("id" => "newcontact_email", "size" => 20,
                             "class" => $class, "onchange" => "hiliter(this)")),
             '</td></tr></table>';
-        $Conf->footerScript("mktemptext('newcontact_name','Nome');mktemptext('newcontact_email','Email')");
+        $Conf->footerScript("mktemptext('newcontact_name','Name');mktemptext('newcontact_email','Email')");
 	echo "</div>\n\n";
     }
 
@@ -885,7 +885,7 @@ class PaperTable {
             (@$Error["contactAuthor"] ? " error" : ""),
             '"><span class="papfn">',
             ($always_unfold ? "" : expander(false)),
-            'Contacts</span><div class="clear"></div></div>';
+            'Contatos</span><div class="clear"></div></div>';
 
         // Non-editable version
         echo '<div class="papv fn0">';
@@ -1236,7 +1236,7 @@ class PaperTable {
 	    $pcconfs[] = "None";
 
 	echo $this->_papstripBegin(),
-	    $this->papt("pcconflict", "PC conflicts", array("type" => "ps")),
+	    $this->papt("pcconflict", "Conflito de CC", array("type" => "ps")),
 	    "<div class='psv psconf'><p class='odname'>",
 	    join("</p><p class='odname'>", $pcconfs),
 	    "</p></div></div>\n";
@@ -1472,10 +1472,10 @@ class PaperTable {
 				       $watchValue & $this->watchCheckbox,
 				       array("onchange" => "Miniajax.submit('watchform')",
 					     "style" => "padding-left:0;margin-left:0"))
-			 . "&nbsp;" . Ht::label("Email notification"),
+			 . "&nbsp;" . Ht::label("Notificação por email"),
 			 array("type" => "ps")),
 	    // "<div class='pshint'>Select to receive email on updates to reviews and comments. <span id='watchformresult'></span>"
-	    "<div class='pshint'>Selecione para receber e-mails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
+	    "<div class='pshint'>Selecione para receber emails em caso de atualizações de revisão e comentários. <span id='watchformresult'></span>",
 	    "<input class='fx7' type='submit' value='Save' />",
 	    "</div></div></form></div>\n\n";
 
@@ -1583,7 +1583,7 @@ class PaperTable {
             if ($revivable || $this->admin) {
                 $b = "<input type='submit' name='revive' value='Recuperar artigo' />";
                 if (!$revivable)
-                    $b = array($b, "(admin only)");
+                    $b = array($b, "(apenas administrador)");
             } else
                 $b = "O <a href='" . hoturl("deadlines") . "'>prazo final</a> retirar artigos em revisão se encerrou.";
             return array($b);
@@ -1599,7 +1599,7 @@ class PaperTable {
             $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => "bb")), "");
         else if ($this->admin && $this->mode == "pe") {
             $class = ($prow->outcome > 0 && $Conf->collectFinalPapers() ? "b" : "bb");
-            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => $class)), "(admin only)");
+            $buttons[] = array(Ht::submit("update", "Salvar alterações", array("class" => $class)), "(apenas administrador)");
         } else if ($this->mode == "pe" && $prow->timeSubmitted > 0)
             $buttons[] = array(Ht::submit("updatecontacts", "Salvar contatos", array("class" => "b")), "");
 
@@ -1633,7 +1633,7 @@ class PaperTable {
         }
         if ($b) {
             if (!$Me->canWithdrawPaper($prow))
-                $b = array($b, "(adminstrador apenas)");
+                $b = array($b, "(apenas administrador)");
             $buttons[] = $b;
         }
 
@@ -1647,7 +1647,7 @@ class PaperTable {
 	$buttons = $this->_collectActionButtons();
 
 	if ($this->admin && $prow) {
-	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Excluir artigo</button>", "(adminstrador apenas)");
+	    $buttons[] = array("<button type='button' onclick=\"popup(this,'d',0,true)\">Excluir artigo</button>", "(apenas adminstrador)");
 	    $Conf->footerHtml("<div id='popup_d' class='popupc'>
   <p>Seja cuidadoso: Esta ação excluirá permanentemente todas informações sobre este artigo da base de dados e <strong>não poderá ser desfeita</strong>.</p>
   <form method='post' action=\"" . hoturl_post("paper", "p=" . $prow->paperId . "&amp;m=pe") . "\" enctype='multipart/form-data' accept-charset='UTF-8'>
@@ -1665,7 +1665,7 @@ class PaperTable {
 	    $v = defval($_REQUEST, "emailNote", "");
 	    echo "  <div class='g'></div>\n  <table>\n",
 		"    <tr><td>",
-		Ht::checkbox("doemail", 1, true), "&nbsp;",
+		Ht::checkbox("doemail", 1, false), "&nbsp;",
 		Ht::label("Enviar email para os autores, incluindo:"), "&nbsp; ",
 		"<input id='emailNote' type='text' class='textlite temptext' name='emailNote' size='30' value=\"",
 		htmlspecialchars($v == "" ? "Optional explanation" : $v),
@@ -2077,16 +2077,16 @@ class PaperTable {
             && ($Me->ownReview($this->editrrow) || $actChair)
 	    && !$Conf->time_review($actPC, true)) {
 	    if ($actChair)
-		$override = "  As an administrator, you can override this deadline using the “Override deadlines” checkbox.";
+		$override = "  Como administrador, você pode sobrescrever o prazo final usando a opção 'Sobrescrever prazo final' .";
 	    else {
 		$override = "";
 		if ($this->editrrow->reviewSubmitted)
 		    $opt["edit"] = false;
 	    }
 	    if (!$Conf->time_review($actPC, true, true))
-		$opt["editmessage"] = "The <a href='" . hoturl("deadlines") . "'>deadline</a> for changing reviews has passed, so the review can no longer be changed.$override";
+		$opt["editmessage"] = "O <a href='" . hoturl("deadlines") . "'>prazo final</a> para alterações nas revisões se encerrou, então a revisão não pode mais ser alterada.$override";
 	    else
-		$opt["editmessage"] = "The site is not open for reviewing, so the review cannot be changed.$override";
+		$opt["editmessage"] = "O sistema não está aberto para revisões, então a revisão não pode ser alteracão.$override";
 	} else if (!$Me->canReview($prow, $this->editrrow))
 	    $opt["edit"] = false;
 

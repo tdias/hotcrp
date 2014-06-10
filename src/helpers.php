@@ -290,13 +290,13 @@ function fileUploaded(&$var) {
 	return false;
     case UPLOAD_ERR_INI_SIZE:
     case UPLOAD_ERR_FORM_SIZE:
-	$Conf->errorMsg("You tried to upload a file that’s too big for our system to accept.  The maximum size is " . ini_get("upload_max_filesize") . "B.");
+	$Conf->errorMsg("Você tentou enviar um arquivo que é grande demais para ser aceito pelo nosso sistema. O tamanho máximo é " . ini_get("upload_max_filesize") . "B.");
 	return false;
     case UPLOAD_ERR_PARTIAL:
-	$Conf->errorMsg("You appear to have interrupted the upload process; I am not storing that file.");
+	$Conf->errorMsg("Aparentemente você interrompeu o processo de upload; O arquivo não está sendo salvo.");
 	return false;
     default:
-	$Conf->errorMsg("Internal upload error " . $var['error'] . "!");
+	$Conf->errorMsg("Erro de Envio Intero " . $var['error'] . "!");
 	return false;
     }
 }
@@ -381,17 +381,17 @@ function expander($open) {
 
 function reviewType($paperId, $row, $long = 0) {
     if ($row->reviewType == REVIEW_PRIMARY)
-	return "<span class='rtype rtype_pri'>Primary</span>";
+	return "<span class='rtype rtype_pri'>Primário</span>";
     else if ($row->reviewType == REVIEW_SECONDARY)
-	return "<span class='rtype rtype_sec'>Secondary</span>";
+	return "<span class='rtype rtype_sec'>Secundário</span>";
     else if ($row->reviewType == REVIEW_EXTERNAL)
-	return "<span class='rtype rtype_req'>External</span>";
+	return "<span class='rtype rtype_req'>Externo</span>";
     else if ($row->conflictType >= CONFLICT_AUTHOR)
-	return "<span class='author'>Author</span>";
+	return "<span class='author'>Autor</span>";
     else if ($row->conflictType > 0)
-	return "<span class='conflict'>Conflict</span>";
+	return "<span class='conflict'>Conflito</span>";
     else if (!($row->reviewId === null) || $long)
-	return "<span class='rtype rtype_pc'>PC</span>";
+	return "<span class='rtype rtype_pc'>Comissão Científica</span>";
     else
 	return "";
 }
@@ -744,7 +744,7 @@ function goPaperForm($baseUrl = null, $args = array()) {
     if ($baseUrl === null)
 	$baseUrl = ($Me->isPC && $Conf->setting("rev_open") ? "review" : "paper");
     $x = "<form class='gopaper' action='" . hoturl($baseUrl) . "' method='get' accept-charset='UTF-8'><div class='inform'>";
-    $x .= "<input id='quicksearchq' class='textlite temptext' type='text' size='10' name='p' value='(All)' title='Enter paper numbers or search terms' />";
+    $x .= "<input id='quicksearchq' class='textlite temptext' type='text' size='10' name='p' value='(All)' title='Insira número do artigo ou termos para busca' />";
     $Conf->footerScript("mktemptext('quicksearchq','(All)')");
     foreach ($args as $what => $val)
 	$x .= "<input type='hidden' name=\"" . htmlspecialchars($what) . "\" value=\"" . htmlspecialchars($val) . "\" />";
@@ -1079,37 +1079,37 @@ function whyNotText($whyNot, $action) {
 	$text .= "Invalid " . $whyNot['invalidId'] . " number" . htmlspecialchars($xid) . ". ";
     }
     if (isset($whyNot['noPaper']))
-	$text .= "No such paper" . ($paperId < 0 ? "" : " #$paperId") . ". ";
+	$text .= "Nenhum artigr" . ($paperId < 0 ? "" : " #$paperId") . ". ";
     if (isset($whyNot['noReview']))
-	$text .= "No such review" . ($reviewId < 0 ? "" : " #$reviewId") . ". ";
+	$text .= "Nenhuma revisão" . ($reviewId < 0 ? "" : " #$reviewId") . ". ";
     if (isset($whyNot['dbError']))
 	$text .= $whyNot['dbError'] . " ";
     if (isset($whyNot['permission']))
-	$text .= "You don’t have permission to $action $thisPaper. ";
+	$text .= "Você não tem permissão para $action $thisPaper. ";
     if (isset($whyNot['withdrawn']))
-	$text .= ucfirst($thisPaper) . " has been withdrawn. ";
+	$text .= ucfirst($thisPaper) . " foi removido. ";
     if (isset($whyNot['notWithdrawn']))
-	$text .= ucfirst($thisPaper) . " has not been withdrawn. ";
+	$text .= ucfirst($thisPaper) . " não foi removido. ";
     if (isset($whyNot['notSubmitted']))
-	$text .= ucfirst($thisPaper) . " was never officially submitted. ";
+	$text .= ucfirst($thisPaper) . " nunca foi oficialmente submetido. ";
     if (isset($whyNot['notAccepted']))
-	$text .= ucfirst($thisPaper) . " was not accepted for publication. ";
+	$text .= ucfirst($thisPaper) . " não foi aceito para publicação. ";
     if (isset($whyNot["decided"]))
-        $text .= "The review process for $thisPaper has completed. ";
+        $text .= "O processo de revisão para $thisPaper foi completado. ";
     if (isset($whyNot['updateSubmitted']))
-	$text .= ucfirst($thisPaper) . " has already been submitted and can no longer be updated. ";
+	$text .= ucfirst($thisPaper) . " já foi submetido e não pode ser atualizado. ";
     if (isset($whyNot['notUploaded']))
-	$text .= ucfirst($thisPaper) . " can’t be submitted because you haven’t yet uploaded the paper itself. Upload the paper and try again. ";
+	$text .= ucfirst($thisPaper) . " não pode ser submetido porque você ainda não enviou o artigo. Envie o artigo e tente novamente. ";
     if (isset($whyNot['reviewNotSubmitted']))
-	$text .= "This review is not yet ready for others to see. ";
+	$text .= "Esta revisão não esta pronta para ser visualiada por outros. ";
     if (isset($whyNot['reviewNotComplete']))
-	$text .= "Your own review for $thisPaper is not complete, so you can’t view other people’s reviews. ";
+	$text .= "Sua própria revisão para $thisPaper não está completa, então você não pode visualizar a revisão de outras pessoas. ";
     if (isset($whyNot['responseNotReady']))
-	$text .= "The authors&rsquo; response for $thisPaper is not yet ready for reviewers to view. ";
+	$text .= "A resposta do autor&rsquo; para $thisPaper ainda não está pronta para ser visualizada pelos revisores. ";
     if (isset($whyNot['reviewsOutstanding']))
-	$text .= "You will get access to the reviews once you complete <a href=\"" . hoturl("search", "q=&amp;t=r") . "\">your assigned reviews for other papers</a>.  If you can’t complete your reviews, please let the conference organizers know via the “Refuse review” links. ";
+	$text .= "Você terá acesso as revisões desde que complete <a href=\"" . hoturl("search", "q=&amp;t=r") . "\"> suas revisões atribuídas para outros artigos</a>.  Se não puder completar suas revisões, por favor, comunique os organizadores da conferência pelo link 'Recusar revisão'. ";
     if (isset($whyNot['reviewNotAssigned']))
-	$text .= "You are not assigned to review $thisPaper. ";
+	$text .= "Vocẽ não está atribuído para a revisão $thisPaper. ";
     if (isset($whyNot['deadline'])) {
 	$dname = $whyNot['deadline'];
 	if ($dname[0] == "s")
@@ -1121,53 +1121,53 @@ function whyNotText($whyNot, $action) {
 	$end = $Conf->setting($dname, -1);
 	$now = time();
 	if ($start <= 0)
-	    $text .= "You can’t $action $thisPaper yet. ";
+	    $text .= "Você não pode $action $thisPaper ainda. ";
 	else if ($start > 0 && $now < $start)
-	    $text .= "You can’t $action $thisPaper until " . $Conf->printableTime($start, "span") . ". ";
+	    $text .= "Você não pode $action $thisPaper até " . $Conf->printableTime($start, "span") . ". ";
 	else if ($end > 0 && $now > $end) {
 	    if ($dname == "sub_reg")
-		$text .= "The paper registration deadline has passed. ";
+		$text .= "O prazo de registro expirou. ";
 	    else if ($dname == "sub_update")
-		$text .= "The deadline to update papers has passed. ";
+		$text .= "O prazo para atualização de artigos expirou. ";
 	    else if ($dname == "sub_sub")
-		$text .= "The paper submission deadline has passed. ";
+		$text .= "O prazo para submissão de artigo expirou. ";
 	    else if ($dname == "extrev_hard")
 		$text .= "The external review deadline has passed. ";
 	    else if ($dname == "pcrev_hard")
-		$text .= "The PC review deadline has passed. ";
+		$text .= "O prazo de revisão da comissão científica expirou. ";
 	    else
-		$text .= "The deadline to $action $thisPaper has passed. ";
+		$text .= "O prazo para $action $thisPaper expirou. ";
 	    $text .= "It was " . $Conf->printableTime($end, "span") . ". ";
 	} else if ($dname == "au_seerev") {
 	    if ($Conf->setting("au_seerev") == AU_SEEREV_YES)
-		$text .= "Authors who are also reviewers can’t see reviews for their papers while they still have <a href='" . hoturl("search", "t=rout&amp;q=") . "'>incomplete reviews</a> of their own. ";
+		$text .= "Autores que também são revisores não podem ver revisões para artigos os quais ainda não tenham  <a href='" . hoturl("search", "t=rout&amp;q=") . "'>completado a revisão </a> of their own. ";
 	    else
-		$text .= "Authors can’t view paper reviews at the moment. ";
+		$text .= "Autores não podem visualizar revisões no momento. ";
 	} else
-	    $text .= "You can’t $action $thisPaper at the moment. ";
-	$text .= "(<a class='nowrap' href='" . hoturl("deadlines") . "'>View deadlines</a>) ";
+	    $text .= "Você não pode $action $thisPaper no momento. ";
+	$text .= "(<a class='nowrap' href='" . hoturl("deadlines") . "'>Visualizar prazos</a>) ";
     }
     if (isset($whyNot['override']) && $whyNot['override'])
-        $text .= "“Override deadlines” can override this restriction. ";
+        $text .= "“Ignorar prazos” pode anular esta restrição. ";
     if (isset($whyNot['blindSubmission']))
-	$text .= "Submission to this conference is blind. ";
+	$text .= "Submissão para esta conferencia está oculta. ";
     if (isset($whyNot['author']))
-	$text .= "You aren’t a contact for $thisPaper. ";
+	$text .= "Você não é um contato para $thisPaper. ";
     if (isset($whyNot['conflict']))
-	$text .= "You have a conflict with $thisPaper. ";
+	$text .= "Você tem um conflito com $thisPaper. ";
     if (isset($whyNot['externalReviewer']))
-	$text .= "External reviewers may not view other reviews for the papers they review. ";
+	$text .= "Revisores externos não podem visualizar outras revisões para artigos que revisaram. ";
     if (isset($whyNot['differentReviewer']))
-	$text .= "You didn’t write this review, so you can’t change it. ";
+	$text .= "Você não pode escrever esta revisão, então não pode altera-la. ";
     if (isset($whyNot['reviewToken']))
 	$text .= "If you know a valid review token, enter it above to edit that review. ";
     // finish it off
     if (isset($whyNot['chairMode']))
 	$text .= "(<a class='nowrap' href=\"" . selfHref(array("forceShow" => 1)) . "\">" . ucfirst($action) . " the paper anyway</a>) ";
     if (isset($whyNot['forceShow']))
-	$text .= "(<a class='nowrap' href=\"". selfHref(array("forceShow" => 1)) . "\">Override conflict</a>) ";
+	$text .= "(<a class='nowrap' href=\"". selfHref(array("forceShow" => 1)) . "\">Ignorar conflito</a>) ";
     if ($text && $action == "view")
-	$text .= "Enter a paper number above, or <a href='" . hoturl("search", "q=") . "'>list the papers you can view</a>. ";
+	$text .= "Insira um número de artigo abaixo, ou <a href='" . hoturl("search", "q=") . "'>listar os artigos que você pode visualizar</a>. ";
     return rtrim($text);
 }
 

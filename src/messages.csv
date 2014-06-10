@@ -1,5 +1,5 @@
 name,html
-conflictdef,"This includes past advisors and students, people with the same affiliation, and any recent (~2 years) coauthors and collaborators." 
+conflictdef,"Isto inclui conselheiros anteriores e estudantes, pessoas com a mesma filiação, e qualquer recentes co-autores e colaboradores (~ 2 anos)." 
 revprefdescription,"<p>A review preference is a small integer that indicates how much you want to review a paper. Positive numbers mean you want to review the paper, negative numbers mean you don’t, and −100 means you think you have a conflict. −20 to 20 is a typical range for real preferences; multiple papers can have the same preference. The automatic assignment algorithm attempts to assign reviews in descending preference order. Different users’ preference values are not compared and need not use the same scale.</p>
 
 <p>The list shows all submitted papers. Select a column heading to sort by that column. Enter preferences in the text boxes or on the paper pages. You may also upload preferences from a text file; see the “Download” and “Upload” links below the paper list.</p>"
