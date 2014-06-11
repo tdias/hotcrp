@@ -496,7 +496,7 @@ class PaperTable {
 					}
 				}
 				$("#countAbstractChar").text($("textarea[name=abstract]").val().length);
-				$("textarea[name=abstract]").keypress(checkAbstract);
+				$("textarea[name=abstract]").keydown(checkAbstract);
 				$("textarea[name=abstract]").change(checkAbstract);
 				$("form").submit(function(){
 					checkAbstract();
