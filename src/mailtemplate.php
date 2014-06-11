@@ -27,20 +27,20 @@ Entre em contato com o administrador do sistema, %ADMIN% para qualquer questoes
 - %CONFSHORTNAME% Sistema de Submissao\n"),
 
      "accountinfo" =>
-     array("subject" => "[%CONFSHORTNAME%] Account information",
+     array("subject" => "[%CONFSHORTNAME%] Informações da Conta",
 	   "body" => "Dear %NAME%,
 
-Here is your account information for the %CONFNAME% submissions site.
+Seguem as informações da sua conta para o sistema de submissão do evento %CONFNAME%
 
         Site: %URL%/
        Email: %EMAIL%
     Password: %OPT(PASSWORD)%
 
-Use the link below to sign in directly.
+Use o link abaixo para entrar automaticamente.
 
 %LOGINURL%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -54,7 +54,7 @@ We have received a request to reset the password for your account on the %CONFNA
 
 If you did not make this request, please ignore this email.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -68,7 +68,7 @@ We have received a request to change the email address for your account on the %
 
 If you did not make this request, please ignore this email.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -78,7 +78,7 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
 Your account at the %CONFSHORTNAME% submissions site has been merged with the account of %OTHERCONTACT%. From now on, you should log in using the %OTHEREMAIL% account.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -109,7 +109,7 @@ Or use the link below to sign in.
 
 %LOGINURL%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 Thanks for your help -- we appreciate that reviewing is hard work!
 - %CONFSHORTNAME% Submissions\n"),
@@ -233,36 +233,34 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 - %CONFSHORTNAME% Submissions\n"),
 
      "reviewsubmit" =>
-     array("subject" => "[%CONFSHORTNAME%] Submitted review #%REVIEWNUMBER% %TITLEHINT%",
+     array("subject" => "[%CONFSHORTNAME%] Revisão submetida #%REVIEWNUMBER% %TITLEHINT%",
 	   "body" => "Dear %NAME%,
 
-Review #%REVIEWNUMBER% for %CONFNAME% paper #%NUMBER% has been submitted. The review is available at the paper site.
+A revisão #%REVIEWNUMBER% referente ao trabalho #%NUMBER% a ser apresentado em %CONFNAME% foi submetido. A revisão está disponível no site do trabalho.
 
-  Paper site: %URL(paper, p=%NUMBER%)%
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-   Review by: %OPT(REVIEWAUTHOR)%
+  Site do trabalho: %URL(paper, p=%NUMBER%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+      Revisado por: %OPT(REVIEWAUTHOR)%
 
-For the most up-to-date reviews and comments, or to unsubscribe from email notification, see the paper site.
+Visite o site do trabalho para verificar as revisões e comentários mais atuais, out para remover a notificação por email.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
-- %CONFSHORTNAME% Submissions\n"),
+- %CONFSHORTNAME% Sistema de submissões\n"),
 
      "reviewupdate" =>
-     array("subject" => "[%CONFSHORTNAME%] Updated review #%REVIEWNUMBER% %TITLEHINT%",
+     array("subject" => "[%CONFSHORTNAME%] Revisão atualizada #%REVIEWNUMBER% %TITLEHINT%",
 	   "body" => "Dear %NAME%,
 
-Review #%REVIEWNUMBER% for %CONFNAME% paper #%NUMBER% has been updated. The review is available at the paper site.
+A revisão #%REVIEWNUMBER% referente ao trabalho #%NUMBER% a ser apresentado em %CONFNAME% foi submetido. A revisão foi atualizada.
 
-  Paper site: %URL(paper, p=%NUMBER%)%
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-   Review by: %OPT(REVIEWAUTHOR)%
+  Site do trabalho: %URL(paper, p=%NUMBER%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+      Revisado por: %OPT(REVIEWAUTHOR)%For the most up-to-date reviews and comments, or to unsubscribe from email notification, see the paper site.
 
-For the most up-to-date reviews and comments, or to unsubscribe from email notification, see the paper site.
-
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -283,7 +281,7 @@ Your paper was one of %NUMACCEPTED% accepted out of %NUMSUBMITTED% submissions. 
 
 Reviews and comments on your paper are appended to this email. The submissions site also has the paper's reviews and comments, as well as more information about review scores.%LOGINNOTICE%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions
 
@@ -307,7 +305,7 @@ The %CONFNAME% program committee is sorry to inform you that your paper #%NUMBER
 
 Reviews and comments on your paper are appended to this email. The submissions site also has the paper's reviews and comments, as well as more information about review scores.%LOGINNOTICE%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions
 
@@ -320,7 +318,7 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
   Paper site: %URL(paper, p=%NUMBER%)%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions
 
@@ -332,7 +330,7 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
   Paper site: %URL(paper, p=%NUMBER%)%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions
 
@@ -344,7 +342,8 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
   Paper site: %URL(paper, p=%NUMBER%)%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
+
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -365,7 +364,7 @@ Use the link below to sign in to the submissions site.
 
 %LOGINURL%
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -389,7 +388,7 @@ Use the link below to sign in to the submissions site.
 
 Thank you for your help -- we appreciate that reviewing is hard work.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -414,7 +413,7 @@ Use the link below to sign in to the submissions site.
 
 Thank you for your help -- we appreciate that reviewing is hard work.
 
-Contact the site administrator, %ADMIN%, with any questions or concerns.
+Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
 - %CONFSHORTNAME% Submissions\n"),
 
@@ -453,18 +452,18 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 - %CONFSHORTNAME% Submissões\n"),
 
      "updatepaper" =>
-     array("subject" => "[%CONFSHORTNAME%] Updated paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Paper #%PAPER% has been updated at the %CONFNAME% submissions site.
+     array("subject" => "[%CONFSHORTNAME%] Trabalho atualizado #%NUMBER% %TITLEHINT%",
+	   "body" => "O trabalho #%PAPER% foi atualizado no sistema de submissão da %CONFNAME%.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+            Título: %TITLE%
+           Autores: %OPT(AUTHORS)%
+  Site do trabalho: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
 %NOTES%%IF(REASON)%An administrator provided the following reason for this update: %REASON%
 
 %ELSEIF(ADMINUPDATE)%An administrator performed this update.
 
-%ENDIF%Contact the site administrator, %ADMIN%, with any questions or concerns.
+%ENDIF%Entre em contato com o administrador do sistema, %ADMIN%, para quaisquer outras dúvidas.
 
 - %CONFSHORTNAME% Submissions\n"),
 

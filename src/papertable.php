@@ -477,23 +477,35 @@ class PaperTable {
         echo "<div class='pg pgtop'>",
             $this->editable_papt("abstract", "Abstract"),
             "<div class='papv abstract'>",
-            "<p><b>O resumo não deverá ultrapassar 2500 caracteres.</b></p>",
+            "<p><b>O resumo não deverá ultrapassar 2500 caracteres.</b> (Qtd caracteres: <span id='countAbstractChar'></span>)</p>",
             $this->entryData("abstract", "p"),
             "</div></div>\n\n";
 
         //alerta para texto de no maximo 2500 caracteres
 		echo '<script>
-				$("textarea[name=abstract]").keypress(function(){
-					if(this.value.length > 2500) {
-						alert("Seu resumo ultrapassou o limite de 2500 caracteres.");
+				abstractValid = false;
+				function checkAbstract(){
+					abstract = $("textarea[name=abstract]");
+					$("#countAbstractChar").text(abstract.val().length);
+					if(abstract.val().length > 2500) {
+						abstract.css("background-color","pink");
+						abstractValid = false;
+					}else{
+						abstract.css("background-color","inherit");
+						abstractValid = true;
 					}
-				});
-				$("textarea[name=abstract]").change(function(){
-					if(this.value.length > 2500) {
-						alert("Seu resumo ultrapassou o limite de 2500 caracteres.");
+				}
+				$("#countAbstractChar").text($("textarea[name=abstract]").val().length);
+				$("textarea[name=abstract]").keypress(checkAbstract);
+				$("textarea[name=abstract]").change(checkAbstract);
+				$("form").submit(function(){
+					checkAbstract();
+					if(!abstractValid){
+						alert("Seu resumo ultrapassou o limite de 2500 caracteres. Por favor, diminua a quantidade de caracteres para realizar o cadastro do trabalho");
 					}
+					return abstractValid;
 				});
-			</script>';
+				</script>';
 
     }
 
