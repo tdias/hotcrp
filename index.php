@@ -550,7 +550,7 @@ if ($Me->is_author() || $Conf->timeStartPaper() > 0 || $Me->privChair
     }
     if (!$startable && !count($deadlines)) {
 	if ($Conf->deadlinesAfter("sub_open"))
-	    $deadlines[] = "A data limete <a href='" . hoturl("deadlines") . "'></a> para submeter novos trabalhos se encerrou.";
+	    $deadlines[] = "A data limite <a href='" . hoturl("deadlines") . "'></a> para submeter novos trabalhos se encerrou.";
 	else
 	    $deadlines[] = "O sistema não está aberto para submissões no momento.";
     }

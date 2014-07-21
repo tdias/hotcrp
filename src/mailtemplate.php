@@ -20,9 +20,9 @@ Use o link abaixo para acessar o sistema
 
 %LOGINURL%
 
-Se voce ja posssui uma conta com um email diferente, voce pode mesclar esta nova conta com a antiga. Va para a pagina do perfil e selecione \"Juntar com outra conta\"
+Se voce ja posssui uma conta com um email diferente, você pode mesclar esta nova conta com a antiga. Va para a pagina do perfil e selecione \"Juntar com outra conta\"
 
-Entre em contato com o administrador do sistema, %ADMIN% para qualquer questoes
+Entre em contato com o administrador do sistema, %ADMIN% para quaisquer outras dúvidas
 
 - %CONFSHORTNAME% Sistema de Submissao\n"),
 

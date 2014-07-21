@@ -1505,7 +1505,7 @@ class PaperTable {
 	else if (time() < $Conf->setting($dname))
 	    return "  A data final é  $deadline.";
 	else
-	    return "  A data final era $deadline.";
+	    return " A data final era $deadline.";
     }
 
     function editMessage() {
@@ -1519,20 +1519,21 @@ class PaperTable {
 	    $startDeadline = $this->deadlineSettingIs("sub_reg");
 	    if (!$timeStart) {
 		if ($Conf->setting("sub_open") <= 0)
-		    $msg = "Você não pode registrar novos artigos porque o site de conferencia não foi aberto para submissoes .$override";
+		    $msg = "Você não pode registrar novos artigos porque o site do evento ainda não foi aberto para submissoes. $override";
 		else
-		    $msg = "Você não pode registrar novos artigos a partir de quando ultrapassou <a href='" . hoturl("deadlines") . "'>a data máxima</a>.$startDeadline$override";
+		    $msg = "Você não pode registrar novos artigos pois a data já ultrapassou a <a href='" . hoturl("deadlines") . "'>data máxima</a>.$startDeadline$override";
 		if (!$this->admin)
 		    errorMsgExit($msg);
 		$m .= "<div class='xinfo'>" . $msg . "</div>";
 	    } else {
-		$m .= "<div class='xinfo'>" . "Insira informações sobre seu artigo.  ";
+		$m .= "<div class='xinfo'>" . "Insira informações sobre seu artigo. ";
 		if ($startDeadline && !$Conf->setting("sub_freeze"))
-		    $m .= "You can make changes until the deadline, but thereafter ";
+		    $m .= "Você pode fazer alterações até a data limite, mas posteriormente, ";
+		    //$m .= "You can make changes until the deadline, but thereafter ";
 		else
-		    $m .= "Você não tem que enviar o artigo propriamente";
+		    $m .= "Você não precisa enviar o artigo imediatamente, mas ";
 		//$m .= "You don’t have to upload the paper itself right away, but ";
-		$m .= "mas submissões incompletas não serão consideradas.$startDeadline" . "</div>";
+		$m .= "submissões incompletas não serão consideradas. $startDeadline" . "</div>";
 	    }
 	} else if ($prow->has_author($Me)
 		   && ($Conf->timeUpdatePaper($prow)
