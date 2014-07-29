@@ -225,7 +225,7 @@ class LoginHelper {
             return self::first_user($user, $msg);
 
         if ($Conf->allowEmailTo($user->email))
-            $msg .= " Uma senha de acesso foi enviada por email para você. Retorne aqui quando você recebê-la para completar o cadastro. Se você não recebeu o email, cheque sua pasta de spam e verifique se vc digitou o email corretamente.";
+            $msg .= " Uma senha de acesso foi enviada por email para você. Retorne aqui quando você recebê-la para completar o cadastro. Se você não recebeu o email, cheque sua pasta de spam e verifique se você digitou o email corretamente.";
         else {
             if ($Opt["sendEmail"])
                 $msg .= " O email que você digitou parecer ser inválido, tente outro.";

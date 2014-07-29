@@ -33,13 +33,12 @@ if (@$_REQUEST["ajax"]) {
 
 
 // header and script
-$Conf->header("Deadlines", "deadlines", actionBar());
+$Conf->header("Data limite", "deadlines", actionBar());
 
-echo "<p>These deadlines determine when various conference
-submission and review functions can be accessed.";
+echo "<p>Estas datas limites determinam até quando as funcionalidades de submissão de artigo e revisão poderão ser acessadas.";
 
 if ($Me->privChair)
-    echo " As PC chair, you can also <a href='", hoturl("settings"), "'>change the deadlines</a>.";
+    echo " Como membro da Comissão Científica, você também pode <a href='", hoturl("settings"), "'>alterar estas data limites</a>.";
 
 echo "</p>
 
@@ -51,7 +50,7 @@ function printDeadline($dl, $name, $phrase, $description) {
     echo "<dt><strong>", $phrase, "</strong>: ", $Conf->printableTime($dl[$name], "span") , "</dt>\n",
 	"<dd>", $description, ($description ? "<br />" : "");
     if ($dl[$name] > $dl["now"])
-	echo "<strong>Time left</strong>: less than " . $Conf->printableInterval($dl[$name] - $dl["now"]);
+	echo "<strong>Tempo restante:</strong>: menos que " . $Conf->printableInterval($dl[$name] - $dl["now"]);
     echo "</dd>\n";
 }
 
