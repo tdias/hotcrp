@@ -221,7 +221,7 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
      "deletepaper" =>
      array("subject" => "[%CONFSHORTNAME%] Deleted paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "body" => "Caro %NAME%,
 
 Your %CONFNAME% paper #%NUMBER% has been removed from the submission database by an administrator. This can be done to remove duplicate papers. %IF(REASON)%The following reason was provided for deleting the paper: %REASON%%ENDIF%
 
@@ -234,7 +234,7 @@ Contact the site administrator, %ADMIN%, with any questions or concerns.
 
      "reviewsubmit" =>
      array("subject" => "[%CONFSHORTNAME%] Revisão submetida #%REVIEWNUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "body" => "Prezado(a) %NAME%,
 
 A revisão #%REVIEWNUMBER% referente ao trabalho #%NUMBER% a ser apresentado em %CONFNAME% foi submetido. A revisão está disponível no site do trabalho.
 
@@ -243,7 +243,7 @@ A revisão #%REVIEWNUMBER% referente ao trabalho #%NUMBER% a ser apresentado em 
            Autores: %OPT(AUTHORS)%
       Revisado por: %OPT(REVIEWAUTHOR)%
 
-Visite o site do trabalho para verificar as revisões e comentários mais atuais, out para remover a notificação por email.
+Visite o site do trabalho para verificar as revisões e comentários mais atuais, ou para remover a notificação por email.
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
@@ -251,14 +251,14 @@ Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões 
 
      "reviewupdate" =>
      array("subject" => "[%CONFSHORTNAME%] Revisão atualizada #%REVIEWNUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "body" => "Prezado(a) %NAME%,
 
 A revisão #%REVIEWNUMBER% referente ao trabalho #%NUMBER% a ser apresentado em %CONFNAME% foi submetido. A revisão foi atualizada.
 
   Site do trabalho: %URL(paper, p=%NUMBER%)%
             Título: %TITLE%
            Autores: %OPT(AUTHORS)%
-      Revisado por: %OPT(REVIEWAUTHOR)%For the most up-to-date reviews and comments, or to unsubscribe from email notification, see the paper site.
+      Revisado por: %OPT(REVIEWAUTHOR)%Acesse o site de submissão para obter as informações mais atualizados referente ao seu trabalho.
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
@@ -268,18 +268,18 @@ Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões 
      array("mailtool_name" => "Accept notification",
 	   "mailtool_priority" => 10,
 	   "mailtool_recipients" => "dec:yes",
-	   "subject" => "[%CONFSHORTNAME%] Accepted paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "subject" => "[%CONFSHORTNAME%] Trabalho aceito #%NUMBER% %TITLEHINT%",
+	   "body" => "Prezado(a) %NAME%,
 
-The %CONFNAME% program committee is delighted to inform you that your paper #%NUMBER% has been accepted to appear in the conference.
+A comissão científica do evento %CONFNAME% tem o prazer de informar que o seu trabalho #%NUMBER%  foi aceito para apresentação no evento.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+       Título: %TITLE%
+      Autores: %OPT(AUTHORS)%
+  Site do trabalho: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
-Your paper was one of %NUMACCEPTED% accepted out of %NUMSUBMITTED% submissions. Congratulations!
+Seu trabalho foi um no total de %NUMACCEPTED% aceitos até o momento. Parabéns!
 
-Reviews and comments on your paper are appended to this email. The submissions site also has the paper's reviews and comments, as well as more information about review scores.%LOGINNOTICE%
+Revisões e comentários para o seu paper estão descritos no fim deste email. Estes comentários estão dispnoíveis no site de submissão assim como outras informações referentes a sua revisão.%LOGINNOTICE%
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
@@ -292,35 +292,35 @@ Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões 
      array("mailtool_name" => "Reject notification",
 	   "mailtool_priority" => 11,
 	   "mailtool_recipients" => "dec:no",
-	   "subject" => "[%CONFSHORTNAME%] Rejected paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "subject" => "[%CONFSHORTNAME%] Trabalho desclassificado #%NUMBER% %TITLEHINT%",
+	   "body" => "Prezado %NAME%,
 
 The %CONFNAME% program committee is sorry to inform you that your paper #%NUMBER% was rejected, and will not appear in the conference.
 
-       Title: %TITLE%
-     Authors: %OPT(AUTHORS)%
-  Paper site: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
+         Título: %TITLE%
+        Autores: %OPT(AUTHORS)%
+  Site do paper: %URL(paper, p=%NUMBER%&%AUTHORVIEWCAPABILITY%)%
 
-%NUMACCEPTED% papers were accepted out of %NUMSUBMITTED% submissions.
+%NUMACCEPTED% foi aceito do total de %NUMSUBMITTED% submissões.
 
-Reviews and comments on your paper are appended to this email. The submissions site also has the paper's reviews and comments, as well as more information about review scores.%LOGINNOTICE%
+Revisões e comentários para o seu paper estão descritos no fim deste email. Estes comentários estão dispnoíveis no site de submissão assim como outras informações referentes a sua revisão.%LOGINNOTICE%
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
-- %CONFSHORTNAME% Submissions
+- %CONFSHORTNAME% Submissões 
 
 %REVIEWS%
 %COMMENTS%\n"),
 
      "commentnotify" =>
-     array("subject" => "[%CONFSHORTNAME%] Comment for #%NUMBER% %TITLEHINT%",
-	   "body" => "A comment for %CONFNAME% paper #%NUMBER% has been posted. For the most up-to-date comments, or to unsubscribe from email notification, see the paper site.
+     array("subject" => "[%CONFSHORTNAME%] Comentário para #%NUMBER% %TITLEHINT%",
+	   "body" => "Um comentário foi cadastrado para o trabalho #%NUMBER% do evento %CONFNAME%. Para acessar os comentários mais atualizados, ou para desativar a notificação por email acesse o site do seu trabalho.
 
-  Paper site: %URL(paper, p=%NUMBER%)%
+  Site do trabalho: %URL(paper, p=%NUMBER%)%
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
-- %CONFSHORTNAME% Submissions
+- Submissões %CONFSHORTNAME% 
 
 %COMMENTS%\n"),
 
@@ -338,9 +338,9 @@ Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões 
 
      "finalsubmitnotify" =>
      array("subject" => "[%CONFSHORTNAME%] Updated final paper #%NUMBER% %TITLEHINT%",
-	   "body" => "The final version for %CONFNAME% paper #%NUMBER% has been updated. The authors may still be able make updates; for the most up-to-date version, or to turn off notification emails, see the paper site.
+	   "body" => "A versão final do seu trabalho #%NUMBER% submetido para o evento  %CONFNAME% foi atualizado. Os autores ainda podem realizar atualizações; para acessar a versão mais atual ou para desativar as notificações por email acesse o site do trabalho. 
 
-  Paper site: %URL(paper, p=%NUMBER%)%
+  Site do trabalho: %URL(paper, p=%NUMBER%)%
 
 Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões ou preocupações.
 
@@ -352,15 +352,15 @@ Entre em contato com o administrador do site, %ADMIN%, para quaisquer questões 
 	   "mailtool_pc" => true,
 	   "mailtool_priority" => 0,
 	   "mailtool_recipients" => "s",
-	   "subject" => "[%CONFSHORTNAME%] Paper #%NUMBER% %TITLEHINT%",
-	   "body" => "Dear %NAME%,
+	   "subject" => "[%CONFSHORTNAME%] Paper # %NUMBER% %TITLEHINT%",
+	   "body" => "Prezado %NAME%,
 
 Your message here.
 
-       Title: %TITLE%
-  Paper site: %URL(paper, p=%NUMBER%)%
+       Título: %TITLE%
+  Site do trabalho: %URL(paper, p=%NUMBER%)%
 
-Use the link below to sign in to the submissions site.
+Utilize o link abaixo para acessar o sistema de submissão.
 
 %LOGINURL%
 
