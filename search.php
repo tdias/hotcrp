@@ -2,7 +2,6 @@
 // search.php -- HotCRP paper search page
 // HotCRP is Copyright (c) 2006-2014 Eddie Kohler and Regents of the UC
 // Distributed under an MIT-like license; see LICENSE
-
 require_once("src/initweb.php");
 require_once("src/papersearch.php");
 if ($Me->is_empty())
@@ -58,7 +57,7 @@ function paperselPredicate($papersel, $prefix = "") {
     else if (count($papersel) == 1)
 	return "${prefix}paperId=$papersel[0]";
     else
-	return "${prefix}paperId em (" . join(", ", $papersel) . ")";
+	return "${prefix}paperId IN (" . join(", ", $papersel) . ")";
 }
 
 function cleanAjaxResponse(&$response, $type) {
